@@ -1,0 +1,6 @@
+.kdev4/
+build/
+src/grammar.c
+src/grammar.h
+src/lex.c
+*.kdev4
