@@ -3,44 +3,43 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "grammar.h"
-void yyerror(char *msg);
+
+extern int yylineno;
+int yylex();
+void yyerror(const char *msg, ...);
 
 typedef YYSTYPE Value;
 
-enum NodeType {
-  Extension, // ast
-  Packages, // ast
-  Package,  // ast, l->Id, r->Generals
-  Skills, // ast
-  Skill,
-  Generals, // ast
-  General,
+/* symbol table */
 
-  Num,
-  Str,
-  Id,
+enum SymType {
+  TPackage,
+  TSkill,
+  TGeneral,
+  TNumber,
+  TString
 };
 
-struct ast {
-  int nodetype;
-  struct ast *l;
-  struct ast *r;
+// Identifier -> locals["Identifier"]
+
+struct symbol {
+  char *name;
+  enum SymType type;
+  Value value;
 };
 
-struct numval {
-  int nodetype;
-  long long n;
-};
+struct symbol *lookup(char*);
 
-struct strval {
-  int nodetype;
-  char *str;
-};
+extern int package_index;
+extern int general_index;
+extern int skill_index;
 
-struct ast *newast(int nodetype, struct ast *l, struct ast *r);
-struct ast *newnum(long long n);
-
+void defPackage(char *name, struct ast *a);
+void defSkill(char *name, struct ast *a);
+void defGeneral(char *name, struct ast *a);
 Value analyzeTree(struct ast *a);
 
 #endif // _MAIN_H
+

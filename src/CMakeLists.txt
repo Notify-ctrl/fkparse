@@ -1,5 +1,8 @@
 set(fkparse_SRCS
   "main.c"
+  "ast.c"
+  "analyzer.c"
+  "linklist.c"
   "lex.c"
   "grammar.c"
 )
@@ -9,7 +12,7 @@ add_custom_command(
   OUTPUT ${PROJECT_SOURCE_DIR}/src/grammar.c
   DEPENDS ${PROJECT_SOURCE_DIR}/src/grammar.y
   COMMENT "Generating grammar.c"
-  COMMAND bison -d ${PROJECT_SOURCE_DIR}/src/grammar.y -o ${PROJECT_SOURCE_DIR}/src/grammar.c
+  COMMAND bison -d ${PROJECT_SOURCE_DIR}/src/grammar.y -o ${PROJECT_SOURCE_DIR}/src/grammar.c -Wcounterexamples
 )
 
 add_custom_command(

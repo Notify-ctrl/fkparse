@@ -1,4 +1,5 @@
 .kdev4/
+.vscode/
 build/
 src/grammar.c
 src/grammar.h

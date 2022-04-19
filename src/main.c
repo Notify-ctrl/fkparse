@@ -1,76 +1,39 @@
 #include "main.h"
+#include "ast.h"
 
-struct ast *newast(int nodetype, struct ast *l, struct ast *r) {
-  struct ast *a = malloc(sizeof(struct ast));
+/* simple symtab of fixed size */
+#define NHASH 9997
+static struct symbol symtab[NHASH];
 
-  if(!a) {
-    yyerror("out of space");
-    exit(0);
-  }
-  a->nodetype = nodetype;
-  a->l = l;
-  a->r = r;
-  return a;
+/* hash a symbol */
+static unsigned symhash(char *sym) {
+  unsigned int hash = 0;
+  unsigned c;
+
+  while(c = *sym++) hash = hash*9 ^ c;
+
+  return hash;
 }
 
-struct ast *newnum(long long n) {
-  struct numval *a = malloc(sizeof(struct numval));
+struct symbol *lookup(char* sym) {
+  struct symbol *sp = &symtab[symhash(sym)%NHASH];
+  int scount = NHASH;		/* how many have we looked at */
 
-  if(!a) {
-    yyerror("out of space");
-    exit(0);
+  while(--scount >= 0) {
+    if(sp->name && !strcmp(sp->name, sym)) { return sp; }
+
+    if(!sp->name) {		/* new entry */
+      sp->name = strdup(sym);
+      sp->type = TNumber;
+      sp->value.i = 0;
+      return sp;
+    }
+
+    if(++sp >= symtab+NHASH) sp = symtab; /* try the next entry */
   }
-  a->nodetype = Num;
-  a->n = n;
-  return (struct ast *)a;
-}
+  yyerror("symbol table overflow\n");
+  abort(); /* tried them all, table is full */
 
-void loadTranslations() {}
-
-void returnPackages() {exit(0);}
-
-Value analyzeTree(struct ast *a) {
-  Value v;
-
-  if (!a) {
-    yyerror("attempt to analyze NULL tree");
-    exit(0);
-  }
-
-  switch (a->nodetype) {
-    case Extension:
-      analyzeTree(a->l);
-      analyzeTree(a->r);
-      loadTranslations();
-      returnPackages();
-      break;
-
-    // 0 or more
-    case Skills:
-    case Generals:
-      if (a->l) {
-        analyzeTree(a->l);
-        analyzeTree(a->r);
-      }
-      break;
-
-    // 1 or more
-    case Packages:
-      if (a->l) {
-        analyzeTree(a->l);
-      }
-      analyzeTree(a->r);
-      break;
-
-    case Package:
-      analyzeTree(a->r);
-      break;
-
-    default:
-      break;
-  }
-
-  return v;
 }
 
 int main() {
