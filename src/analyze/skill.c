@@ -112,9 +112,9 @@ static void initData(int event) {
     case Damaged:
     case DamageComplete:
       writeline("local damage = data:toDamage()");
-      defineLocal("伤害来源", "damage.from or dummyobj", TPlayer);
+      defineLocal("伤害来源", "damage.from", TPlayer);
       defineLocal("伤害目标", "damage.to", TPlayer);
-      defineLocal("造成伤害的牌", "damage.card or dummyobj", TCard);
+      defineLocal("造成伤害的牌", "damage.card", TCard);
       defineLocal("伤害值", "damage.damage", TNumber);
       break;
 
