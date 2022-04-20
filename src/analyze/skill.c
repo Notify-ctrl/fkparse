@@ -27,12 +27,29 @@ void analyzeSkill(struct ast *a) {
   }
 }
 
+static int analyzedSpecs[16];
+static int specStackPointer;
+
+static int checkDuplicate(int *arr, int to_check, int p, char *msg) {
+  for (int i = 0; i < p; i++) {
+    if (arr[i] == to_check) {
+      fprintf(stderr, "错误：%s %d\n", msg, to_check);
+      exit(1);
+    }
+  }
+}
+
 void analyzeSkillspecs(struct ast *a) {
   checktype(a->nodetype, N_SkillSpecs);
 
+  memset(analyzedSpecs, 0, sizeof(int) * 16);
+  specStackPointer = 0;
   if (a->l) {
     analyzeSkillspecs(a->l);
     struct ast *r = a->r;
+    checkDuplicate(analyzedSpecs, r->nodetype, specStackPointer, "重复的技能类型");
+    analyzedSpecs[specStackPointer] = r->nodetype;
+    specStackPointer++;
     switch (r->nodetype) {
       case N_TriggerSkill:
         analyzeTriggerSkill(r);
@@ -55,8 +72,14 @@ void analyzeTriggerSkill(struct ast *a) {
   indent_level--;
 }
 
+static int analyzedEvents[256];
+static int eventStackPointer;
+
 void analyzeTriggerspecs(struct ast *a) {
   checktype(a->nodetype, N_TriggerSpecs);
+
+  memset(analyzedEvents, 0, sizeof(int) * 256);
+  eventStackPointer = 0;
 
   if (a->l) {
     analyzeTriggerspecs(a->l);
@@ -213,6 +236,10 @@ void analyzeTriggerspec(struct ast *a) {
   checktype(a->nodetype, N_TriggerSpec);
 
   struct astTriggerSpec *ts = (struct astTriggerSpec *)a;
+  checkDuplicate(analyzedEvents, ts->event, eventStackPointer, "重复的时机");
+  analyzedEvents[eventStackPointer] = ts->event;
+  eventStackPointer++;
+
   writeline("[%s] = {", event_table[ts->event]);
   indent_level++;
   writeline("-- can_trigger");
