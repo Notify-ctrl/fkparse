@@ -84,6 +84,15 @@ struct aststr {
 
 struct ast *newstr(char *s);
 
+struct astpackage {
+  int nodetype;
+  struct ast *id;
+  struct ast *generals;
+  int uid;
+};
+
+struct ast *newpackage(char *id, struct ast *generals);
+
 struct astgeneral {
   int nodetype;
   struct aststr *id;
@@ -91,6 +100,7 @@ struct astgeneral {
   long long hp;
   struct aststr *nickname;
   struct ast *skills;
+  int uid;
 };
 
 struct ast *newgeneral(char *id, char *kingdom, long long hp,
@@ -101,6 +111,7 @@ struct astskill {
   struct aststr *id;
   struct aststr *description;
   struct ast *skillspec;
+  int uid;
 };
 
 struct ast *newskill(char *id, char *desc, struct ast *spec);

@@ -12,7 +12,25 @@
 
 static struct ast *all_skills;
 
-static int skill_exists;
+static struct astpackage *currentpack;
+static struct astgeneral *currentgeneral;
+static struct astskill *currentskill;
+
+static int indent_level = 0;
+
+static void print_indent() {
+  for (int i = 0; i < indent_level; i++)
+    fprintf(yyout, "  ");
+}
+
+static void writeline(const char *msg, ...) {
+  print_indent();
+  va_list ap;
+  va_start(ap, msg);
+
+  vfprintf(yyout, msg, ap);
+  fprintf(yyout, "\n");
+}
 
 static int exists(struct ast *skill, struct ast *str) {
   if (!strcmp(((struct astskill *)skill)->id->str, (char *)str)) {
@@ -21,21 +39,35 @@ static int exists(struct ast *skill, struct ast *str) {
   return 0;
 }
 
-static int general_addSkill(struct ast *skill, struct ast *general) {
-  struct astgeneral *g = (struct astgeneral *)general;
-  if (foreach(all_skills, (struct ast *)(((struct aststr *)skill)->str), exists))
-    printf("%s:addSkill(\"%s\")\n", g->id->str, ((struct aststr *)skill)->str);
-  else
-    yyerror("%s not exist\n", ((struct aststr *)skill)->str);
-  return 1;
+static char *kingdom(char *k) {
+  if (!strcmp(k, "魏"))
+    return "wei";
+  else if (!strcmp(k, "蜀"))
+    return "shu";
+  else if (!strcmp(k, "吴"))
+    return "wu";
+  else if (!strcmp(k, "群"))
+    return "qun";
+  else if (!strcmp(k, "神"))
+    return "god";
+  else {
+    fprintf(stderr, "未知国籍 \"%s\"：退出\n", k);
+    exit(1);
+  }
 }
 
 void analyzeGeneral(struct ast *a) {
   checktype(a->nodetype, N_General);
 
   struct astgeneral *g = (struct astgeneral *)a;
-  printf("%s,%s,%s,%lld\n", g->kingdom->str, g->nickname->str, g->id->str, g->hp);
-  foreach(g->skills, (struct ast *)g, general_addSkill);
+  fprintf(yyout, "%sg%d = sgs.General(%sp%d, \"%sg%d\", \"%s\", %lld)\n",
+         readfile_name, g->uid, readfile_name, currentpack->uid, readfile_name,
+         g->uid, kingdom(g->kingdom->str), g->hp);
+  char buf[64];
+  sprintf(buf, "%sg%d", readfile_name, g->uid);
+  addTranslation(buf, g->id->str);
+  sprintf(buf, "#%sg%d", readfile_name, g->uid);
+  addTranslation(buf, g->nickname->str);
 }
 
 void analyzePackageList(struct ast *a) {
@@ -51,9 +83,14 @@ void analyzePackageList(struct ast *a) {
 void analyzePackage(struct ast *a) {
   checktype(a->nodetype, N_Package);
 
-  printf("Package: %s\nGenerals:\n", ((struct aststr *)(a->l))->str);
+  struct astpackage *p = (struct astpackage *)a;
+  currentpack = p;
+  fprintf(yyout, "%sp%d = sgs.Package(\"%sp%d\")\n",readfile_name, p->uid, readfile_name, p->uid);
+  char buf[64];
+  sprintf(buf, "%sp%d", readfile_name, p->uid);
+  addTranslation(buf, ((struct aststr *)p->id)->str);
   analyzeGeneralList(a->r);
-  printf("\n");
+  fprintf(yyout, "\n");
 }
 
 void analyzeExtension(struct ast *a) {
@@ -61,6 +98,12 @@ void analyzeExtension(struct ast *a) {
   all_skills = a->l;
   analyzeSkillList(a->l);
   analyzePackageList(a->r);
+  loadTranslations();
+  fprintf(yyout, "\nreturn { ");
+  for (int i = 0; i <= currentpack->uid; i++) {
+    fprintf(yyout, "%sp%d, ", readfile_name, i);
+  }
+  fprintf(yyout, "}\n");
 }
 
 void analyzeSkillList(struct ast *a) {
@@ -76,9 +119,13 @@ void analyzeSkill(struct ast *a) {
   checktype(a->nodetype, N_Skill);
 
   struct astskill *s = (struct astskill *)a;
-  printf("Read Skill: %s\n  description: %s\n", s->id->str, s->description->str);
+  currentskill = s;
+  char buf[64];
+  sprintf(buf, "%ss%d", readfile_name, s->uid);
+  addTranslation(buf, s->id->str);
+  sprintf(buf, ":%ss%d", readfile_name, s->uid);
+  addTranslation(buf, s->description->str);
   analyzeSkillspecs(s->skillspec);
-  printf("\n");
 }
 
 void analyzeSkillspecs(struct ast *a) {
@@ -102,9 +149,11 @@ void analyzeSkillspecs(struct ast *a) {
 void analyzeTriggerSkill(struct ast *a) {
   checktype(a->nodetype, N_TriggerSkill);
 
-  printf("  specs: [\n");
+  fprintf(yyout, "%ss%d = fkp.CreateTriggerSkill{\n  name = \"%ss%d\",\n  specs = {\n", readfile_name, currentskill->uid, readfile_name, currentskill->uid);
+  indent_level++;
   analyzeTriggerspecs(a->l);
-  printf("  ]\n");
+  fprintf(yyout, "  }\n}\n\n");
+  indent_level--;
 }
 
 void analyzeTriggerspecs(struct ast *a) {
@@ -121,11 +170,32 @@ void analyzeTriggerspec(struct ast *a) {
   checktype(a->nodetype, N_TriggerSpec);
 
   struct astTriggerSpec *ts = (struct astTriggerSpec *)a;
-  printf("Event: %d\n", ts->event);
-  if (ts->cond)
+  writeline("[%d] = {", ts->event);
+  indent_level++;
+  writeline("-- can_trigger");
+  writeline("function (self, target, player, data)");
+  indent_level++;
+  if (ts->cond) {
     analyzeBlock(ts->cond);
+  } else {
+    writeline("return target and player == target and player:hasSkill(self:objectName())");
+  }
 
+  indent_level--;
+  writeline("end,\n");
+ 
+  writeline("-- on effect");
+  writeline("function (self, target, player, data)");
+  indent_level++; 
+  writeline("local room = player:getRoom()");
+  writeline("local locals = {}");
+  writeline("locals[\"你\"] = player\n");
   analyzeBlock(ts->effect);
+  indent_level--;
+  writeline("end,");
+
+  indent_level--;
+  writeline("},");
 }
 
 void analyzeBlock(struct ast *a) {
@@ -163,5 +233,5 @@ void analyzeStringList(struct ast *a) {
 void analyzeString(struct ast *a) {
   checktype(a->nodetype, N_Str);
 
-  printf("\"%s\",", ((struct aststr *)a)->str);
+  fprintf(yyout, "\"%s\",", ((struct aststr *)a)->str);
 }

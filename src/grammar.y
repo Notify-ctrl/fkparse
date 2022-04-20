@@ -3,6 +3,7 @@
 #include "enums.h"
 #include "ast.h"
 #include "analyzer.h"
+#include "linklist.h"
 #include <stdarg.h>
 
 void yyerror(const char *msg, ...) {
@@ -186,7 +187,10 @@ packageList : package { $$ = newast(N_Packages, NULL, $1); }
             | packageList package { $$ = newast(N_Packages, $1, $2); }
             ;
 
-package     : PKGSTART IDENTIFIER generalList { $$ = newast(N_Package, newstr($2), $3); free($2); }
+package     : PKGSTART IDENTIFIER generalList {
+                $$ = newpackage($2, $3);
+                free($2);
+              }
             ;
 
 generalList : %empty { $$ = newast(N_Generals, NULL, NULL); }

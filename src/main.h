@@ -2,13 +2,18 @@
 #define _MAIN_H
 
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include "grammar.h"
 
 extern int yylineno;
+extern FILE *yyin;
+extern FILE *yyout;
 int yylex();
 void yyerror(const char *msg, ...);
+
+extern char *readfile_name;
 
 typedef YYSTYPE Value;
 

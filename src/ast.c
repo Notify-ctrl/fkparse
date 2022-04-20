@@ -38,6 +38,21 @@ struct ast *newstr(char *s) {
   return (struct ast *)a;
 }
 
+struct ast *newpackage(char *id, struct ast *generals) {
+  struct astpackage *a = malloc(sizeof(struct astpackage));
+
+  if(!a) {
+    yyerror("out of space");
+    exit(0);
+  }
+  a->nodetype = N_Package;
+  a->id = newstr(id);
+  a->generals = generals;
+  static int package_id = 0;
+  a->uid = package_id++;
+  return (struct ast *)a;
+}
+
 struct ast *newgeneral(char *id, char *kingdom, long long hp,
                         char *nickname, struct ast *skills) {
   struct astgeneral *a = malloc(sizeof(struct astgeneral));
@@ -52,6 +67,8 @@ struct ast *newgeneral(char *id, char *kingdom, long long hp,
   a->hp = hp;
   a->nickname = (struct aststr *)newstr(nickname);
   a->skills = skills;
+  static int general_id = 0;
+  a->uid = general_id++;
   return (struct ast *)a;
 }
 
@@ -66,6 +83,8 @@ struct ast *newskill(char *id, char *desc, struct ast *spec) {
   a->id = (struct aststr *)newstr(id);
   a->description = (struct aststr *)newstr(desc);
   a->skillspec = spec;
+  static int skill_id = 0;
+  a->uid = skill_id++;
   return (struct ast *)a;
 }
 
@@ -77,6 +96,7 @@ struct ast *newtriggerspec(int event, struct ast *cond, struct ast *effect) {
     exit(0);
   }
   a->nodetype = N_TriggerSpec;
+  a->event = event;
   a->cond = cond;
   a->effect = effect;
   return (struct ast *)a;
