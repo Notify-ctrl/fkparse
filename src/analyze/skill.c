@@ -213,7 +213,7 @@ void analyzeTriggerspec(struct ast *a) {
   checktype(a->nodetype, N_TriggerSpec);
 
   struct astTriggerSpec *ts = (struct astTriggerSpec *)a;
-  writeline("[%d] = {", ts->event);
+  writeline("[%s] = {", event_table[ts->event]);
   indent_level++;
   writeline("-- can_trigger");
   writeline("function (self, target, player, data)");

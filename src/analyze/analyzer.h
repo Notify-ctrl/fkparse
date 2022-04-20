@@ -57,6 +57,8 @@ struct symbol *lookup(char *);
 int isReserved(char *);
 int analyzeReserved(char *k);
 
+extern char *event_table[];
+
 /* analyzer for each grammar rule */
 
 void analyzeExtension(struct ast *a);

@@ -165,3 +165,99 @@ int analyzeReserved(char *k) {
   exit(1);
 }
 
+char *event_table[] = {
+  "sgs.NonTrigger",
+
+  "sgs.GameStart",
+  "sgs.TurnStart",
+  "sgs.EventPhaseStart",
+  "sgs.EventPhaseProceeding",
+  "sgs.EventPhaseEnd",
+  "sgs.EventPhaseChanging",
+  "sgs.EventPhaseSkipping",
+
+  "sgs.DrawNCards",
+  "sgs.AfterDrawNCards",
+  "sgs.DrawInitialCards",
+  "sgs.AfterDrawInitialCards",
+
+  "sgs.PreHpRecover",
+  "sgs.HpRecover",
+  "sgs.PreHpLost",
+  "sgs.HpLost",
+  "sgs.HpChanged",
+  "sgs.MaxHpChanged",
+
+  "sgs.EventLoseSkill",
+  "sgs.EventAcquireSkill",
+
+  "sgs.StartJudge",
+  "sgs.AskForRetrial",
+  "sgs.FinishRetrial",
+  "sgs.FinishJudge",
+
+  "sgs.PindianVerifying",
+  "sgs.Pindian",
+
+  "sgs.TurnedOver",
+  "sgs.ChainStateChanged",
+
+  "sgs.ConfirmDamage",    
+  "sgs.Predamage",        
+  "sgs.DamageForseen",    
+  "sgs.DamageCaused",     
+  "sgs.DamageInflicted",  
+  "sgs.PreDamageDone",    
+  "sgs.DamageDone",       
+  "sgs.Damage",           
+  "sgs.Damaged",          
+  "sgs.DamageComplete",   
+
+  "sgs.EnterDying",
+  "sgs.Dying",
+  "sgs.QuitDying",
+  "sgs.AskForPeaches",
+  "sgs.AskForPeachesDone",
+  "sgs.Death",
+  "sgs.BuryVictim",
+  "sgs.BeforeGameOverJudge",
+  "sgs.GameOverJudge",
+  "sgs.GameFinished",
+
+  "sgs.SlashEffected",
+  "sgs.SlashProceed",
+  "sgs.SlashHit",
+  "sgs.SlashMissed",
+
+  "sgs.JinkEffect",
+  "sgs.NullificationEffect",
+
+  "sgs.CardAsked",
+  "sgs.PreCardResponded",
+  "sgs.CardResponded",
+  "sgs.BeforeCardsMove", 
+  "sgs.CardsMoveOneTime",
+
+  "sgs.PreCardUsed", 
+  "sgs.CardUsed",
+  "sgs.TargetSpecifying",
+  "sgs.TargetConfirming",
+  "sgs.TargetSpecified",
+  "sgs.TargetConfirmed",
+  "sgs.CardEffect", 
+  "sgs.CardEffected",
+  "sgs.PostCardEffected",
+  "sgs.CardFinished",
+  "sgs.TrickCardCanceling",
+  "sgs.TrickEffect",
+
+  "sgs.ChoiceMade",
+
+  "sgs.StageChange", 
+  "sgs.FetchDrawPileCard", 
+  "sgs.Debut", 
+
+  "sgs.TurnBroken", 
+
+  "sgs.NumOfEvents"
+};
