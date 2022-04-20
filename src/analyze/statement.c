@@ -12,6 +12,12 @@ static int getField(int objtype, char *field) {
       } else if (!strcmp(field, "体力上限")) {
         fprintf(yyout, ":getMaxHp()");
         return TNumber;
+      } else if (!strcmp(field, "当前阶段")) {
+        fprintf(yyout, ":getPhase()");
+        return TNumber;
+      } else if (!strcmp(field, "身份")) {
+        fprintf(yyout, ":getRoleEnum()");
+        return TNumber;
       } else {
         fprintf(stderr, "无法获取 玩家 的属性 \"%s\"\n", field);
         exit(1);
@@ -22,6 +28,12 @@ static int getField(int objtype, char *field) {
         return TNumber;
       } else if (!strcmp(field, "花色")) {
         fprintf(yyout, ":getSuit()");
+        return TNumber;
+      } else if (!strcmp(field, "类别")) {
+        fprintf(yyout, ":getTypeId()");
+        return TNumber;
+      } else if (!strcmp(field, "牌名")) {
+        fprintf(yyout, ":objectName()");
         return TNumber;
       } else {
         fprintf(stderr, "无法获取 卡牌 的属性 \"%s\"\n", field);
@@ -71,13 +83,26 @@ int analyzeExp(struct ast *a) {
 
   struct astExp *e = (struct astExp *)a;
   if ((e->exptype == ExpCalc || e->exptype == ExpCmp) && e->optype != 0) {
+    if (e->optype == 3 || e->optype == 4) {
+      t = analyzeExp((struct ast *)(e->l));
+      if (t == TPlayer) {
+        fprintf(yyout, ":objectName()");
+      }
+      switch (e->optype) {
+        case 3: fprintf(yyout, " ~= "); break;
+        case 4: fprintf(yyout, " == "); break;
+      }
+      t = analyzeExp((struct ast *)(e->r));
+      if (t == TPlayer) {
+        fprintf(yyout, ":objectName()");
+      }
+      return TNumber;
+    }
     t = analyzeExp((struct ast *)(e->l));
     checktype(t, TNumber);
     switch (e->optype) {
       case 1: fprintf(yyout, " > "); break;
       case 2: fprintf(yyout, " < "); break;
-      case 3: fprintf(yyout, " ~= "); break;
-      case 4: fprintf(yyout, " == "); break;
       case 5: fprintf(yyout, " >= "); break;
       case 6: fprintf(yyout, " <= "); break;
       default: fprintf(yyout, " %c " ,e->optype); break;

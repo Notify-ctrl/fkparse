@@ -28,3 +28,7 @@ function fkp.CreateTriggerSkill(spec)
 
   return skill
 end
+
+dummyobj = {
+  objectName = function() return "" end
+}
