@@ -36,19 +36,8 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-  int MAXSIZE = 0xFFF;
-  char proclnk[0xFFF];
   char filename[0xFFF];
-  int fno = fileno(yyin);
-  ssize_t r;
-  sprintf(proclnk, "/proc/self/fd/%d", fno);
-  r = readlink(proclnk, filename, MAXSIZE);
-  if (r < 0) {
-    printf("failed to readlink\n");
-    exit(1);
-  }
-  filename[r] = '\0';
-  readfile_name = getFileName(filename);
+  readfile_name = getFileName(argv[1]);
   sprintf(filename, "%s.lua%c", readfile_name, 0);
 
   yyout = fopen(filename, "w+");
