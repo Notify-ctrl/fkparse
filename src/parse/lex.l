@@ -1,6 +1,7 @@
 %option noyywrap nodefault yylineno
 
 %{
+#include "grammar.h"
 #include "main.h"
 #include "enums.h"
 %}

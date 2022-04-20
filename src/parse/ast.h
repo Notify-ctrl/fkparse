@@ -2,10 +2,10 @@
 #define _AST_H
 
 enum NodeType {
-  N_Extension, // ast
-  N_Packages, // ast
-  N_Package,  // ast, l->Id, r->Generals
-  N_Skills, // ast
+  N_Extension,
+  N_Packages,
+  N_Package,
+  N_Skills,
   N_Skill,
   N_SkillSpecs,
   N_TriggerSkill,
@@ -27,7 +27,7 @@ enum NodeType {
 
   N_Var,
 
-  N_Generals, // ast
+  N_Generals,
   N_General,
 
   N_Num,
@@ -161,7 +161,7 @@ struct astAction {
 
 struct ast *newaction(int type, struct ast *action);
 
-// actions with 2 or less operator(s) use struct ast instead
+/* actions with 2 or less operator(s) use struct ast instead */
 
 struct actionDamage {
   int nodetype;
@@ -186,9 +186,9 @@ struct ast *newexp(int exptype, long long value, int optype, struct astExp *l, s
 
 struct astVar {
   int nodetype;
-  struct aststr *name;  // or field
+  struct aststr *name;  /* or field */
   struct astExp *obj;
-  int type; // todo: need a symtab
+  int type; /* TODO: need a symtab */
 };
 
 #endif  // _AST_H

@@ -1,7 +1,7 @@
 .kdev4/
 .vscode/
 build/
-src/grammar.c
-src/grammar.h
-src/lex.c
+grammar.c
+grammar.h
+lex.c
 *.kdev4

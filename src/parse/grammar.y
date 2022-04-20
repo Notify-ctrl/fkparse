@@ -3,18 +3,6 @@
 #include "enums.h"
 #include "ast.h"
 #include "analyzer.h"
-#include "linklist.h"
-#include <stdarg.h>
-
-void yyerror(const char *msg, ...) {
-  va_list ap;
-  va_start(ap, msg);
-
-  fprintf(stderr, "%d: error: ", yylineno);
-  vfprintf(stderr, msg, ap);
-  fprintf(stderr, "\n");
-}
-
 %}
 
 %union {

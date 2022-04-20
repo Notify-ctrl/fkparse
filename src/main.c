@@ -1,5 +1,15 @@
 #include "main.h"
 #include "ast.h"
+#include <stdarg.h>
+
+void yyerror(const char *msg, ...) {
+  va_list ap;
+  va_start(ap, msg);
+
+  fprintf(stderr, "%d: error: ", yylineno);
+  vfprintf(stderr, msg, ap);
+  fprintf(stderr, "\n");
+}
 
 char *readfile_name;
 
@@ -25,6 +35,7 @@ int main(int argc, char **argv) {
     printf("usage: %s <filename>\n", argv[0]);
     exit(0);
   }
+
   int MAXSIZE = 0xFFF;
   char proclnk[0xFFF];
   char filename[0xFFF];
@@ -38,7 +49,8 @@ int main(int argc, char **argv) {
   }
   filename[r] = '\0';
   readfile_name = getFileName(filename);
-  sprintf(filename, "%s.lua\0", readfile_name);
+  sprintf(filename, "%s.lua%c", readfile_name, 0);
+
   yyout = fopen(filename, "w+");
   yyparse();
 }

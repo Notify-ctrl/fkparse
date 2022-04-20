@@ -1,5 +1,4 @@
-#include "linklist.h"
-#include "main.h"
+#include "analyzer.h"
 
 struct translations *Translations = 0;
 
@@ -22,21 +21,11 @@ void addTranslation(char *src, char *dest) {
 void loadTranslations() {
   fprintf(yyout, "sgs.LoadTranslationTable{\n");
   struct translations *t = Translations->next;
+  indent_level++;
   while (t) {
-    fprintf(yyout, "  [\"%s\"] = \"%s\",\n", t->src, t->dest);
+    writeline("[\"%s\"] = \"%s\",", t->src, t->dest);
     t = t->next;
   }
   fprintf(yyout, "}\n");
 }
 
-int foreach(struct ast* list, struct ast *parent, Callback f)
-{
-  int ret = 0;
-  if (list->l)  // struct ast *prev
-    ret = foreach(list->l, parent, f);
-
-  if (list->r)  // struct ast *data
-    ret = ret | f(list->r, parent);
-
-  return ret;
-}
