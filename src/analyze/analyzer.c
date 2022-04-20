@@ -103,6 +103,7 @@ void analyzePackage(struct ast *a) {
 void analyzeExtension(struct ast *a) {
   checktype(a->nodetype, N_Extension);
 
+  lookup("你")->type = TPlayer;
   writeline("require \"fkparser\"\n");
   all_skills = a->l;
   analyzeSkillList(a->l);

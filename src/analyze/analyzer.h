@@ -43,8 +43,16 @@ enum ExpVType {
   TPlayer,
   TCard,
 
-  TAny = 0xFF
+  TAny = 0xFFFF
 };
+
+/* symbol table */
+struct symbol { /* a variable name */
+  char *name;
+  int type;
+};
+
+struct symbol *lookup(char *);
 
 /* analyzer for each grammar rule */
 

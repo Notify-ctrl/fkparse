@@ -1,31 +1,57 @@
 #include "analyzer.h"
 
+static int getField(int objtype, char *field) {
+  switch (objtype) {
+    case TPlayer:
+      if (!strcmp(field, "体力值")) {
+        fprintf(yyout, ":getHp()");
+        return TNumber;
+      } else if (!strcmp(field, "手牌数")) {
+        fprintf(yyout, ":getHandcardNum()");
+        return TNumber;
+      } else if (!strcmp(field, "体力上限")) {
+        fprintf(yyout, ":getMaxHp()");
+        return TNumber;
+      } else {
+        fprintf(stderr, "无法获取 玩家 的属性 \"%s\"\n", field);
+        exit(1);
+      }
+    case TCard:
+      if (!strcmp(field, "点数")) {
+        fprintf(yyout, ":getNumber()");
+        return TNumber;
+      } else if (!strcmp(field, "花色")) {
+        fprintf(yyout, ":getSuit()");
+        return TNumber;
+      } else {
+        fprintf(stderr, "无法获取 卡牌 的属性 \"%s\"\n", field);
+        exit(1);
+      }
+    default:
+      fprintf(stderr, "错误：不能获取类型为%d的对象的属性\n", objtype);
+      exit(1);
+  }
+}
+
 int analyzeVar(struct ast *a) {
   checktype(a->nodetype, N_Var);
 
   int ret = TAny;
   struct astVar *v = (struct astVar *)a;
+  int t;
 
   if (v->obj) {
-    /* assuming obj is Player */
-    /* TODO: type system for var */
-    analyzeExp((struct ast *)(v->obj));
+    t = analyzeExp((struct ast *)(v->obj));
     char *s = v->name->str;
-    if (!strcmp(s, "体力值")) {
-      fprintf(yyout, ":getHp()");
-      ret = TNumber;
-    } else if (!strcmp(s, "手牌数")) {
-      fprintf(yyout, ":getHandcardNum()");
-      ret = TNumber;
-    } else if (!strcmp(s, "体力上限")) {
-      fprintf(yyout, ":getMaxHp()");
-      ret = TNumber;
-    } else {
-      fprintf(stderr, "unknown field %s\n", v->name->str);
-      exit(1);
-    }
+    return getField(t, s);
   } else {
     fprintf(yyout, "locals[\"%s\"]", v->name->str);
+    t = lookup(v->name->str)->type;
+    if (t == TNone) {
+      fprintf(stderr, "错误：标识符\"%s\"尚未定义\n", v->name->str);
+      exit(1);
+    }
+    return t;
   }
 
   return ret;
@@ -98,10 +124,19 @@ void analyzeStats(struct ast *a) {
 void analyzeStatAssign(struct ast *a) {
   checktype(a->nodetype, N_Stat_Assign);
 
+  int t;
   print_indent();
   analyzeVar(a->l);
   fprintf(yyout, " = ");
-  analyzeExp(a->r);
+  t = analyzeExp(a->r);
+  struct astVar *v = (struct astVar *)(a->l);
+  if (v->obj == NULL) {
+    lookup(v->name->str)->type = t;
+    if (!strcmp(v->name->str, "你")) {
+      fprintf(stderr, "错误：不允许重定义标识符 \"你\"\n");
+      exit(1);
+    }
+  }
   fprintf(yyout, "\n");
 }
 

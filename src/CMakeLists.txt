@@ -6,6 +6,7 @@ set(fkparse_SRCS
   "analyze/analyzer.c"
   "analyze/skill.c"
   "analyze/statement.c"
+  "analyze/symtab.c"
   "analyze/translations.c"
 )
 
