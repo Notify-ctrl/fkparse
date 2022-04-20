@@ -1,78 +1,56 @@
 #include "main.h"
+#include "ast.h"
+#include <stdarg.h>
 
-struct ast *newast(int nodetype, struct ast *l, struct ast *r) {
-  struct ast *a = malloc(sizeof(struct ast));
+void yyerror(const char *msg, ...) {
+  va_list ap;
+  va_start(ap, msg);
 
-  if(!a) {
-    yyerror("out of space");
-    exit(0);
-  }
-  a->nodetype = nodetype;
-  a->l = l;
-  a->r = r;
-  return a;
+  fprintf(stderr, "%d: error: ", yylineno);
+  vfprintf(stderr, msg, ap);
+  fprintf(stderr, "\n");
 }
 
-struct ast *newnum(long long n) {
-  struct numval *a = malloc(sizeof(struct numval));
+char *readfile_name;
 
-  if(!a) {
-    yyerror("out of space");
-    exit(0);
+static char *getFileName(char *path) {
+  char *retVal = path, *p;
+  for (p = path; *p; p++) {
+    if (*p == '/' || *p == '\\' || *p == ':') {
+      retVal = p + 1;
+    }
   }
-  a->nodetype = Num;
-  a->n = n;
-  return (struct ast *)a;
+  retVal[strlen(retVal) - 4] = 0;
+  return retVal;
 }
 
-void loadTranslations() {}
-
-void returnPackages() {exit(0);}
-
-Value analyzeTree(struct ast *a) {
-  Value v;
-
-  if (!a) {
-    yyerror("attempt to analyze NULL tree");
+int main(int argc, char **argv) {
+  if (argc > 1) {
+    yyin = fopen(argv[1], "r");
+    if (!yyin) {
+      fprintf(stderr, "cannot open file %s\n", argv[1]);
+      exit(-1);
+    }
+  } else {
+    printf("usage: %s <filename>\n", argv[0]);
     exit(0);
   }
 
-  switch (a->nodetype) {
-    case Extension:
-      analyzeTree(a->l);
-      analyzeTree(a->r);
-      loadTranslations();
-      returnPackages();
-      break;
-
-    // 0 or more
-    case Skills:
-    case Generals:
-      if (a->l) {
-        analyzeTree(a->l);
-        analyzeTree(a->r);
-      }
-      break;
-
-    // 1 or more
-    case Packages:
-      if (a->l) {
-        analyzeTree(a->l);
-      }
-      analyzeTree(a->r);
-      break;
-
-    case Package:
-      analyzeTree(a->r);
-      break;
-
-    default:
-      break;
+  int MAXSIZE = 0xFFF;
+  char proclnk[0xFFF];
+  char filename[0xFFF];
+  int fno = fileno(yyin);
+  ssize_t r;
+  sprintf(proclnk, "/proc/self/fd/%d", fno);
+  r = readlink(proclnk, filename, MAXSIZE);
+  if (r < 0) {
+    printf("failed to readlink\n");
+    exit(1);
   }
+  filename[r] = '\0';
+  readfile_name = getFileName(filename);
+  sprintf(filename, "%s.lua%c", readfile_name, 0);
 
-  return v;
-}
-
-int main() {
+  yyout = fopen(filename, "w+");
   yyparse();
 }
