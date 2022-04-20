@@ -63,8 +63,10 @@
 "技能"  { return SKILL; }
 
 "造成伤害时"    { yylval.enum_v = DamageCaused; return EVENT; }
+"受到伤害时"    { yylval.enum_v = DamageInflicted; return EVENT; }
 "造成伤害后"    { yylval.enum_v = Damage; return EVENT; }
 "受到伤害后"    { yylval.enum_v = Damaged; return EVENT; }
+"造成伤害结算完成后" { yylval.enum_v = DamageComplete; return EVENT; }
 
 "$" |
 "#" |

@@ -1,4 +1,5 @@
 #include "analyzer.h"
+#include "enums.h"
 
 void analyzeSkillList(struct ast *a) {
   checktype(a->nodetype, N_Skills);
@@ -64,6 +65,85 @@ void analyzeTriggerspecs(struct ast *a) {
   analyzeTriggerspec(a->r);
 }
 
+static void defineLocal(char *k, char *v, int type) {
+  writeline("locals[\"%s\"] = %s", k, v);
+  lookup(k)->type = type;
+}
+
+static void initData(int event) {
+  writeline("-- get datas for this trigger event");
+  switch (event) {
+    case ConfirmDamage:
+    case Predamage:
+    case DamageForseen:
+    case DamageCaused:
+    case DamageInflicted:
+    case PreDamageDone:
+    case DamageDone:
+    case Damage:
+    case Damaged:
+    case DamageComplete:
+      writeline("local damage = data:toDamage()");
+      defineLocal("伤害来源", "damage.from", TPlayer);
+      defineLocal("伤害目标", "damage.to", TPlayer);
+      defineLocal("造成伤害的牌", "damage.card", TCard);
+      defineLocal("伤害值", "damage.damage", TNumber);
+      break;
+    default:
+      break;
+  }
+  writeline("");
+}
+
+static void clearLocal(char *k, char *v, int rewrite) {
+  lookup(k)->type = TNone;
+  if (rewrite) {
+    writeline("%s = locals[\"%s\"]", v, k);
+  }
+}
+
+static void clearData(int event) {
+  int rewrite = 0;
+  switch (event) {
+    case ConfirmDamage:
+    case Predamage:
+    case DamageForseen:
+    case DamageCaused:
+    case DamageInflicted:
+      rewrite = 1;
+    case PreDamageDone:
+    case DamageDone:
+    case Damage:
+    case Damaged:
+    case DamageComplete:
+      break;
+    default:
+      break;
+  }
+
+  switch (event) {
+    case ConfirmDamage:
+    case Predamage:
+    case DamageForseen:
+    case DamageCaused:
+    case DamageInflicted:
+    case PreDamageDone:
+    case DamageDone:
+    case Damage:
+    case Damaged:
+    case DamageComplete:
+      if (rewrite) writeline("");
+      clearLocal("伤害来源", "damage.from", rewrite);
+      clearLocal("伤害目标", "damage.to", rewrite);
+      clearLocal("造成伤害的牌", "damage.card", rewrite);
+      clearLocal("伤害值", "damage.damage", rewrite);
+      if (rewrite) writeline("data:setValue(damage)");
+      break;
+    default:
+      break;
+  }
+}
+
 void analyzeTriggerspec(struct ast *a) {
   checktype(a->nodetype, N_TriggerSpec);
 
@@ -74,7 +154,12 @@ void analyzeTriggerspec(struct ast *a) {
   writeline("function (self, target, player, data)");
   indent_level++;
   if (ts->cond) {
+    writeline("local room = player:getRoom()");
+    writeline("local locals = {}");
+    writeline("locals[\"你\"] = player\n");
+    initData(ts->event);
     analyzeBlock(ts->cond);
+    clearData(ts->event);
   } else {
     writeline("return target and player == target and player:hasSkill(self:objectName())");
   }
@@ -88,7 +173,9 @@ void analyzeTriggerspec(struct ast *a) {
   writeline("local room = player:getRoom()");
   writeline("local locals = {}");
   writeline("locals[\"你\"] = player\n");
+  initData(ts->event);
   analyzeBlock(ts->effect);
+  clearData(ts->event);
   indent_level--;
   writeline("end,");
 
