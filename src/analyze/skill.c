@@ -155,8 +155,7 @@ void analyzeTriggerspec(struct ast *a) {
   indent_level++;
   if (ts->cond) {
     writeline("local room = player:getRoom()");
-    writeline("local locals = {}");
-    writeline("locals[\"你\"] = player\n");
+    writeline("local locals = {}\n");
     initData(ts->event);
     analyzeBlock(ts->cond);
     clearData(ts->event);
@@ -171,8 +170,7 @@ void analyzeTriggerspec(struct ast *a) {
   writeline("function (self, target, player, data)");
   indent_level++;
   writeline("local room = player:getRoom()");
-  writeline("local locals = {}");
-  writeline("locals[\"你\"] = player\n");
+  writeline("local locals = {}\n");
   initData(ts->event);
   analyzeBlock(ts->effect);
   clearData(ts->event);

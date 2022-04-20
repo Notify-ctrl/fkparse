@@ -40,13 +40,18 @@ int analyzeVar(struct ast *a) {
   struct astVar *v = (struct astVar *)a;
   int t;
 
+  char *s = v->name->str;
+
   if (v->obj) {
     t = analyzeExp((struct ast *)(v->obj));
-    char *s = v->name->str;
     return getField(t, s);
   } else {
-    fprintf(yyout, "locals[\"%s\"]", v->name->str);
-    t = lookup(v->name->str)->type;
+    if (isReserved(s)) {
+      t = analyzeReserved(s);
+    } else {
+      fprintf(yyout, "locals[\"%s\"]", v->name->str);
+      t = lookup(v->name->str)->type;
+    }
     if (t == TNone) {
       fprintf(stderr, "错误：标识符\"%s\"尚未定义\n", v->name->str);
       exit(1);
@@ -126,14 +131,15 @@ void analyzeStatAssign(struct ast *a) {
 
   int t;
   print_indent();
+  lookup(((struct astVar *)(a->l))->name->str)->type = TAny;
   analyzeVar(a->l);
   fprintf(yyout, " = ");
   t = analyzeExp(a->r);
   struct astVar *v = (struct astVar *)(a->l);
   if (v->obj == NULL) {
     lookup(v->name->str)->type = t;
-    if (!strcmp(v->name->str, "你")) {
-      fprintf(stderr, "错误：不允许重定义标识符 \"你\"\n");
+    if (isReserved(v->name->str)) {
+      fprintf(stderr, "错误：不允许重定义标识符 \"%s\"\n", v->name->str);
       exit(1);
     }
   }

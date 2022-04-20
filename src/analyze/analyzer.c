@@ -20,30 +20,6 @@ void writeline(const char *msg, ...) {
   fprintf(yyout, "\n");
 }
 
-static int exists(struct ast *skill, struct ast *str) {
-  if (!strcmp(((struct astskill *)skill)->id->str, (char *)str)) {
-    return 1;
-  }
-  return 0;
-}
-
-static char *kingdom(char *k) {
-  if (!strcmp(k, "魏"))
-    return "wei";
-  else if (!strcmp(k, "蜀"))
-    return "shu";
-  else if (!strcmp(k, "吴"))
-    return "wu";
-  else if (!strcmp(k, "群"))
-    return "qun";
-  else if (!strcmp(k, "神"))
-    return "god";
-  else {
-    fprintf(stderr, "未知国籍 \"%s\"：退出\n", k);
-    exit(1);
-  }
-}
-
 static void addgeneralskills(struct ast *skills) {
   struct ast *as = all_skills;
   if (skills->l) {
@@ -56,7 +32,7 @@ static void addgeneralskills(struct ast *skills) {
       }
       as = as->l;
     }
-    fprintf(stderr, "不存在的技能 \"%s\"\n", ((struct aststr *)(skills->r))->str);
+    fprintf(stderr, "错误：不存在的技能 \"%s\"\n", ((struct aststr *)(skills->r))->str);
     exit(1);
   }
 }
@@ -66,9 +42,10 @@ void analyzeGeneral(struct ast *a) {
 
   struct astgeneral *g = (struct astgeneral *)a;
   currentgeneral = g;
-  fprintf(yyout, "%sg%d = sgs.General(%sp%d, \"%sg%d\", \"%s\", %lld)\n",
-         readfile_name, g->uid, readfile_name, currentpack->uid, readfile_name,
-         g->uid, kingdom(g->kingdom->str), g->hp);
+  fprintf(yyout, "%sg%d = sgs.General(%sp%d, \"%sg%d\", ", readfile_name,
+          g->uid, readfile_name, currentpack->uid, readfile_name, g->uid);
+  analyzeReserved(g->kingdom->str);
+  fprintf(yyout, ", %lld)\n", g->hp);
   char buf[64];
   sprintf(buf, "%sg%d", readfile_name, g->uid);
   addTranslation(buf, g->id->str);
