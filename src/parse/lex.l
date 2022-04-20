@@ -100,6 +100,7 @@
 "角色阵亡时"     { yylval.enum_v = Death; return EVENT; }
 "阵亡后判定胜负前"  { yylval.enum_v = BeforeGameOverJudge; return EVENT; }
 "阵亡后判定胜负时"  { yylval.enum_v = GameOverJudge; return EVENT; }
+"打出卡牌时"     { yylval.enum_v = PreCardResponded; return EVENT; }
 "打出卡牌后"     { yylval.enum_v = CardResponded; return EVENT; }
 "卡牌移动前"     { yylval.enum_v = BeforeCardsMove; return EVENT; }
 "卡牌移动后"     { yylval.enum_v = CardsMoveOneTime; return EVENT; }

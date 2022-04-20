@@ -73,6 +73,34 @@ static void defineLocal(char *k, char *v, int type) {
 static void initData(int event) {
   writeline("-- get datas for this trigger event");
   switch (event) {
+    case DrawNCards:
+    case AfterDrawNCards:
+    case DrawInitialCards:
+    case AfterDrawInitialCards:
+      defineLocal("摸牌数量", "data:toInt()", TNumber);
+      break;
+
+    case PreHpRecover:
+    case HpRecover:
+      break;
+    case PreHpLost:
+    case HpLost:
+      break;
+
+    case EventLoseSkill:
+    case EventAcquireSkill:
+      break;
+
+    case StartJudge:
+    case AskForRetrial:
+    case FinishRetrial:
+    case FinishJudge:
+      break;
+
+    case PindianVerifying:
+    case Pindian:
+      break;
+
     case ConfirmDamage:
     case Predamage:
     case DamageForseen:
@@ -89,6 +117,39 @@ static void initData(int event) {
       defineLocal("造成伤害的牌", "damage.card or dummyobj", TCard);
       defineLocal("伤害值", "damage.damage", TNumber);
       break;
+
+    case EnterDying:
+    case Dying:
+    case QuitDying:
+    case AskForPeaches:
+    case AskForPeachesDone:
+      break;
+
+    case Death:
+    case BuryVictim:
+    case BeforeGameOverJudge:
+    case GameOverJudge:
+      break;
+
+    case PreCardResponded:
+    case CardResponded:
+      break;
+
+    case BeforeCardsMove:
+    case CardsMoveOneTime:
+      break;
+
+    case CardUsed:
+    case TargetSpecifying:
+    case TargetConfirming:
+    case TargetSpecified:
+    case TargetConfirmed:
+    case CardFinished:
+      break;
+
+    case CardEffected:
+      break;
+
     default:
       break;
   }
@@ -105,18 +166,22 @@ static void clearLocal(char *k, char *v, int rewrite) {
 static void clearData(int event) {
   int rewrite = 0;
   switch (event) {
+    case DrawNCards:
+    case DrawInitialCards:
+    case PreHpRecover:
+    case PreHpLost:
+    case PindianVerifying:
+    case PreCardResponded:
+    case BeforeCardsMove:
+    case TargetSpecifying:
+    case TargetConfirming:
     case ConfirmDamage:
     case Predamage:
     case DamageForseen:
     case DamageCaused:
     case DamageInflicted:
       rewrite = 1;
-    case PreDamageDone:
-    case DamageDone:
-    case Damage:
-    case Damaged:
-    case DamageComplete:
-      break;
+
     default:
       break;
   }
