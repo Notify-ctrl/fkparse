@@ -17,26 +17,6 @@ extern char *readfile_name;
 
 typedef YYSTYPE Value;
 
-/* symbol table */
-
-enum SymType {
-  TPackage,
-  TSkill,
-  TGeneral,
-  TNumber,
-  TString
-};
-
-// Identifier -> locals["Identifier"]
-
-struct symbol {
-  char *name;
-  enum SymType type;
-  Value value;
-};
-
-struct symbol *lookup(char*);
-
 extern int package_index;
 extern int general_index;
 extern int skill_index;

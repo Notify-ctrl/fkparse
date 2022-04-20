@@ -3,6 +3,19 @@
 
 #include "main.h"
 
+enum ExpVType {
+  TNone,
+  TPackage,
+  TSkill,
+  TGeneral,
+  TNumber,
+  TString,
+  TPlayer,
+  TCard,
+
+  TAny = 0xFF
+};
+
 void analyzeExtension(struct ast *a);
 
 void analyzeSkillList(struct ast *a);
@@ -17,7 +30,7 @@ void analyzeStats(struct ast *a);
 void analyzeStatAssign(struct ast *a);
 void analyzeIf(struct ast *a);
 void analyzeLoop(struct ast *a);
-void analyzeAction(struct ast *a);
+int analyzeAction(struct ast *a);
 
 void analyzePackageList(struct ast *a);
 void analyzePackage(struct ast *a);

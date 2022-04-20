@@ -110,14 +110,13 @@ statement   : ';' { $$ = newast(N_Stat_None, NULL, NULL); }
             | action_stat { $$ = $1; }
             ;
 
-assign_stat : LET IDENTIFIER EQ exp
+assign_stat : LET var EQ exp
               {
-                $$ = newast(N_Stat_Assign, newstr($2), $4);
-                free($2);
+                $$ = newast(N_Stat_Assign, $2, $4);
               }
             ;
 
-if_stat : IF exp THEN block END { $$ = newif($2, NULL, $4); }
+if_stat : IF exp THEN block END { $$ = newif($2, $4, NULL); }
         | IF exp THEN block ELSE block END  { $$ = newif($2, $4, $6); }
         ;
 
@@ -156,8 +155,8 @@ acquireSkill  : exp ACQUIRE SKILL exp { $$ = newast(-1, $1, $4); }
 detachSkill : exp LOSE SKILL exp { $$ = newast(-1, $1, $4); }
             ;
 
-exp : FALSE { $$ = newexp(ExpNum, 0, 0, NULL, NULL); }
-    | TRUE { $$ = newexp(ExpNum, 1, 0, NULL, NULL); }
+exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
+    | TRUE { $$ = newexp(ExpBool, 1, 0, NULL, NULL); }
     | NUMBER { $$ = newexp(ExpNum, $1, 0, NULL, NULL); }
     | STRING { $$ = newexp(ExpStr, 0, 0, (struct astExp *)newstr($1), NULL); free($1); }
     | prefixexp { $$ = $1; }
@@ -172,6 +171,7 @@ opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct as
       ;
 
 prefixexp : var { $$ = newexp(ExpVar, 0, 0, (struct astExp *)$1, NULL); }
+          | '(' action_stat ')' { $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL); }
           | '(' exp ')' { $$ = $2; }
           ;
 

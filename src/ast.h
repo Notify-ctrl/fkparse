@@ -50,7 +50,9 @@ enum ExpType {
   ExpCalc,
   ExpStr,
   ExpNum,
-  ExpVar
+  ExpBool,
+  ExpVar,
+  ExpAction
 };
 
 enum VarType {
@@ -186,6 +188,7 @@ struct astVar {
   int nodetype;
   struct aststr *name;  // or field
   struct astExp *obj;
+  int type; // todo: need a symtab
 };
 
 #endif  // _AST_H

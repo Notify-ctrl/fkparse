@@ -14,10 +14,8 @@
     }
 
  /* Frequently used IDENTIFIER */
-"你"    {
-    yylval.s = strdup(yytext);
-    return IDENTIFIER;
-    }
+"你" |
+"X" |
 "其"    {
     yylval.s = strdup(yytext);
     return IDENTIFIER;
@@ -65,6 +63,7 @@
 
 "造成伤害时"    { yylval.enum_v = DamageCaused; return EVENT; }
 "造成伤害后"    { yylval.enum_v = Damage; return EVENT; }
+"受到伤害后"    { yylval.enum_v = Damaged; return EVENT; }
 
 "$" |
 "#" |
@@ -72,7 +71,11 @@
 "]" |
 "(" |
 ")" |
-";" { return yytext[0]; }
+";" |
+"+" |
+"-" |
+"*" |
+"/" { return yytext[0]; }
 
 "大于"     { yylval.enum_v = 1; return CMP; }
 "小于"     { yylval.enum_v = 2; return CMP; }
@@ -82,7 +85,7 @@
 "不大于"    { yylval.enum_v = 6; return CMP; }
 
  /* Below are ignored */
-"//".*
+"注：".*
 "然后"
 "立即"
 "，"
