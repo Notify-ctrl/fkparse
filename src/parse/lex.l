@@ -119,6 +119,31 @@
 "卡牌生效后"     { yylval.enum_v = CardEffected; return EVENT; }
 "卡牌结算完成后"   { yylval.enum_v = CardFinished; return EVENT; }
 
+"锁定技" |
+"普通技" |
+"默认技" |
+"觉醒技" |
+"限定技" {
+    yylval.s = strdup(yytext);
+    return FREQUENCY;
+    }
+
+"男性" |
+"女性" |
+"中性" {
+    yylval.s = strdup(yytext);
+    return GENDER;
+    }
+
+"魏" |
+"蜀" |
+"吴" |
+"群" |
+"神" {
+    yylval.s = strdup(yytext);
+    return KINGDOM;
+    }
+
 "$" |
 "#" |
 "[" |

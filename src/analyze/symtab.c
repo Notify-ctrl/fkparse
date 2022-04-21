@@ -137,6 +137,10 @@ static struct {
   {"朱雀羽扇", "\"fan\"", TString},
   {"骅骝", "\"hualiu\"", TString},
 
+  {"男性", "sgs.General_Male", TNumber},
+  {"女性", "sgs.General_Female", TNumber},
+  {"中性", "sgs.General_Neuter", TNumber},
+
   {NULL, NULL, TNone}
 };
 

@@ -101,13 +101,14 @@ struct astgeneral {
   struct aststr *kingdom;
   long long hp;
   struct aststr *nickname;
+  struct aststr *gender;
   struct aststr *interid;
   struct ast *skills;
   int uid;
 };
 
 struct ast *newgeneral(char *id, char *kingdom, long long hp,
-                        char *nickname, char *interid, struct ast *skills);
+                        char *nickname, char *gender, char *interid, struct ast *skills);
 
 struct astskill {
   int nodetype;

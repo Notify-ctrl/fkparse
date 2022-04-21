@@ -50,6 +50,9 @@ void analyzeGeneral(struct ast *a) {
   addTranslation(buf, g->id->str);
   sprintf(buf, "#%s", g->interid->str);
   addTranslation(buf, g->nickname->str);
+  fprintf(yyout, "%s:setGender(", g->interid->str);
+  analyzeReserved(g->gender->str);
+  fprintf(yyout, ")\n");
   addgeneralskills(g->skills);
 }
 
@@ -68,9 +71,9 @@ void analyzePackage(struct ast *a) {
 
   struct astpackage *p = (struct astpackage *)a;
   currentpack = p;
-  fprintf(yyout, "local extension%d = sgs.Package(\"extension%d\")\n", p->uid, p->uid);
+  fprintf(yyout, "local extension%d = sgs.Package(\"%sp%d\")\n", p->uid, readfile_name, p->uid);
   char buf[64];
-  sprintf(buf, "extension%d", p->uid);
+  sprintf(buf, "%sp%d", readfile_name, p->uid);
   addTranslation(buf, ((struct aststr *)p->id)->str);
   analyzeGeneralList(a->r);
   fprintf(yyout, "\n");

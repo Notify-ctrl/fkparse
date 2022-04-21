@@ -54,7 +54,7 @@ struct ast *newpackage(char *id, struct ast *generals) {
 }
 
 struct ast *newgeneral(char *id, char *kingdom, long long hp,
-                        char *nickname, char *interid, struct ast *skills) {
+                        char *nickname, char *gender, char *interid, struct ast *skills) {
   struct astgeneral *a = malloc(sizeof(struct astgeneral));
 
   if(!a) {
@@ -66,6 +66,8 @@ struct ast *newgeneral(char *id, char *kingdom, long long hp,
   a->kingdom = (struct aststr *)newstr(kingdom);
   a->hp = hp;
   a->nickname = (struct aststr *)newstr(nickname);
+  a->gender = gender ? (struct aststr *)newstr(gender)
+                     : (struct aststr *)newstr("男性");
   a->skills = skills;
   static int general_id = 0;
   a->uid = general_id++;
