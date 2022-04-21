@@ -74,6 +74,7 @@ static struct {
   {"雷属性", "sgs.DamageStruct_Thunder", TNumber},
 
   {"锁定技", "sgs.Skill_Compulsory", TNumber},
+  {"普通技", "sgs.Skill_NotFrequent", TNumber},
   {"默认技", "sgs.Skill_Frequent", TNumber},
   {"觉醒技", "sgs.Skill_Wake", TNumber},
   {"限定技", "sgs.Skill_Limited", TNumber},

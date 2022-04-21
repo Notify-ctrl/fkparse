@@ -57,9 +57,14 @@ skillList : %empty  { $$ = newast(N_Skills, NULL, NULL); }
           | skillList skill { $$ = newast(N_Skills, $1, $2); }
           ;
 
-skill     : '$' IDENTIFIER STRING skillspecs
+skill     : '$' IDENTIFIER STRING STRING skillspecs
               {
-                $$ = newskill($2, $3, $4);
+                $$ = newskill($2, $3, $4, $5);
+                free($2); free($3); free($4);
+              }
+          | '$' IDENTIFIER STRING skillspecs
+              {
+                $$ = newskill($2, $3, NULL, $4);
                 free($2); free($3);
               }
           ;

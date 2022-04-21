@@ -112,11 +112,12 @@ struct astskill {
   int nodetype;
   struct aststr *id;
   struct aststr *description;
+  struct aststr *frequency;
   struct ast *skillspec;
   int uid;
 };
 
-struct ast *newskill(char *id, char *desc, struct ast *spec);
+struct ast *newskill(char *id, char *desc, char *frequency, struct ast *spec);
 
 struct astTriggerSkill {
   int nodetype;

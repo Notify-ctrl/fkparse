@@ -21,7 +21,9 @@ void analyzeSkill(struct ast *a) {
   sprintf(buf, ":%ss%d", readfile_name, s->uid);
   addTranslation(buf, s->description->str);
   if (!s->skillspec->l) { /* empty spec */
-    fprintf(yyout, "%ss%d = fkp.CreateTriggerSkill{\n  name = \"%ss%d\",\n}\n\n", readfile_name, currentskill->uid, readfile_name, currentskill->uid);
+    fprintf(yyout, "%ss%d = fkp.CreateTriggerSkill{\n  name = \"%ss%d\",\n  frequency = ", readfile_name, s->uid, readfile_name, s->uid);
+    analyzeReserved(s->frequency->str);
+    fprintf(yyout, ",\n}\n\n");
   } else {
     analyzeSkillspecs(s->skillspec);
   }
@@ -30,7 +32,7 @@ void analyzeSkill(struct ast *a) {
 static int analyzedSpecs[16];
 static int specStackPointer;
 
-static int checkDuplicate(int *arr, int to_check, int p, char *msg) {
+static void checkDuplicate(int *arr, int to_check, int p, char *msg) {
   for (int i = 0; i < p; i++) {
     if (arr[i] == to_check) {
       fprintf(stderr, "错误：%s %d\n", msg, to_check);

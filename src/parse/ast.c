@@ -72,7 +72,7 @@ struct ast *newgeneral(char *id, char *kingdom, long long hp,
   return (struct ast *)a;
 }
 
-struct ast *newskill(char *id, char *desc, struct ast *spec) {
+struct ast *newskill(char *id, char *desc, char *frequency, struct ast *spec) {
   struct astskill *a = malloc(sizeof(struct astskill));
 
   if(!a) {
@@ -82,6 +82,8 @@ struct ast *newskill(char *id, char *desc, struct ast *spec) {
   a->nodetype = N_Skill;
   a->id = (struct aststr *)newstr(id);
   a->description = (struct aststr *)newstr(desc);
+  a->frequency = frequency ? (struct aststr *)newstr(frequency)
+                           : (struct aststr *)newstr("普通技");
   a->skillspec = spec;
   static int skill_id = 0;
   a->uid = skill_id++;
