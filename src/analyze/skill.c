@@ -1,6 +1,16 @@
 #include "analyzer.h"
 #include "enums.h"
 
+/* for skill spec analyzing */
+static int analyzedSpecs[16];
+static int specStackPointer;
+static int hasTriggerSkill;
+static int hasViewAsSkill;
+
+/* trigger skill analyzing */
+static int analyzedEvents[256];
+static int eventStackPointer;
+
 void analyzeSkillList(struct ast *a) {
   checktype(a->nodetype, N_Skills);
 
@@ -15,22 +25,32 @@ void analyzeSkill(struct ast *a) {
 
   struct astskill *s = (struct astskill *)a;
   currentskill = s;
+
   char buf[64];
   sprintf(buf, "%ss%d", readfile_name, s->uid);
   addTranslation(buf, s->id->str);
   sprintf(buf, ":%ss%d", readfile_name, s->uid);
   addTranslation(buf, s->description->str);
-  if (!s->skillspec->l) { /* empty spec */
+
+  hasTriggerSkill = 0;
+  hasViewAsSkill = 0;
+
+  /* pre-analyze specs */
+  struct ast *specs = s->skillspec;
+  while (specs->r) {
+    if (specs->r->nodetype == N_TriggerSkill)
+      hasTriggerSkill = 1;
+    specs = specs->l;
+  }
+
+  analyzeSkillspecs(s->skillspec);
+
+  if (!hasTriggerSkill) { /* no trigger skill, create a dummy one */
     fprintf(yyout, "%ss%d = fkp.CreateTriggerSkill{\n  name = \"%ss%d\",\n  frequency = ", readfile_name, s->uid, readfile_name, s->uid);
     analyzeReserved(s->frequency->str);
     fprintf(yyout, ",\n}\n\n");
-  } else {
-    analyzeSkillspecs(s->skillspec);
   }
 }
-
-static int analyzedSpecs[16];
-static int specStackPointer;
 
 static void checkDuplicate(int *arr, int to_check, int p, char *msg) {
   for (int i = 0; i < p; i++) {
@@ -46,8 +66,10 @@ void analyzeSkillspecs(struct ast *a) {
 
   memset(analyzedSpecs, 0, sizeof(int) * 16);
   specStackPointer = 0;
+
   if (a->l) {
     analyzeSkillspecs(a->l);
+
     struct ast *r = a->r;
     checkDuplicate(analyzedSpecs, r->nodetype, specStackPointer, "重复的技能类型");
     analyzedSpecs[specStackPointer] = r->nodetype;
@@ -67,15 +89,14 @@ void analyzeSkillspecs(struct ast *a) {
 void analyzeTriggerSkill(struct ast *a) {
   checktype(a->nodetype, N_TriggerSkill);
 
-  fprintf(yyout, "%ss%d = fkp.CreateTriggerSkill{\n  name = \"%ss%d\",\n  specs = {\n", readfile_name, currentskill->uid, readfile_name, currentskill->uid);
+  fprintf(yyout, "%ss%d = fkp.CreateTriggerSkill{\n  name = \"%ss%d\",\n  frequency = ", readfile_name, currentskill->uid, readfile_name, currentskill->uid);
+  analyzeReserved(currentskill->frequency->str);
+  fprintf(yyout, ",\n  specs = {\n");
   indent_level++;
   analyzeTriggerspecs(a->l);
   fprintf(yyout, "  }\n}\n\n");
   indent_level--;
 }
-
-static int analyzedEvents[256];
-static int eventStackPointer;
 
 void analyzeTriggerspecs(struct ast *a) {
   checktype(a->nodetype, N_TriggerSpecs);
