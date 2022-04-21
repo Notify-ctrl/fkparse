@@ -101,23 +101,25 @@ struct astgeneral {
   struct aststr *kingdom;
   long long hp;
   struct aststr *nickname;
+  struct aststr *interid;
   struct ast *skills;
   int uid;
 };
 
 struct ast *newgeneral(char *id, char *kingdom, long long hp,
-                        char *nickname, struct ast *skills);
+                        char *nickname, char *interid, struct ast *skills);
 
 struct astskill {
   int nodetype;
   struct aststr *id;
   struct aststr *description;
   struct aststr *frequency;
+  struct aststr *interid;
   struct ast *skillspec;
   int uid;
 };
 
-struct ast *newskill(char *id, char *desc, char *frequency, struct ast *spec);
+struct ast *newskill(char *id, char *desc, char *frequency, char *interid, struct ast *spec);
 
 struct astTriggerSkill {
   int nodetype;

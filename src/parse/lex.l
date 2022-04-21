@@ -27,7 +27,14 @@
     yylval.s[strlen(yylval.s) - 1] = 0;
     return STRING;
     }
+
 [0-9]+    { yylval.i = atoi(yytext); return NUMBER; }
+
+\{[a-zA-Z][_a-zA-Z0-9]*\} {
+    yylval.s = strdup(yytext + 1);
+    yylval.s[strlen(yylval.s) - 1] = 0;
+    return INTERID;
+    }
 
 "拓展包" { return PKGSTART; }
 "触发技" { return TRIGGER; }

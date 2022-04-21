@@ -54,7 +54,7 @@ struct ast *newpackage(char *id, struct ast *generals) {
 }
 
 struct ast *newgeneral(char *id, char *kingdom, long long hp,
-                        char *nickname, struct ast *skills) {
+                        char *nickname, char *interid, struct ast *skills) {
   struct astgeneral *a = malloc(sizeof(struct astgeneral));
 
   if(!a) {
@@ -69,10 +69,14 @@ struct ast *newgeneral(char *id, char *kingdom, long long hp,
   a->skills = skills;
   static int general_id = 0;
   a->uid = general_id++;
+  char buf[64];
+  sprintf(buf, "%sg%d", readfile_name, a->uid);
+  a->interid = interid ? (struct aststr *)newstr(interid)
+                       : (struct aststr *)newstr(buf);
   return (struct ast *)a;
 }
 
-struct ast *newskill(char *id, char *desc, char *frequency, struct ast *spec) {
+struct ast *newskill(char *id, char *desc, char *frequency, char *interid, struct ast *spec) {
   struct astskill *a = malloc(sizeof(struct astskill));
 
   if(!a) {
@@ -87,6 +91,10 @@ struct ast *newskill(char *id, char *desc, char *frequency, struct ast *spec) {
   a->skillspec = spec;
   static int skill_id = 0;
   a->uid = skill_id++;
+  char buf[64];
+  sprintf(buf, "%ss%d", readfile_name, a->uid);
+  a->interid = interid ? (struct aststr *)newstr(interid)
+                       : (struct aststr *)newstr(buf);
   return (struct ast *)a;
 }
 

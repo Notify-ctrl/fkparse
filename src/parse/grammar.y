@@ -15,6 +15,7 @@
 %token <i> NUMBER
 %token <s> IDENTIFIER
 %token <s> STRING
+%token <s> INTERID
 %token PKGSTART
 %token TRIGGER EVENTI COND EFFECT
 %token <enum_v> EVENT
@@ -57,14 +58,19 @@ skillList : %empty  { $$ = newast(N_Skills, NULL, NULL); }
           | skillList skill { $$ = newast(N_Skills, $1, $2); }
           ;
 
-skill     : '$' IDENTIFIER STRING STRING skillspecs
+skill     : '$' IDENTIFIER STRING STRING INTERID skillspecs
               {
-                $$ = newskill($2, $3, $4, $5);
+                $$ = newskill($2, $3, $4, $5, $6);
+                free($2); free($3); free($4); free($5);
+              }
+          | '$' IDENTIFIER STRING STRING skillspecs
+              {
+                $$ = newskill($2, $3, $4, NULL, $5);
                 free($2); free($3); free($4);
               }
           | '$' IDENTIFIER STRING skillspecs
               {
-                $$ = newskill($2, $3, NULL, $4);
+                $$ = newskill($2, $3, NULL, NULL, $4);
                 free($2); free($3);
               }
           ;
@@ -190,9 +196,14 @@ generalList : %empty { $$ = newast(N_Generals, NULL, NULL); }
             | generalList general { $$ = newast(N_Generals, $1, $2); }
             ;
 
-general     : '#' IDENTIFIER STRING NUMBER STRING '[' stringList ']'
+general     : '#' IDENTIFIER STRING NUMBER STRING INTERID '[' stringList ']'
                 {
-                  $$ = newgeneral($2, $3, $4, $5, $7);
+                  $$ = newgeneral($2, $3, $4, $5, $6, $8);
+                  free($2); free($3); free($5); free($6);
+                }
+            | '#' IDENTIFIER STRING NUMBER STRING '[' stringList ']'
+                {
+                  $$ = newgeneral($2, $3, $4, $5, NULL, $7);
                   free($2); free($3); free($5);
                 }
             ;

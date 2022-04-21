@@ -27,9 +27,9 @@ void analyzeSkill(struct ast *a) {
   currentskill = s;
 
   char buf[64];
-  sprintf(buf, "%ss%d", readfile_name, s->uid);
+  sprintf(buf, "%s", s->interid->str);
   addTranslation(buf, s->id->str);
-  sprintf(buf, ":%ss%d", readfile_name, s->uid);
+  sprintf(buf, ":%s", s->interid->str);
   addTranslation(buf, s->description->str);
 
   hasTriggerSkill = 0;
@@ -46,7 +46,7 @@ void analyzeSkill(struct ast *a) {
   analyzeSkillspecs(s->skillspec);
 
   if (!hasTriggerSkill) { /* no trigger skill, create a dummy one */
-    fprintf(yyout, "%ss%d = fkp.CreateTriggerSkill{\n  name = \"%ss%d\",\n  frequency = ", readfile_name, s->uid, readfile_name, s->uid);
+    fprintf(yyout, "%s = fkp.CreateTriggerSkill{\n  name = \"%s\",\n  frequency = ", s->interid->str, s->interid->str);
     analyzeReserved(s->frequency->str);
     fprintf(yyout, ",\n}\n\n");
   }
@@ -89,7 +89,7 @@ void analyzeSkillspecs(struct ast *a) {
 void analyzeTriggerSkill(struct ast *a) {
   checktype(a->nodetype, N_TriggerSkill);
 
-  fprintf(yyout, "%ss%d = fkp.CreateTriggerSkill{\n  name = \"%ss%d\",\n  frequency = ", readfile_name, currentskill->uid, readfile_name, currentskill->uid);
+  fprintf(yyout, "%s = fkp.CreateTriggerSkill{\n  name = \"%s\",\n  frequency = ", currentskill->interid->str, currentskill->interid->str);
   analyzeReserved(currentskill->frequency->str);
   fprintf(yyout, ",\n  specs = {\n");
   indent_level++;
