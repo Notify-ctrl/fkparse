@@ -30,6 +30,7 @@
 %token FALSE TRUE BREAK
 %token DRAW ZHANG CARD LOSE DIAN HP 
 %token TO CAUSE DAMAGE INFLICT RECOVER ACQUIRE SKILL
+%token MEI MARK HIDDEN COUNT
 
 %type <a> extension
 %type <a> skillList skill
@@ -41,7 +42,9 @@
 
 %type <a> block statements statement retstat
 %type <a> assign_stat if_stat loop_stat action_stat
-%type <a> drawCards loseHp causeDamage inflictDamage recoverHp acquireSkill detachSkill
+%type <a> drawCards loseHp causeDamage inflictDamage recoverHp
+%type <a> acquireSkill detachSkill
+%type <a> addMark loseMark getMark
 %type <a> exp prefixexp opexp var
 
 %start extension
@@ -132,6 +135,9 @@ action_stat : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | recoverHp { $$ = newaction(ActionRecover, $1); }
             | acquireSkill { $$ = newaction(ActionAcquireSkill, $1); }
             | detachSkill { $$ = newaction(ActionDetachSkill, $1); }
+            | addMark { $$ = newaction(ActionMark, $1); }
+            | loseMark  { $$ = newaction(ActionMark, $1); }
+            | getMark { $$ = newaction(ActionMark, $1); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD { $$ = newast(-1, $1, $3); }
@@ -157,6 +163,24 @@ acquireSkill  : exp ACQUIRE SKILL exp { $$ = newast(-1, $1, $4); }
 detachSkill : exp LOSE SKILL exp { $$ = newast(-1, $1, $4); }
             ;
 
+addMark : exp ACQUIRE exp MEI STRING MARK
+          { $$ = newmark($1, $5, $3, 0, 1); free($5); } 
+        | exp ACQUIRE exp MEI STRING HIDDEN MARK
+          { $$ = newmark($1, $5, $3, 1, 1); free($5); } 
+        ;
+
+loseMark  : exp LOSE exp MEI STRING MARK
+            { $$ = newmark($1, $5, $3, 0, 2); free($5); } 
+          | exp LOSE exp MEI STRING HIDDEN MARK
+            { $$ = newmark($1, $5, $3, 1, 2); free($5); } 
+          ;
+
+getMark : exp STRING MARK COUNT
+          { $$ = newmark($1, $2, NULL, 0, 3); free($2); }
+        | exp STRING HIDDEN MARK COUNT
+          { $$ = newmark($1, $2, NULL, 1, 3); free($2); }
+        ;
+
 exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
     | TRUE { $$ = newexp(ExpBool, 1, 0, NULL, NULL); }
     | NUMBER { $$ = newexp(ExpNum, $1, 0, NULL, NULL); }
@@ -173,7 +197,11 @@ opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct as
       ;
 
 prefixexp : var { $$ = newexp(ExpVar, 0, 0, (struct astExp *)$1, NULL); }
-          | '(' action_stat ')' { $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL); }
+          | '(' action_stat ')' 
+            {
+              $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL);
+              ((struct astAction *)$2)->standalone = 0;
+            }
           | '(' exp ')' { $$ = $2; }
           ;
 

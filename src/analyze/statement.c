@@ -205,6 +205,72 @@ void analyzeLoop(struct ast *a) {
   fprintf(yyout, "\n");
 }
 
+static struct {
+  char *markname;
+  char *markid;
+  int hidden;
+} MarkTable[999];
+
+static int MarkId = 0;
+
+static char *getMarkId(char *k, int hidden) {
+  for (int i = 0; i < MarkId; i++) {
+    if (MarkTable[i].hidden == hidden && !strcmp(MarkTable[i].markname, k)) {
+      return MarkTable[i].markid;
+    }
+  }
+  char buf[64];
+  sprintf(buf, "%c%s_mark%d", hidden ? '_' : '@', readfile_name, MarkId);
+  MarkTable[MarkId].markname = strdup(k);
+  MarkTable[MarkId].markid = strdup(buf);
+  if (!hidden) addTranslation(buf, k);
+  return MarkTable[MarkId++].markid;
+}
+
+static int analyzeActionMark(struct actionMark *m) {
+  int ret = TNone;
+  int t;
+  char *internal_id = getMarkId(m->name->str, m->hidden);
+  switch (m->optype) {
+    case 1:
+      if (m->hidden) {
+        fprintf(yyout, "room:addPlayerMark(");
+        t = analyzeExp(m->player); checktype(t, TPlayer);
+        fprintf(yyout, ", \"%s\", ", internal_id);
+        t = analyzeExp(m->num); checktype(t, TNumber);
+        fprintf(yyout, ")");
+      } else {
+        t = analyzeExp(m->player); checktype(t, TPlayer);
+        fprintf(yyout, ":gainMark(\"%s\", ", internal_id);
+        t = analyzeExp(m->num); checktype(t, TNumber);
+        fprintf(yyout, ")");
+      }
+      break;
+    case 2:
+      if (m->hidden) {
+        fprintf(yyout, "room:removePlayerMark(");
+        t = analyzeExp(m->player); checktype(t, TPlayer);
+        fprintf(yyout, ", \"%s\", ", internal_id);
+        t = analyzeExp(m->num); checktype(t, TNumber);
+        fprintf(yyout, ")");
+      } else {
+        t = analyzeExp(m->player); checktype(t, TPlayer);
+        fprintf(yyout, ":loseMark(\"%s\", ", internal_id);
+        t = analyzeExp(m->num); checktype(t, TNumber);
+        fprintf(yyout, ")");
+      }
+      break;
+    case 3:
+      t = analyzeExp(m->player); checktype(t, TPlayer);
+      fprintf(yyout, ":getMark(\"%s\")", internal_id);
+      ret = TNumber;
+      break;
+    default:
+      break;
+  }
+  return ret;
+}
+
 int analyzeAction(struct ast *a) {
   checktype(a->nodetype, N_Stat_Action);
 
@@ -213,71 +279,65 @@ int analyzeAction(struct ast *a) {
 
   struct astAction *s = (struct astAction *)a;
   struct ast *action = s->action;
+
+  if (s->standalone) print_indent();
+
   switch (s->actiontype) {
     case ActionDrawcard:
-      print_indent();
-      t = analyzeExp(action->l);
-      checktype(t, TPlayer);
+      t = analyzeExp(action->l); checktype(t, TPlayer);
       fprintf(yyout, ":drawCards(");
-      t = analyzeExp(action->r);
-      checktype(t, TNumber);
-      fprintf(yyout, ", self:objectName())\n");
+      t = analyzeExp(action->r); checktype(t, TNumber);
+      fprintf(yyout, ", self:objectName())");
       break;
     case ActionLosehp:
-      print_indent();
       fprintf(yyout, "room:loseHp(");
-      t = analyzeExp(action->l);
-      checktype(t, TPlayer);
+      t = analyzeExp(action->l); checktype(t, TPlayer);
       fprintf(yyout, ", ");
-      t = analyzeExp(action->r);
-      checktype(t, TNumber);
-      fprintf(yyout, ")\n");
+      t = analyzeExp(action->r); checktype(t, TNumber);
+      fprintf(yyout, ")");
       break;
     case ActionDamage:
-      print_indent();
       fprintf(yyout, "room:damage(sgs.DamageStruct(self:objectName(), ");
       struct actionDamage *d = (struct actionDamage *)action;
       if (d->src) {
-        t = analyzeExp(d->src);
-        checktype(t, TPlayer);
+        t = analyzeExp(d->src); checktype(t, TPlayer);
       } else fprintf(yyout, "nil");
       fprintf(yyout, ", ");
-      t = analyzeExp(d->dst); checktype(t, TPlayer); fprintf(yyout, ", ");
-      t = analyzeExp(d->num); checktype(t, TNumber); fprintf(yyout, "))\n");
+      t = analyzeExp(d->dst); checktype(t, TPlayer);
+      fprintf(yyout, ", ");
+      t = analyzeExp(d->num); checktype(t, TNumber);
+      fprintf(yyout, "))");
       break;
     case ActionRecover:
-      print_indent();
       fprintf(yyout, "room:recover(");
-      t = analyzeExp(action->l);
-      checktype(t, TPlayer);
+      t = analyzeExp(action->l); checktype(t, TPlayer);
       fprintf(yyout, ", sgs.RecoverStruct(nil, nil, ");
-      t = analyzeExp(action->r);
-      checktype(t, TNumber);
-      fprintf(yyout, "))\n");
+      t = analyzeExp(action->r); checktype(t, TNumber);
+      fprintf(yyout, "))");
       break;
     case ActionAcquireSkill:
-      print_indent();
       fprintf(yyout, "room:acquireSkill(");
-      t = analyzeExp(action->l);
-      checktype(t, TPlayer);
+      t = analyzeExp(action->l); checktype(t, TPlayer);
       fprintf(yyout, ", ");
-      t = analyzeExp(action->r);
-      checktype(t, TString);
-      fprintf(yyout, ")\n");
+      t = analyzeExp(action->r); checktype(t, TString);
+      fprintf(yyout, ")");
       break;
     case ActionDetachSkill:
-      print_indent();
       fprintf(yyout, "room:detachSkillFromPlayer(");
-      t = analyzeExp(action->l);
-      checktype(t, TPlayer);
+      t = analyzeExp(action->l); checktype(t, TPlayer);
       fprintf(yyout, ", ");
-      t = analyzeExp(action->r);
-      checktype(t, TString);
-      fprintf(yyout, ")\n");
+      t = analyzeExp(action->r); checktype(t, TString);
+      fprintf(yyout, ")");
+      break;
+    case ActionMark:
+      struct actionMark *m = (struct actionMark *)action;
+      ret = analyzeActionMark(m);
       break;
     default:
       fprintf(stderr, "unexpected action type %d\n", s->nodetype); break;
   }
+
+  if (s->standalone) fprintf(yyout, "\n");
 
   return ret;
 }

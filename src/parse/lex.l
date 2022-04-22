@@ -68,6 +68,10 @@
 "回复"  { return RECOVER; }
 "获得"  { return ACQUIRE; }
 "技能"  { return SKILL; }
+"枚"    { return MEI; }
+"标记"  { return MARK; }
+"隐藏"  { return HIDDEN; }
+"数量"  { return COUNT; }
 
 "游戏开始时"     { yylval.enum_v = GameStart; return EVENT; }
 "回合即将开始时"   { yylval.enum_v = TurnStart; return EVENT; }

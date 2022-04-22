@@ -138,6 +138,7 @@ struct ast *newaction(int type, struct ast *action) {
   a->nodetype = N_Stat_Action;
   a->actiontype = type;
   a->action = action;
+  a->standalone = 1;
   return (struct ast *)a;
 }
 
@@ -152,6 +153,22 @@ struct ast *newdamage(struct ast *src, struct ast *dst, struct ast *num) {
   a->src = src;
   a->dst = dst;
   a->num = num;
+  return (struct ast *)a;
+}
+
+struct ast *newmark(struct ast *player, char *name, struct ast *num, int hidden, int optype) {
+  struct actionMark *a = malloc(sizeof(struct actionMark));
+
+  if(!a) {
+    yyerror("out of space");
+    exit(0);
+  }
+  a->nodetype = -1;
+  a->player = player;
+  a->name = (struct aststr *)newstr(name);
+  a->num = num;
+  a->hidden = hidden;
+  a->optype = optype;
   return (struct ast *)a;
 }
 

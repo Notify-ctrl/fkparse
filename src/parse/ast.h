@@ -42,7 +42,8 @@ enum ActionType {
   ActionDamage,
   ActionRecover,
   ActionAcquireSkill,
-  ActionDetachSkill
+  ActionDetachSkill,
+  ActionMark
 };
 
 enum ExpType {
@@ -161,6 +162,7 @@ struct astAction {
   int nodetype;
   int actiontype;
   struct ast *action;
+  int standalone;
 };
 
 struct ast *newaction(int type, struct ast *action);
@@ -175,6 +177,17 @@ struct actionDamage {
 };
 
 struct ast *newdamage(struct ast *src, struct ast *dst, struct ast *num);
+
+struct actionMark {
+  int nodetype;
+  struct ast *player;
+  struct aststr *name;
+  struct ast *num;
+  int hidden;
+  int optype; /* 1 = add, 2 = lose, 3 = count */
+};
+
+struct ast *newmark(struct ast *player, char *name, struct ast *num, int hidden, int optype);
 
 struct astExp {
   int nodetype;
