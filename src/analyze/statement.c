@@ -114,7 +114,7 @@ int analyzeExp(struct ast *a) {
 
   switch (e->exptype) {
     case ExpNum: fprintf(yyout, "%lld" ,e->value); return TNumber;
-    case ExpBool: fprintf(yyout, "%s" ,e->value == 0 ? "false" : "true"); return TNumber;
+    case ExpBool: fprintf(yyout, "%s" ,e->value == 0 ? "false" : "true"); return TBool;
     case ExpStr: fprintf(yyout, "'%s'", ((struct aststr *)(e->l))->str); return TString;
     case ExpVar: return analyzeVar((struct ast *)(e->l));
     case ExpAction: return analyzeAction((struct ast *)(e->l));
