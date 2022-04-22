@@ -39,6 +39,7 @@ enum ExpVType {
   TSkill,
   TGeneral,
   TNumber,
+  TBool,
   TString,
   TPlayer,
   TCard,

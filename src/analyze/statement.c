@@ -98,20 +98,19 @@ int analyzeExp(struct ast *a) {
       if (t == TPlayer) {
         fprintf(yyout, ":objectName()");
       }
-      ret = TNumber;
+      ret = TBool;
     } else {
       t = analyzeExp((struct ast *)(e->l));
       checktype(t, TNumber);
       switch (e->optype) {
-        case 1: fprintf(yyout, " > "); break;
-        case 2: fprintf(yyout, " < "); break;
-        case 5: fprintf(yyout, " >= "); break;
-        case 6: fprintf(yyout, " <= "); break;
-        default: fprintf(yyout, " %c ", e->optype); break;
+        case 1: fprintf(yyout, " > "); ret = TBool; break;
+        case 2: fprintf(yyout, " < "); ret = TBool; break;
+        case 5: fprintf(yyout, " >= "); ret = TBool; break;
+        case 6: fprintf(yyout, " <= "); ret = TBool; break;
+        default: fprintf(yyout, " %c ", e->optype); ret = TNumber; break;
       }
       t = analyzeExp((struct ast *)(e->r));
       checktype(t, TNumber);
-      ret = TNumber;
     }
   } else if (e->exptype == ExpLogic) {
     analyzeExp((struct ast *)(e->l));
@@ -120,10 +119,10 @@ int analyzeExp(struct ast *a) {
       case 8: fprintf(yyout, " or "); break;
     }
     analyzeExp((struct ast *)(e->r));
-    ret = TNumber;
+    ret = TBool;
   } else switch (e->exptype) {
     case ExpNum: fprintf(yyout, "%lld" ,e->value); ret = TNumber; break;
-    case ExpBool: fprintf(yyout, "%s" ,e->value == 0 ? "false" : "true"); ret = TNumber; break;
+    case ExpBool: fprintf(yyout, "%s" ,e->value == 0 ? "false" : "true"); ret = TBool; break;
     case ExpStr: fprintf(yyout, "'%s'", ((struct aststr *)(e->l))->str); ret = TString; break;
     case ExpVar: ret = analyzeVar((struct ast *)(e->l)); break;
     case ExpAction: ret = analyzeAction((struct ast *)(e->l)); break;
