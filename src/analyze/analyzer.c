@@ -27,7 +27,7 @@ static void addgeneralskills(struct ast *skills) {
     while (as->l) {
       struct astskill *s = ((struct astskill *)(as->r));
       if (!strcmp(s->id->str, ((struct aststr *)(skills->r))->str)) {
-        writeline("%sg%d:addSkill(%ss%d)", readfile_name, currentgeneral->uid, readfile_name, s->uid);
+        writeline("%s:addSkill(%s)", currentgeneral->interid->str, s->interid->str);
         return;
       }
       as = as->l;
@@ -42,15 +42,17 @@ void analyzeGeneral(struct ast *a) {
 
   struct astgeneral *g = (struct astgeneral *)a;
   currentgeneral = g;
-  fprintf(yyout, "%sg%d = sgs.General(%sp%d, \"%sg%d\", ", readfile_name,
-          g->uid, readfile_name, currentpack->uid, readfile_name, g->uid);
+  fprintf(yyout, "%s = sgs.General(extension%d, \"%s\", ", g->interid->str, currentpack->uid, g->interid->str);
   analyzeReserved(g->kingdom->str);
   fprintf(yyout, ", %lld)\n", g->hp);
   char buf[64];
-  sprintf(buf, "%sg%d", readfile_name, g->uid);
+  sprintf(buf, "%s", g->interid->str);
   addTranslation(buf, g->id->str);
-  sprintf(buf, "#%sg%d", readfile_name, g->uid);
+  sprintf(buf, "#%s", g->interid->str);
   addTranslation(buf, g->nickname->str);
+  fprintf(yyout, "%s:setGender(", g->interid->str);
+  analyzeReserved(g->gender->str);
+  fprintf(yyout, ")\n");
   addgeneralskills(g->skills);
 }
 
@@ -69,7 +71,7 @@ void analyzePackage(struct ast *a) {
 
   struct astpackage *p = (struct astpackage *)a;
   currentpack = p;
-  fprintf(yyout, "%sp%d = sgs.Package(\"%sp%d\")\n",readfile_name, p->uid, readfile_name, p->uid);
+  fprintf(yyout, "local extension%d = sgs.Package(\"%sp%d\")\n", p->uid, readfile_name, p->uid);
   char buf[64];
   sprintf(buf, "%sp%d", readfile_name, p->uid);
   addTranslation(buf, ((struct aststr *)p->id)->str);
@@ -88,7 +90,7 @@ void analyzeExtension(struct ast *a) {
   loadTranslations();
   fprintf(yyout, "\nreturn { ");
   for (int i = 0; i <= currentpack->uid; i++) {
-    fprintf(yyout, "%sp%d, ", readfile_name, i);
+    fprintf(yyout, "extension%d, ", i);
   }
   fprintf(yyout, "}\n");
 }

@@ -54,7 +54,7 @@ struct ast *newpackage(char *id, struct ast *generals) {
 }
 
 struct ast *newgeneral(char *id, char *kingdom, long long hp,
-                        char *nickname, struct ast *skills) {
+                        char *nickname, char *gender, char *interid, struct ast *skills) {
   struct astgeneral *a = malloc(sizeof(struct astgeneral));
 
   if(!a) {
@@ -66,13 +66,19 @@ struct ast *newgeneral(char *id, char *kingdom, long long hp,
   a->kingdom = (struct aststr *)newstr(kingdom);
   a->hp = hp;
   a->nickname = (struct aststr *)newstr(nickname);
+  a->gender = gender ? (struct aststr *)newstr(gender)
+                     : (struct aststr *)newstr("男性");
   a->skills = skills;
   static int general_id = 0;
   a->uid = general_id++;
+  char buf[64];
+  sprintf(buf, "%sg%d", readfile_name, a->uid);
+  a->interid = interid ? (struct aststr *)newstr(interid)
+                       : (struct aststr *)newstr(buf);
   return (struct ast *)a;
 }
 
-struct ast *newskill(char *id, char *desc, struct ast *spec) {
+struct ast *newskill(char *id, char *desc, char *frequency, char *interid, struct ast *spec) {
   struct astskill *a = malloc(sizeof(struct astskill));
 
   if(!a) {
@@ -82,9 +88,15 @@ struct ast *newskill(char *id, char *desc, struct ast *spec) {
   a->nodetype = N_Skill;
   a->id = (struct aststr *)newstr(id);
   a->description = (struct aststr *)newstr(desc);
+  a->frequency = frequency ? (struct aststr *)newstr(frequency)
+                           : (struct aststr *)newstr("普通技");
   a->skillspec = spec;
   static int skill_id = 0;
   a->uid = skill_id++;
+  char buf[64];
+  sprintf(buf, "%ss%d", readfile_name, a->uid);
+  a->interid = interid ? (struct aststr *)newstr(interid)
+                       : (struct aststr *)newstr(buf);
   return (struct ast *)a;
 }
 
@@ -126,6 +138,7 @@ struct ast *newaction(int type, struct ast *action) {
   a->nodetype = N_Stat_Action;
   a->actiontype = type;
   a->action = action;
+  a->standalone = 1;
   return (struct ast *)a;
 }
 
@@ -140,6 +153,22 @@ struct ast *newdamage(struct ast *src, struct ast *dst, struct ast *num) {
   a->src = src;
   a->dst = dst;
   a->num = num;
+  return (struct ast *)a;
+}
+
+struct ast *newmark(struct ast *player, char *name, struct ast *num, int hidden, int optype) {
+  struct actionMark *a = malloc(sizeof(struct actionMark));
+
+  if(!a) {
+    yyerror("out of space");
+    exit(0);
+  }
+  a->nodetype = -1;
+  a->player = player;
+  a->name = (struct aststr *)newstr(name);
+  a->num = num;
+  a->hidden = hidden;
+  a->optype = optype;
   return (struct ast *)a;
 }
 
@@ -168,5 +197,6 @@ struct ast *newexp(int exptype, long long value, int optype, struct astExp *l, s
   a->optype = optype;
   a->l = l;
   a->r = r;
+  a->bracketed = 0;
   return (struct ast *)a;
 }

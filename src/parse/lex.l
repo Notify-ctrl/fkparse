@@ -27,7 +27,14 @@
     yylval.s[strlen(yylval.s) - 1] = 0;
     return STRING;
     }
+
 [0-9]+    { yylval.i = atoi(yytext); return NUMBER; }
+
+\{[a-zA-Z][_a-zA-Z0-9]*\} {
+    yylval.s = strdup(yytext + 1);
+    yylval.s[strlen(yylval.s) - 1] = 0;
+    return INTERID;
+    }
 
 "拓展包" { return PKGSTART; }
 "触发技" { return TRIGGER; }
@@ -61,6 +68,10 @@
 "回复"  { return RECOVER; }
 "获得"  { return ACQUIRE; }
 "技能"  { return SKILL; }
+"枚"    { return MEI; }
+"标记"  { return MARK; }
+"隐藏"  { return HIDDEN; }
+"数量"  { return COUNT; }
 
 "游戏开始时"     { yylval.enum_v = GameStart; return EVENT; }
 "回合即将开始时"   { yylval.enum_v = TurnStart; return EVENT; }
@@ -112,6 +123,31 @@
 "卡牌生效后"     { yylval.enum_v = CardEffected; return EVENT; }
 "卡牌结算完成后"   { yylval.enum_v = CardFinished; return EVENT; }
 
+"锁定技" |
+"普通技" |
+"默认技" |
+"觉醒技" |
+"限定技" {
+    yylval.s = strdup(yytext);
+    return FREQUENCY;
+    }
+
+"男性" |
+"女性" |
+"中性" {
+    yylval.s = strdup(yytext);
+    return GENDER;
+    }
+
+"魏" |
+"蜀" |
+"吴" |
+"群" |
+"神" {
+    yylval.s = strdup(yytext);
+    return KINGDOM;
+    }
+
 "$" |
 "#" |
 "[" |
@@ -130,6 +166,9 @@
 "是"    { yylval.enum_v = 4; return CMP; }
 "不小于"    { yylval.enum_v = 5; return CMP; }
 "不大于"    { yylval.enum_v = 6; return CMP; }
+
+"且"    { yylval.enum_v = 7; return LOGICOP; }
+"或"    { yylval.enum_v = 8; return LOGICOP; }
 
  /* Below are ignored */
 "注：".*

@@ -42,11 +42,13 @@ enum ActionType {
   ActionDamage,
   ActionRecover,
   ActionAcquireSkill,
-  ActionDetachSkill
+  ActionDetachSkill,
+  ActionMark
 };
 
 enum ExpType {
   ExpCmp,
+  ExpLogic,
   ExpCalc,
   ExpStr,
   ExpNum,
@@ -101,22 +103,26 @@ struct astgeneral {
   struct aststr *kingdom;
   long long hp;
   struct aststr *nickname;
+  struct aststr *gender;
+  struct aststr *interid;
   struct ast *skills;
   int uid;
 };
 
 struct ast *newgeneral(char *id, char *kingdom, long long hp,
-                        char *nickname, struct ast *skills);
+                        char *nickname, char *gender, char *interid, struct ast *skills);
 
 struct astskill {
   int nodetype;
   struct aststr *id;
   struct aststr *description;
+  struct aststr *frequency;
+  struct aststr *interid;
   struct ast *skillspec;
   int uid;
 };
 
-struct ast *newskill(char *id, char *desc, struct ast *spec);
+struct ast *newskill(char *id, char *desc, char *frequency, char *interid, struct ast *spec);
 
 struct astTriggerSkill {
   int nodetype;
@@ -157,6 +163,7 @@ struct astAction {
   int nodetype;
   int actiontype;
   struct ast *action;
+  int standalone;
 };
 
 struct ast *newaction(int type, struct ast *action);
@@ -172,6 +179,17 @@ struct actionDamage {
 
 struct ast *newdamage(struct ast *src, struct ast *dst, struct ast *num);
 
+struct actionMark {
+  int nodetype;
+  struct ast *player;
+  struct aststr *name;
+  struct ast *num;
+  int hidden;
+  int optype; /* 1 = add, 2 = lose, 3 = count */
+};
+
+struct ast *newmark(struct ast *player, char *name, struct ast *num, int hidden, int optype);
+
 struct astExp {
   int nodetype;
   int exptype;
@@ -180,6 +198,7 @@ struct astExp {
   int optype;
   struct astExp *l;
   struct astExp *r;
+  int bracketed;
 };
 
 struct ast *newexp(int exptype, long long value, int optype, struct astExp *l, struct astExp *r);
@@ -188,7 +207,7 @@ struct astVar {
   int nodetype;
   struct aststr *name;  /* or field */
   struct astExp *obj;
-  int type; /* TODO: need a symtab */
+  int type;
 };
 
 #endif  // _AST_H
