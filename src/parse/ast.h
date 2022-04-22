@@ -48,6 +48,7 @@ enum ActionType {
 
 enum ExpType {
   ExpCmp,
+  ExpLogic,
   ExpCalc,
   ExpStr,
   ExpNum,
@@ -197,6 +198,7 @@ struct astExp {
   int optype;
   struct astExp *l;
   struct astExp *r;
+  int bracketed;
 };
 
 struct ast *newexp(int exptype, long long value, int optype, struct astExp *l, struct astExp *r);
@@ -205,7 +207,7 @@ struct astVar {
   int nodetype;
   struct aststr *name;  /* or field */
   struct astExp *obj;
-  int type; /* TODO: need a symtab */
+  int type;
 };
 
 #endif  // _AST_H

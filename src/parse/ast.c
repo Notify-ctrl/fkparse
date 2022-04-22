@@ -197,5 +197,6 @@ struct ast *newexp(int exptype, long long value, int optype, struct astExp *l, s
   a->optype = optype;
   a->l = l;
   a->r = r;
+  a->bracketed = 0;
   return (struct ast *)a;
 }

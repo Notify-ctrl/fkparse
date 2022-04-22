@@ -23,9 +23,9 @@
 %token TRIGGER EVENTI COND EFFECT
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
+%left <enum_v> LOGICOP
+%left '+' '-' '*' '/'
 %nonassoc <enum_v> CMP
-%left '+' '-'
-%left '*' '/'
 %token FIELD RET
 %token FALSE TRUE BREAK
 %token DRAW ZHANG CARD LOSE DIAN HP 
@@ -187,9 +187,15 @@ exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
     | STRING { $$ = newexp(ExpStr, 0, 0, (struct astExp *)newstr($1), NULL); free($1); }
     | prefixexp { $$ = $1; }
     | opexp { $$ = $1; }
+    | '(' action_stat ')' 
+      {
+        $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL);
+        ((struct astAction *)$2)->standalone = 0;
+      }
     ;
 
 opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct astExp *)$3); }
+      | exp LOGICOP exp { $$ = newexp(ExpLogic, 0, $2, (struct astExp *)$1, (struct astExp *)$3); }
       | exp '+' exp { $$ = newexp(ExpCalc, 0, '+', (struct astExp *)$1, (struct astExp *)$3); }
       | exp '-' exp { $$ = newexp(ExpCalc, 0, '-', (struct astExp *)$1, (struct astExp *)$3); }
       | exp '*' exp { $$ = newexp(ExpCalc, 0, '*', (struct astExp *)$1, (struct astExp *)$3); }
@@ -197,12 +203,7 @@ opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct as
       ;
 
 prefixexp : var { $$ = newexp(ExpVar, 0, 0, (struct astExp *)$1, NULL); }
-          | '(' action_stat ')' 
-            {
-              $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL);
-              ((struct astAction *)$2)->standalone = 0;
-            }
-          | '(' exp ')' { $$ = $2; }
+          | '(' exp ')' { $$ = $2; ((struct astExp *)$2)->bracketed = 1; }
           ;
 
 var : IDENTIFIER { $$ = newast(N_Var, newstr($1), NULL); free($1); }

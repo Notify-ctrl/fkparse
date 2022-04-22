@@ -167,6 +167,9 @@
 "不小于"    { yylval.enum_v = 5; return CMP; }
 "不大于"    { yylval.enum_v = 6; return CMP; }
 
+"且"    { yylval.enum_v = 7; return LOGICOP; }
+"或"    { yylval.enum_v = 8; return LOGICOP; }
+
  /* Below are ignored */
 "注：".*
 "然后"

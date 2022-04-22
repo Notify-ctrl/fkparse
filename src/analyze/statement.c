@@ -82,6 +82,8 @@ int analyzeExp(struct ast *a) {
   int t;
 
   struct astExp *e = (struct astExp *)a;
+  if (e->bracketed) fprintf(yyout, "(");
+
   if ((e->exptype == ExpCalc || e->exptype == ExpCmp) && e->optype != 0) {
     if (e->optype == 3 || e->optype == 4) {
       t = analyzeExp((struct ast *)(e->l));
@@ -96,30 +98,39 @@ int analyzeExp(struct ast *a) {
       if (t == TPlayer) {
         fprintf(yyout, ":objectName()");
       }
-      return TNumber;
+      ret = TNumber;
+    } else {
+      t = analyzeExp((struct ast *)(e->l));
+      checktype(t, TNumber);
+      switch (e->optype) {
+        case 1: fprintf(yyout, " > "); break;
+        case 2: fprintf(yyout, " < "); break;
+        case 5: fprintf(yyout, " >= "); break;
+        case 6: fprintf(yyout, " <= "); break;
+        default: fprintf(yyout, " %c ", e->optype); break;
+      }
+      t = analyzeExp((struct ast *)(e->r));
+      checktype(t, TNumber);
+      ret = TNumber;
     }
-    t = analyzeExp((struct ast *)(e->l));
-    checktype(t, TNumber);
+  } else if (e->exptype == ExpLogic) {
+    analyzeExp((struct ast *)(e->l));
     switch (e->optype) {
-      case 1: fprintf(yyout, " > "); break;
-      case 2: fprintf(yyout, " < "); break;
-      case 5: fprintf(yyout, " >= "); break;
-      case 6: fprintf(yyout, " <= "); break;
-      default: fprintf(yyout, " %c " ,e->optype); break;
+      case 7: fprintf(yyout, " and "); break;
+      case 8: fprintf(yyout, " or "); break;
     }
-    t = analyzeExp((struct ast *)(e->r));
-    checktype(t, TNumber);
-    return TNumber;
-  }
-
-  switch (e->exptype) {
-    case ExpNum: fprintf(yyout, "%lld" ,e->value); return TNumber;
-    case ExpBool: fprintf(yyout, "%s" ,e->value == 0 ? "false" : "true"); return TNumber;
-    case ExpStr: fprintf(yyout, "'%s'", ((struct aststr *)(e->l))->str); return TString;
-    case ExpVar: return analyzeVar((struct ast *)(e->l));
-    case ExpAction: return analyzeAction((struct ast *)(e->l));
+    analyzeExp((struct ast *)(e->r));
+    ret = TNumber;
+  } else switch (e->exptype) {
+    case ExpNum: fprintf(yyout, "%lld" ,e->value); ret = TNumber; break;
+    case ExpBool: fprintf(yyout, "%s" ,e->value == 0 ? "false" : "true"); ret = TNumber; break;
+    case ExpStr: fprintf(yyout, "'%s'", ((struct aststr *)(e->l))->str); ret = TString; break;
+    case ExpVar: ret = analyzeVar((struct ast *)(e->l)); break;
+    case ExpAction: ret = analyzeAction((struct ast *)(e->l)); break;
     default: fprintf(stderr, "unknown exptype %d\n", e->exptype); exit(1);
   }
+
+  if (e->bracketed) fprintf(yyout, ")");
 
   return ret;
 }
