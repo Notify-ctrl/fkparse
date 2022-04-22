@@ -39,6 +39,7 @@ enum ExpVType {
   TSkill,
   TGeneral,
   TNumber,
+  TBool,
   TString,
   TPlayer,
   TCard,
@@ -53,6 +54,11 @@ struct symbol { /* a variable name */
 };
 
 struct symbol *lookup(char *);
+
+int isReserved(char *);
+int analyzeReserved(char *k);
+
+extern char *event_table[];
 
 /* analyzer for each grammar rule */
 

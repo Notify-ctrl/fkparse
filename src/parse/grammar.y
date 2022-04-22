@@ -15,17 +15,22 @@
 %token <i> NUMBER
 %token <s> IDENTIFIER
 %token <s> STRING
+%token <s> INTERID
+%token <s> FREQUENCY
+%token <s> GENDER
+%token <s> KINGDOM
 %token PKGSTART
 %token TRIGGER EVENTI COND EFFECT
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
+%left <enum_v> LOGICOP
+%left '+' '-' '*' '/'
 %nonassoc <enum_v> CMP
-%left '+' '-'
-%left '*' '/'
 %token FIELD RET
 %token FALSE TRUE BREAK
 %token DRAW ZHANG CARD LOSE DIAN HP 
 %token TO CAUSE DAMAGE INFLICT RECOVER ACQUIRE SKILL
+%token MEI MARK HIDDEN COUNT
 
 %type <a> extension
 %type <a> skillList skill
@@ -37,7 +42,9 @@
 
 %type <a> block statements statement retstat
 %type <a> assign_stat if_stat loop_stat action_stat
-%type <a> drawCards loseHp causeDamage inflictDamage recoverHp acquireSkill detachSkill
+%type <a> drawCards loseHp causeDamage inflictDamage recoverHp
+%type <a> acquireSkill detachSkill
+%type <a> addMark loseMark getMark
 %type <a> exp prefixexp opexp var
 
 %start extension
@@ -57,9 +64,19 @@ skillList : %empty  { $$ = newast(N_Skills, NULL, NULL); }
           | skillList skill { $$ = newast(N_Skills, $1, $2); }
           ;
 
-skill     : '$' IDENTIFIER STRING skillspecs
+skill     : '$' IDENTIFIER STRING FREQUENCY INTERID skillspecs
               {
-                $$ = newskill($2, $3, $4);
+                $$ = newskill($2, $3, $4, $5, $6);
+                free($2); free($3); free($4); free($5);
+              }
+          | '$' IDENTIFIER STRING FREQUENCY skillspecs
+              {
+                $$ = newskill($2, $3, $4, NULL, $5);
+                free($2); free($3); free($4);
+              }
+          | '$' IDENTIFIER STRING skillspecs
+              {
+                $$ = newskill($2, $3, NULL, NULL, $4);
                 free($2); free($3);
               }
           ;
@@ -118,6 +135,9 @@ action_stat : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | recoverHp { $$ = newaction(ActionRecover, $1); }
             | acquireSkill { $$ = newaction(ActionAcquireSkill, $1); }
             | detachSkill { $$ = newaction(ActionDetachSkill, $1); }
+            | addMark { $$ = newaction(ActionMark, $1); }
+            | loseMark  { $$ = newaction(ActionMark, $1); }
+            | getMark { $$ = newaction(ActionMark, $1); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD { $$ = newast(-1, $1, $3); }
@@ -143,15 +163,39 @@ acquireSkill  : exp ACQUIRE SKILL exp { $$ = newast(-1, $1, $4); }
 detachSkill : exp LOSE SKILL exp { $$ = newast(-1, $1, $4); }
             ;
 
+addMark : exp ACQUIRE exp MEI STRING MARK
+          { $$ = newmark($1, $5, $3, 0, 1); free($5); } 
+        | exp ACQUIRE exp MEI STRING HIDDEN MARK
+          { $$ = newmark($1, $5, $3, 1, 1); free($5); } 
+        ;
+
+loseMark  : exp LOSE exp MEI STRING MARK
+            { $$ = newmark($1, $5, $3, 0, 2); free($5); } 
+          | exp LOSE exp MEI STRING HIDDEN MARK
+            { $$ = newmark($1, $5, $3, 1, 2); free($5); } 
+          ;
+
+getMark : exp STRING MARK COUNT
+          { $$ = newmark($1, $2, NULL, 0, 3); free($2); }
+        | exp STRING HIDDEN MARK COUNT
+          { $$ = newmark($1, $2, NULL, 1, 3); free($2); }
+        ;
+
 exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
     | TRUE { $$ = newexp(ExpBool, 1, 0, NULL, NULL); }
     | NUMBER { $$ = newexp(ExpNum, $1, 0, NULL, NULL); }
     | STRING { $$ = newexp(ExpStr, 0, 0, (struct astExp *)newstr($1), NULL); free($1); }
     | prefixexp { $$ = $1; }
     | opexp { $$ = $1; }
+    | '(' action_stat ')' 
+      {
+        $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL);
+        ((struct astAction *)$2)->standalone = 0;
+      }
     ;
 
 opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct astExp *)$3); }
+      | exp LOGICOP exp { $$ = newexp(ExpLogic, 0, $2, (struct astExp *)$1, (struct astExp *)$3); }
       | exp '+' exp { $$ = newexp(ExpCalc, 0, '+', (struct astExp *)$1, (struct astExp *)$3); }
       | exp '-' exp { $$ = newexp(ExpCalc, 0, '-', (struct astExp *)$1, (struct astExp *)$3); }
       | exp '*' exp { $$ = newexp(ExpCalc, 0, '*', (struct astExp *)$1, (struct astExp *)$3); }
@@ -159,8 +203,7 @@ opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct as
       ;
 
 prefixexp : var { $$ = newexp(ExpVar, 0, 0, (struct astExp *)$1, NULL); }
-          | '(' action_stat ')' { $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL); }
-          | '(' exp ')' { $$ = $2; }
+          | '(' exp ')' { $$ = $2; ((struct astExp *)$2)->bracketed = 1; }
           ;
 
 var : IDENTIFIER { $$ = newast(N_Var, newstr($1), NULL); free($1); }
@@ -185,10 +228,20 @@ generalList : %empty { $$ = newast(N_Generals, NULL, NULL); }
             | generalList general { $$ = newast(N_Generals, $1, $2); }
             ;
 
-general     : '#' IDENTIFIER STRING NUMBER STRING '[' stringList ']'
+general     : '#' KINGDOM STRING IDENTIFIER NUMBER GENDER INTERID '[' stringList ']'
                 {
-                  $$ = newgeneral($2, $3, $4, $5, $7);
-                  free($2); free($3); free($5);
+                  $$ = newgeneral($4, $2, $5, $3, $6, $7, $9);
+                  free($2); free($3); free($4); free($6); free($7);
+                }
+            | '#' KINGDOM STRING IDENTIFIER NUMBER GENDER '[' stringList ']'
+                {
+                  $$ = newgeneral($4, $2, $5, $3, $6, NULL, $8);
+                  free($2); free($3); free($4); free($6);
+                }
+            | '#' KINGDOM STRING IDENTIFIER NUMBER '[' stringList ']'
+                {
+                  $$ = newgeneral($4, $2, $5, $3, NULL, NULL, $7);
+                  free($2); free($3); free($4);
                 }
             ;
 

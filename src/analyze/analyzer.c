@@ -20,30 +20,6 @@ void writeline(const char *msg, ...) {
   fprintf(yyout, "\n");
 }
 
-static int exists(struct ast *skill, struct ast *str) {
-  if (!strcmp(((struct astskill *)skill)->id->str, (char *)str)) {
-    return 1;
-  }
-  return 0;
-}
-
-static char *kingdom(char *k) {
-  if (!strcmp(k, "魏"))
-    return "wei";
-  else if (!strcmp(k, "蜀"))
-    return "shu";
-  else if (!strcmp(k, "吴"))
-    return "wu";
-  else if (!strcmp(k, "群"))
-    return "qun";
-  else if (!strcmp(k, "神"))
-    return "god";
-  else {
-    fprintf(stderr, "未知国籍 \"%s\"：退出\n", k);
-    exit(1);
-  }
-}
-
 static void addgeneralskills(struct ast *skills) {
   struct ast *as = all_skills;
   if (skills->l) {
@@ -51,12 +27,12 @@ static void addgeneralskills(struct ast *skills) {
     while (as->l) {
       struct astskill *s = ((struct astskill *)(as->r));
       if (!strcmp(s->id->str, ((struct aststr *)(skills->r))->str)) {
-        writeline("%sg%d:addSkill(%ss%d)", readfile_name, currentgeneral->uid, readfile_name, s->uid);
+        writeline("%s:addSkill(%s)", currentgeneral->interid->str, s->interid->str);
         return;
       }
       as = as->l;
     }
-    fprintf(stderr, "不存在的技能 \"%s\"\n", ((struct aststr *)(skills->r))->str);
+    fprintf(stderr, "错误：不存在的技能 \"%s\"\n", ((struct aststr *)(skills->r))->str);
     exit(1);
   }
 }
@@ -66,14 +42,17 @@ void analyzeGeneral(struct ast *a) {
 
   struct astgeneral *g = (struct astgeneral *)a;
   currentgeneral = g;
-  fprintf(yyout, "%sg%d = sgs.General(%sp%d, \"%sg%d\", \"%s\", %lld)\n",
-         readfile_name, g->uid, readfile_name, currentpack->uid, readfile_name,
-         g->uid, kingdom(g->kingdom->str), g->hp);
+  fprintf(yyout, "%s = sgs.General(extension%d, \"%s\", ", g->interid->str, currentpack->uid, g->interid->str);
+  analyzeReserved(g->kingdom->str);
+  fprintf(yyout, ", %lld)\n", g->hp);
   char buf[64];
-  sprintf(buf, "%sg%d", readfile_name, g->uid);
+  sprintf(buf, "%s", g->interid->str);
   addTranslation(buf, g->id->str);
-  sprintf(buf, "#%sg%d", readfile_name, g->uid);
+  sprintf(buf, "#%s", g->interid->str);
   addTranslation(buf, g->nickname->str);
+  fprintf(yyout, "%s:setGender(", g->interid->str);
+  analyzeReserved(g->gender->str);
+  fprintf(yyout, ")\n");
   addgeneralskills(g->skills);
 }
 
@@ -92,7 +71,7 @@ void analyzePackage(struct ast *a) {
 
   struct astpackage *p = (struct astpackage *)a;
   currentpack = p;
-  fprintf(yyout, "%sp%d = sgs.Package(\"%sp%d\")\n",readfile_name, p->uid, readfile_name, p->uid);
+  fprintf(yyout, "local extension%d = sgs.Package(\"%sp%d\")\n", p->uid, readfile_name, p->uid);
   char buf[64];
   sprintf(buf, "%sp%d", readfile_name, p->uid);
   addTranslation(buf, ((struct aststr *)p->id)->str);
@@ -111,7 +90,7 @@ void analyzeExtension(struct ast *a) {
   loadTranslations();
   fprintf(yyout, "\nreturn { ");
   for (int i = 0; i <= currentpack->uid; i++) {
-    fprintf(yyout, "%sp%d, ", readfile_name, i);
+    fprintf(yyout, "extension%d, ", i);
   }
   fprintf(yyout, "}\n");
 }
