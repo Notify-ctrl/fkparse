@@ -289,6 +289,7 @@ int analyzeAction(struct ast *a) {
 
   struct astAction *s = (struct astAction *)a;
   struct ast *action = s->action;
+  struct actionMark *m;
 
   if (s->standalone) print_indent();
 
@@ -340,7 +341,7 @@ int analyzeAction(struct ast *a) {
       fprintf(yyout, ")");
       break;
     case ActionMark:
-      struct actionMark *m = (struct actionMark *)action;
+      m = (struct actionMark *)action;
       ret = analyzeActionMark(m);
       break;
     default:
