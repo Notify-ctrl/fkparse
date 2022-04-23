@@ -123,7 +123,8 @@ static void initData(int event) {
     case AfterDrawNCards:
     case DrawInitialCards:
     case AfterDrawInitialCards:
-      defineLocal("摸牌数量", "data:toInt()", TNumber);
+      writeline("local draw = data:toInt()");
+      defineLocal("摸牌数量", "draw", TNumber);
       break;
 
     case PreHpRecover:
@@ -136,12 +137,14 @@ static void initData(int event) {
       
     case PreHpLost:
     case HpLost:
-      defineLocal("失去值", "data:toInt()", TNumber);
+      writeline("local lost = data:toInt()");
+      defineLocal("失去值", "lost", TNumber);
       break;
 
     case EventLoseSkill:
     case EventAcquireSkill:
-      defineLocal("技能", "data:toString()", TString);
+      writeline("local skill = data:toString()");
+      defineLocal("技能", "skill", TString);
       break;
 
     case StartJudge:
@@ -334,8 +337,8 @@ static void clearData(int event) {
     case AfterDrawNCards:
     case DrawInitialCards:
     case AfterDrawInitialCards:
-      clearLocal("摸牌数量", "data:toInt()", rewrite);
-      if (rewrite) writeline("data:setValue(data:toInt())");
+      clearLocal("摸牌数量", "draw", rewrite);
+      if (rewrite) writeline("data:setValue(draw)");
       break;
 
     case PreHpRecover:
@@ -349,14 +352,14 @@ static void clearData(int event) {
       
     case PreHpLost:
     case HpLost:
-      clearLocal("失去值", "data:toInt()", rewrite);
-      if (rewrite) writeline("data:setValue(data:toInt())");
+      clearLocal("失去值", "lost", rewrite);
+      if (rewrite) writeline("data:setValue(lost)");
       break;
 
     case EventLoseSkill:
     case EventAcquireSkill:
-      clearLocal("技能", "data:toString()", rewrite);
-      if (rewrite) writeline("data:setValue(data:toString())");
+      clearLocal("技能", "skill", rewrite);
+      if (rewrite) writeline("data:setValue(skill)");
       break;
 
     case StartJudge:
