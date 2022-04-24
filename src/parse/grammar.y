@@ -46,6 +46,7 @@
 %type <a> acquireSkill detachSkill
 %type <a> addMark loseMark getMark
 %type <a> exp prefixexp opexp var
+%type <a> explist array
 
 %start extension
 %define parse.error detailed
@@ -192,6 +193,7 @@ exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
         $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL);
         ((struct astAction *)$2)->standalone = 0;
       }
+    | array
     ;
 
 opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct astExp *)$3); }
@@ -205,6 +207,14 @@ opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct as
 prefixexp : var { $$ = newexp(ExpVar, 0, 0, (struct astExp *)$1, NULL); }
           | '(' exp ')' { $$ = $2; ((struct astExp *)$2)->bracketed = 1; }
           ;
+
+explist : exp { $$ = newast(N_Exps, NULL, $1); }
+        | explist ',' exp { $$ = newast(N_Exps, $1, $3); }
+        ;
+
+array : '[' ']' { $$ = newexp(ExpArray, 0, 0, NULL, NULL); }
+      | '[' explist ']' { $$ = newexp(ExpArray, 0, 0, (struct astExp *)$2, NULL); }
+      ;
 
 var : IDENTIFIER { $$ = newast(N_Var, newstr($1), NULL); free($1); }
     | prefixexp FIELD STRING { $$ = newast(N_Var, newstr($3), $1); free($3); }

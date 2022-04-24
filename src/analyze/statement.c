@@ -74,6 +74,23 @@ int analyzeVar(struct ast *a) {
   return ret;
 }
 
+static int analyzeArray(struct ast *a) {
+  if (!a) return TNone;
+  checktype(a->nodetype, N_Exps);
+  int ret = TNone;
+
+  /* determine array type first */
+  ret = analyzeArray(a->l);
+  int arraytype = analyzeExp(a->r);
+  fprintf(yyout, ", ");
+  if (ret != TNone && arraytype != ret) {
+    fprintf(stderr, "错误：数组中不能有类别不同的元素(预期类型%d，实际得到%d)\n", ret, arraytype);
+    exit(1);
+  }
+  ret = arraytype;
+  return ret;
+}
+
 /* return the type of exp */
 int analyzeExp(struct ast *a) {
   checktype(a->nodetype, N_Exp);
@@ -120,6 +137,19 @@ int analyzeExp(struct ast *a) {
     }
     analyzeExp((struct ast *)(e->r));
     ret = TBool;
+  } else if (e->exptype == ExpArray) {
+    fprintf(yyout, "fkp.newlist{");
+    t = analyzeArray((struct ast *)(e->l));
+    fprintf(yyout, "}");
+    switch (t) {
+      case TPlayer: ret = TPlayerList; break;
+      case TCard: ret = TCardList; break;
+      case TNumber: ret = TNumberList; break;
+      case TString: ret = TStringList; break;
+      default:
+        fprintf(stderr, "错误：未知的数组元素类型%d\n", t);
+        exit(1);
+    }
   } else switch (e->exptype) {
     case ExpNum: fprintf(yyout, "%lld" ,e->value); ret = TNumber; break;
     case ExpBool: fprintf(yyout, "%s" ,e->value == 0 ? "false" : "true"); ret = TBool; break;

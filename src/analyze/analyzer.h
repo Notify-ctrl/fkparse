@@ -43,6 +43,11 @@ enum ExpVType {
   TString,
   TPlayer,
   TCard,
+  TEmptyList,
+  TPlayerList,
+  TCardList,
+  TNumberList,
+  TStringList,
 
   TAny = 0xFFFF
 };

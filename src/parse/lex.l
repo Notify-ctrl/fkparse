@@ -158,7 +158,9 @@
 "+" |
 "-" |
 "*" |
-"/" { return yytext[0]; }
+"/" |
+"," |
+"." { return yytext[0]; }
 
 "大于"     { yylval.enum_v = 1; return CMP; }
 "小于"     { yylval.enum_v = 2; return CMP; }
@@ -176,7 +178,7 @@
 "立即"
 "，"
 "。"
-[ \t\r\n\,\.]
+[ \t\r\n]
 . { yyerror("unrecognized char"); }
 
 %%

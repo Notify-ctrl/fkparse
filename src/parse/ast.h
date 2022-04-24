@@ -23,6 +23,7 @@ enum NodeType {
 
   N_Stat_Action,
 
+  N_Exps,
   N_Exp,
 
   N_Var,
@@ -54,6 +55,7 @@ enum ExpType {
   ExpNum,
   ExpBool,
   ExpVar,
+  ExpArray,
   ExpAction
 };
 
