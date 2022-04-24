@@ -383,6 +383,14 @@ int analyzeAction(struct ast *a) {
       fprintf(yyout, ", \"+\"), data)");
       ret = TString;
       break;
+    case ActionAskForPlayerChosen:
+      fprintf(yyout, "room:askForPlayerChosen(");
+      t = analyzeExp(action->l); checktype(t, TPlayer);
+      fprintf(yyout, ", ");
+      t = analyzeExp(action->r); checktype(t, TPlayerList);
+      fprintf(yyout, ", self:objectName(), nil, false, true)");
+      ret = TPlayer;
+      break;
     default:
       fprintf(stderr, "unexpected action type %d\n", s->nodetype); break;
   }

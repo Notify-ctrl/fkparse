@@ -31,7 +31,7 @@
 %token DRAW ZHANG CARD LOSE DIAN HP 
 %token TO CAUSE DAMAGE INFLICT RECOVER ACQUIRE SKILL
 %token MEI MARK HIDDEN COUNT
-%token FROM SELECT ANITEM
+%token FROM SELECT ANITEM ANPLAYER
 
 %type <a> extension
 %type <a> skillList skill
@@ -46,7 +46,7 @@
 %type <a> drawCards loseHp causeDamage inflictDamage recoverHp
 %type <a> acquireSkill detachSkill
 %type <a> addMark loseMark getMark
-%type <a> askForChoice
+%type <a> askForChoice askForChoosePlayer
 
 %type <a> exp prefixexp opexp var
 %type <a> explist array
@@ -143,6 +143,7 @@ action_stat : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | loseMark  { $$ = newaction(ActionMark, $1); }
             | getMark { $$ = newaction(ActionMark, $1); }
             | askForChoice { $$ = newaction(ActionAskForChoice, $1); }
+            | askForChoosePlayer { $$ = newaction(ActionAskForPlayerChosen, $1); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD { $$ = newast(-1, $1, $3); }
@@ -190,6 +191,10 @@ askForChoice : exp FROM exp SELECT ANITEM
           { $$ = newast(-1, $1, $3); }
           ;
 
+askForChoosePlayer : exp FROM exp SELECT ANPLAYER
+          { $$ = newast(-1, $1, $3); }
+          ;
+
 exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
     | TRUE { $$ = newexp(ExpBool, 1, 0, NULL, NULL); }
     | NUMBER { $$ = newexp(ExpNum, $1, 0, NULL, NULL); }
@@ -201,7 +206,7 @@ exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
         $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL);
         ((struct astAction *)$2)->standalone = 0;
       }
-    | array
+    | array { $$ = $1; }
     ;
 
 opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct astExp *)$3); }

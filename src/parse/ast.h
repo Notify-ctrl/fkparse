@@ -45,7 +45,8 @@ enum ActionType {
   ActionAcquireSkill,
   ActionDetachSkill,
   ActionMark,
-  ActionAskForChoice
+  ActionAskForChoice,
+  ActionAskForPlayerChosen
 };
 
 enum ExpType {

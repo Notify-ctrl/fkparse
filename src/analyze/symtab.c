@@ -141,6 +141,8 @@ static struct {
   {"女性", "sgs.General_Female", TNumber},
   {"中性", "sgs.General_Neuter", TNumber},
 
+  {"其他角色", "room:getOtherPlayers(player)", TPlayerList},
+
   {NULL, NULL, TNone}
 };
 
