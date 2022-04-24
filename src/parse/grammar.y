@@ -31,6 +31,7 @@
 %token DRAW ZHANG CARD LOSE DIAN HP 
 %token TO CAUSE DAMAGE INFLICT RECOVER ACQUIRE SKILL
 %token MEI MARK HIDDEN COUNT
+%token FROM SELECT ANITEM
 
 %type <a> extension
 %type <a> skillList skill
@@ -45,6 +46,8 @@
 %type <a> drawCards loseHp causeDamage inflictDamage recoverHp
 %type <a> acquireSkill detachSkill
 %type <a> addMark loseMark getMark
+%type <a> askForChoice
+
 %type <a> exp prefixexp opexp var
 %type <a> explist array
 
@@ -139,6 +142,7 @@ action_stat : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | addMark { $$ = newaction(ActionMark, $1); }
             | loseMark  { $$ = newaction(ActionMark, $1); }
             | getMark { $$ = newaction(ActionMark, $1); }
+            | askForChoice { $$ = newaction(ActionAskForChoice, $1); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD { $$ = newast(-1, $1, $3); }
@@ -181,6 +185,10 @@ getMark : exp STRING MARK COUNT
         | exp STRING HIDDEN MARK COUNT
           { $$ = newmark($1, $2, NULL, 1, 3); free($2); }
         ;
+
+askForChoice : exp FROM exp SELECT ANITEM
+          { $$ = newast(-1, $1, $3); }
+          ;
 
 exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
     | TRUE { $$ = newexp(ExpBool, 1, 0, NULL, NULL); }

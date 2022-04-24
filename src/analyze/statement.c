@@ -316,6 +316,7 @@ int analyzeAction(struct ast *a) {
 
   int ret = TNone;
   int t;
+  char buf[1024];
 
   struct astAction *s = (struct astAction *)a;
   struct ast *action = s->action;
@@ -373,6 +374,14 @@ int analyzeAction(struct ast *a) {
     case ActionMark:
       m = (struct actionMark *)action;
       ret = analyzeActionMark(m);
+      break;
+    case ActionAskForChoice:
+      fprintf(yyout, "room:askForChoice(");
+      t = analyzeExp(action->l); checktype(t, TPlayer);
+      fprintf(yyout, ", self:objectName(), table.concat(");
+      t = analyzeExp(action->r); checktype(t, TStringList);
+      fprintf(yyout, ", \"+\"), data)");
+      ret = TString;
       break;
     default:
       fprintf(stderr, "unexpected action type %d\n", s->nodetype); break;

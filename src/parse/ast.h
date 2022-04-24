@@ -44,7 +44,8 @@ enum ActionType {
   ActionRecover,
   ActionAcquireSkill,
   ActionDetachSkill,
-  ActionMark
+  ActionMark,
+  ActionAskForChoice
 };
 
 enum ExpType {
