@@ -1,0 +1,110 @@
+#ifndef _STRUCTS_H
+#define _STRUCTS_H
+
+/**
+ * 所有元素的第一个成员都是objtype
+ * 这个结构体用来代表所有可能的成员
+ **/
+
+enum ObjType {
+  Obj_Integer,
+  Obj_Double,
+  Obj_String,
+
+  Obj_Extension,
+  Obj_Package,
+  Obj_General,
+  Obj_Skill,
+  Obj_Card,
+  Obj_Player,
+
+  Obj_Block,
+  Obj_TriggerSpec,
+  Obj_If,
+  Obj_Loop,
+  Obj_Break,
+  Obj_Return,
+  Obj_Assign,
+  Obj_Action,
+  Obj_ActionBody,
+
+  Obj_Expression,
+  Obj_Var
+};
+
+typedef enum ObjType ObjType;
+
+typedef struct {
+  ObjType objtype;
+} Object;
+
+/* ------------------------- */
+/* 链表 */
+
+typedef struct List {
+  struct List *next;
+  Object *data;
+} List;
+
+#define list_foreach(node, list) \
+  for ((node) = (list)->next; (node); (node) = (node)->next)
+
+List *list_new();
+void list_append(List *l, Object *o);
+void list_prepend(List *l, Object *o);
+int list_indexOf(List *l, Object *o);
+#define list_contains(l, o) (list_indexOf(l, o) != -1)
+void list_removeOne(List *l, Object *o);
+Object *list_at(List *l, int index);
+int list_length(List *l);
+void list_free(List *l);
+
+/* ------------------------- */
+/* 哈希表 */
+
+typedef struct {
+  const char *key;
+  void *value;
+} hash_entry;
+
+typedef struct {
+  hash_entry *entries;
+  int capacity;
+  int length;
+} Hash;
+
+Hash *hash_new();
+void *hash_get(Hash *h, const char* k);
+void hash_set(Hash *h, const char* k, void *v);
+void hash_free(Hash *h);
+
+/* ------------------------- */
+
+extern Hash *symtab;
+
+enum StrType {
+  Str_Package,
+  Str_General,
+  Str_Skill,
+  Str_Mark,
+  Str_Pile
+};
+
+typedef struct {
+  int type;
+  const char *origtxt;
+  const char *translated;
+} str_value;
+extern Hash *strtab;
+extern List *restrtab;
+const char *translate(const char *orig);
+void addTranslation(const char *orig, const char *translated);
+void addTransWithType(const char *orig, const char *translated, int type);
+
+/* ------------------------- */
+
+#define cast(type, o) ((type)(o))
+#define unused(o) ((void)(o))
+#include <stdbool.h>
+
+#endif

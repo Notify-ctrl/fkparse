@@ -6,13 +6,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#define checktype(a, t) do { \
-  if (a != t && a != TAny) { \
-    fprintf(stderr, "Type error: expect %d, got %d\n", t, a); \
-    exit(1); \
-  } \
-} while(0)
-
 extern struct ast *all_skills;
 extern struct astpackage *currentpack;
 extern struct astgeneral *currentgeneral;
@@ -32,25 +25,6 @@ extern struct translations *Translations;
 
 void addTranslation(char *src, char *dest);
 void loadTranslations();
-
-enum ExpVType {
-  TNone,
-  TPackage,
-  TSkill,
-  TGeneral,
-  TNumber,
-  TBool,
-  TString,
-  TPlayer,
-  TCard,
-  TEmptyList,
-  TPlayerList,
-  TCardList,
-  TNumberList,
-  TStringList,
-
-  TAny = 0xFFFF
-};
 
 /* symbol table */
 struct symbol { /* a variable name */

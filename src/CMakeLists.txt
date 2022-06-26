@@ -3,11 +3,10 @@ set(fkparse_SRCS
   "parse/ast.c"
   "parse/lex.c"
   "parse/grammar.c"
-  "analyze/analyzer.c"
-  "analyze/skill.c"
-  "analyze/statement.c"
-  "analyze/symtab.c"
-  "analyze/translations.c"
+  "fundamental/hash.c"
+  "fundamental/list.c"
+  "analyze/object.c"
+  "analyze/action.c"
 )
 
 add_custom_command(

@@ -1,6 +1,6 @@
 #include "analyzer.h"
 
-static int getField(int objtype, char *field) {
+static int getField(ObjType objtype, char *field) {
   switch (objtype) {
     case TPlayer:
       if (!strcmp(field, "体力值")) {

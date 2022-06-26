@@ -1,7 +1,7 @@
 #include "ast.h"
 #include "main.h"
 
-struct ast *newast(int nodetype, struct ast *l, struct ast *r) {
+struct ast *newast(NodeType nodetype, struct ast *l, struct ast *r) {
   struct ast *a = malloc(sizeof(struct ast));
 
   if(!a) {
@@ -90,7 +90,7 @@ struct ast *newskill(char *id, char *desc, char *frequency, char *interid, struc
   a->description = (struct aststr *)newstr(desc);
   a->frequency = frequency ? (struct aststr *)newstr(frequency)
                            : (struct aststr *)newstr("普通技");
-  a->skillspec = spec;
+  a->skillspecs = spec;
   static int skill_id = 0;
   a->uid = skill_id++;
   char buf[64];
@@ -135,7 +135,7 @@ struct ast *newaction(int type, struct ast *action) {
     yyerror("out of space");
     exit(0);
   }
-  a->nodetype = N_Stat_Action;
+  a->nodetype = N_Action;
   a->actiontype = type;
   a->action = action;
   a->standalone = 1;
@@ -185,10 +185,10 @@ struct ast *newexp(int exptype, long long value, int optype, struct astExp *l, s
     case ExpCmp:
     case ExpCalc:
     case ExpNum:
-      a->valuetype = VarNumber;
+      a->valuetype = TNumber;
       break;
     case ExpStr:
-      a->valuetype = VarStr;
+      a->valuetype = TString;
       break;
     default:
       a->valuetype = -1;

@@ -2,7 +2,7 @@
 #include "main.h"
 #include "enums.h"
 #include "ast.h"
-#include "analyzer.h"
+#include "object.h"
 %}
 
 %union {
@@ -42,7 +42,7 @@
 %type <a> triggerSkill triggerspecs triggerspec
 
 %type <a> block statements statement retstat
-%type <a> assign_stat if_stat loop_stat action_stat
+%type <a> assign_stat if_stat loop_stat action_stat action args arglist arg
 %type <a> drawCards loseHp causeDamage inflictDamage recoverHp
 %type <a> acquireSkill detachSkill
 %type <a> addMark loseMark getMark
@@ -60,7 +60,7 @@
 extension : skillList packageList
               {
                 $$ = newast(N_Extension, $1, $2);
-                analyzeExtension($$);
+                newExtension($$);
               }
           ;
 
@@ -132,7 +132,11 @@ if_stat : IF exp THEN block END { $$ = newif($2, $4, NULL); }
 loop_stat : REPEAT block UNTIL exp { $$ = newast(N_Stat_Loop, $2, $4); }
           ;
 
-action_stat : drawCards { $$ = newaction(ActionDrawcard, $1); }
+action_stat : action { $$ = newast(N_Stat_Action, $1, NULL); }
+            | action args { $$ = newast(N_Stat_Action, $1, $2); }
+            ;
+
+action      : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | loseHp { $$ = newaction(ActionLosehp, $1); }
             | causeDamage { $$ = newaction(ActionDamage, $1); }
             | inflictDamage { $$ = newaction(ActionDamage, $1); }
@@ -145,6 +149,16 @@ action_stat : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | askForChoice { $$ = newaction(ActionAskForChoice, $1); }
             | askForChoosePlayer { $$ = newaction(ActionAskForPlayerChosen, $1); }
             ;
+
+args : '{' arglist '}' { $$ = $2; }
+     | '{' '}' { $$ = NULL; }
+     ;
+
+arglist : arglist ',' arg { $$ = newast(N_Args, $1, $3); }
+        | arg {$$ = newast(N_Args, NULL, $1); }
+        ;
+
+arg : IDENTIFIER ':' exp { $$ = newast(N_Arg, newstr($1), $3); };
 
 drawCards : exp DRAW exp ZHANG CARD { $$ = newast(-1, $1, $3); }
           ;
