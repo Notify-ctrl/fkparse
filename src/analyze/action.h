@@ -57,6 +57,19 @@ typedef struct {
   ExpressionObj *number; 
 } MarkAct;
 
+typedef struct {
+  ObjType objtype;
+  ExpressionObj *player;
+  ExpressionObj *choices;
+} AskForChoiceAct;
+
+typedef struct {
+  ObjType objtype;
+  ExpressionObj *player;
+  ExpressionObj *targets;
+} AskForChoosePlayerAct;
+
 ActionObj *newAction(struct ast *a);
+void analyzeAction(ActionObj *a);
 
 #endif

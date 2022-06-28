@@ -2,10 +2,11 @@
 #define _AST_H
 
 #include "structs.h"
+#include "main.h"
 
 #define checktype(a, t) do { \
   if (a != t && a != TAny) { \
-    fprintf(stderr, "Type error: expect %d, got %d\n", t, a); \
+    fprintf(error_output, "Type error: expect %d, got %d\n", t, a); \
     exit(1); \
   } \
 } while(0)
@@ -95,7 +96,9 @@ enum ExpVType {
   TCardList,
   TNumberList,
   TStringList,
+  TMark,
 
+  TNotSure = 0xFFFE,
   TAny = 0xFFFF
 };
 

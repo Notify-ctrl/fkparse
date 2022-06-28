@@ -5,19 +5,53 @@
 #include <stdio.h>
 #include <string.h>
 
+Hash *symtab;
+
+symtab_item *sym_lookup(const char *k) {
+  return (symtab_item *)hash_get(symtab, k);
+}
+
+void sym_set(const char *k, symtab_item *v) {
+  symtab_item *i = sym_lookup(k);
+  if (i && i->reserved) {
+    /* error */
+  } else {
+    hash_set(symtab, k, (void *)v);
+  }
+}
+
+void sym_new_entry(const char *k, int type, const char *origtext, bool reserved) {
+  symtab_item *i = sym_lookup(k);
+  symtab_item *v;
+  if (i) {
+    /* error */
+  } else {
+    v = malloc(sizeof(symtab_item));
+    v->type = type;
+    v->origtext = origtext;
+    v->reserved = reserved;
+    sym_set(k, cast(void *, v));
+  }
+}
+
 Hash *strtab;
 List *restrtab;
 static BlockObj *newBlock(struct ast *a);
 
 const char *translate(const char *orig) {
-  return (const char *)hash_get(strtab, orig);
+  // return (const char *)hash_get(strtab, orig);
+  return NULL;
 }
 
 void addTranslation(const char *orig, const char *translated) {
   if (translate(orig)) {
     /* show warning here */
   }
-  hash_set(strtab, orig, cast(void *, translated));
+  // hash_set(strtab, orig, cast(void *, translated));
+  str_value *v = malloc(sizeof(str_value));
+  v->origtxt = orig;
+  v->translated = translated;
+  list_append(restrtab, cast(Object *, v));
 }
 
 void addTransWithType(const char *orig, const char *translated, int type) {
@@ -128,6 +162,18 @@ VarObj *newVar(struct ast *a) {
   ret->name = v->name->str;
   ret->obj = newExpression(cast(struct ast *, v->obj));
 
+  if (!ret->obj) {
+    symtab_item *i = sym_lookup(ret->name);
+    if (i) {
+      ret->type = i->type;
+    } else {
+      ret->type = TNone;
+      sym_new_entry(ret->name, TNone, NULL, false);
+    }
+  } else {
+    ret->type = TNone;  /* determine type later */
+  }
+
   return ret;
 }
 
@@ -152,11 +198,6 @@ static IfObj *newIf(struct ast *a) {
   ret->cond = newExpression(i->cond);
   ret->then = newBlock(i->then);
   ret->el = newBlock(i->el);
-  if (list_length(ret->el->statements) == 0) {
-    free(ret->el->statements);
-    free(ret->el);
-    ret->el = NULL;
-  }
 
   return ret;
 }
@@ -214,11 +255,14 @@ static Object *newStatement(struct ast *a) {
   case N_Stat_Ret:
     ret = cast(Object *, newReturn(a));
     break;
+  default:
+    break;
   }
   return ret;
 }
 
 static BlockObj *newBlock(struct ast *a) {
+  if (!a) return NULL;
   checktype(a->nodetype, N_Block);
 
   BlockObj *ret = malloc(sizeof(BlockObj));
@@ -265,8 +309,34 @@ static SkillObj *newSkill(struct ast *a) {
   ret->frequency = s->frequency->str;
   ret->interid = s->interid->str;
   ret->internal_id = s->uid;
-  ret->triggerSpecs = NULL;
-  /* TODO: triggerSpec */
+  addTranslation(ret->interid, ret->id);
+  sym_new_entry(ret->id, TSkill, ret->interid, false);
+  char buf[64];
+  sprintf(buf, ":%s", ret->interid);
+  addTranslation(strdup(buf), ret->description);
+  ret->triggerSpecs = list_new();
+  struct ast *iter = s->skillspecs;
+  struct ast *iter2 = NULL, *iter3 = NULL;
+  checktype(iter->nodetype, N_SkillSpecs);
+  while (iter && iter->r) {
+    switch (iter->r->nodetype) {
+      case N_TriggerSkill:
+        if (iter2 != NULL) {
+          /* error */
+        } else {
+          iter2 = iter->r->l;
+          while (iter2 && iter2->r) {
+            list_prepend(ret->triggerSpecs,
+                         cast(Object *, newTriggerSpec(iter2->r)));
+            iter2 = iter2->l;
+          }
+        }
+      default:
+        /* error */
+        break;
+    }
+    iter = iter->l;
+  }
 
   return ret;
 }
@@ -284,16 +354,16 @@ static GeneralObj *newGeneral(struct ast *a) {
   ret->gender = g->gender->str;
   ret->internal_id = g->uid;
   addTranslation(g->interid->str, g->id->str);
+  sym_new_entry(ret->id, TGeneral, g->interid->str, false);
   char buf[64];
   sprintf(buf, "#%s", g->interid->str);
-  addTranslation(buf, g->nickname->str);
+  addTranslation(strdup(buf), g->nickname->str);
 
   ret->skills = list_new();
   struct ast *iter = g->skills;
   checktype(iter->nodetype, N_Strs);
   while (iter && iter->r) {
-    list_prepend(ret->skills, cast(Object *,
-                          newString(cast(struct aststr *, iter->r)->str)));
+    list_prepend(ret->skills, cast(Object *, cast(struct aststr *, iter->r)->str));
     iter = iter->l;
   }
 
@@ -310,7 +380,9 @@ static PackageObj *newPackage(struct ast *a) {
   char buf[64];
   sprintf(buf, "%sp%d", readfile_name, p->uid);
   ret->id = strdup(buf);
-  addTranslation(ret->id, cast(struct aststr *, p->id)->str);
+  char *dst = cast(struct aststr *, p->id)->str;
+  addTranslation(ret->id, dst);
+  sym_new_entry(dst, TPackage, ret->id, false);
   ret->internal_id = p->uid;
   ret->generals = list_new();
   struct ast *iter = p->generals;
@@ -331,7 +403,9 @@ ExtensionObj *newExtension(struct ast *a) {
   ret->objtype = Obj_Extension;
   struct ast *iter;
 
+  sym_init();
   strtab = hash_new();
+  restrtab = list_new();
 
   ret->skills = list_new();
   iter = a->l;

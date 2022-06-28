@@ -28,6 +28,7 @@ typedef struct {
 } ExtensionObj;
 
 ExtensionObj *newExtension(struct ast *a);
+void analyzeExtension(ExtensionObj *e);
 
 typedef struct {
   ObjType objtype;
@@ -122,6 +123,7 @@ typedef struct {
 typedef struct ActionObj {
   ObjType objtype;
   ActionType actiontype;
+  ExpVType valuetype;
   Object *action;
   bool standalone;
 } ActionObj;

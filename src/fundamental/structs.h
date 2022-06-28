@@ -1,6 +1,11 @@
 #ifndef _STRUCTS_H
 #define _STRUCTS_H
 
+#define cast(type, o) ((type)(o))
+#define unused(o) ((void)(o))
+extern char *strdup(const char *s);
+#include <stdbool.h>
+
 /**
  * 所有元素的第一个成员都是objtype
  * 这个结构体用来代表所有可能的成员
@@ -57,6 +62,7 @@ int list_indexOf(List *l, Object *o);
 void list_removeOne(List *l, Object *o);
 Object *list_at(List *l, int index);
 int list_length(List *l);
+#define list_empty(l) (list_length(l) == 0)
 void list_free(List *l);
 
 /* ------------------------- */
@@ -80,7 +86,17 @@ void hash_free(Hash *h);
 
 /* ------------------------- */
 
+typedef struct {
+  int type;
+  const char *origtext; /* text displayed in generated lua */
+  bool reserved;
+} symtab_item;
+
 extern Hash *symtab;
+void sym_init();
+symtab_item *sym_lookup(const char *k);
+void sym_new_entry(const char *k, int type, const char *origtext, bool reserved);
+void sym_set(const char *k, symtab_item *v);
 
 enum StrType {
   Str_Package,
@@ -101,10 +117,6 @@ const char *translate(const char *orig);
 void addTranslation(const char *orig, const char *translated);
 void addTransWithType(const char *orig, const char *translated, int type);
 
-/* ------------------------- */
-
-#define cast(type, o) ((type)(o))
-#define unused(o) ((void)(o))
-#include <stdbool.h>
+extern char *event_table[];
 
 #endif

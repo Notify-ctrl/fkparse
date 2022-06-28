@@ -60,7 +60,7 @@
 extension : skillList packageList
               {
                 $$ = newast(N_Extension, $1, $2);
-                newExtension($$);
+                analyzeExtension(newExtension($$));
               }
           ;
 
@@ -218,7 +218,7 @@ exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
     | '(' action_stat ')' 
       {
         $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL);
-        ((struct astAction *)$2)->standalone = 0;
+        ((struct astAction *)($2->l))->standalone = false;
       }
     | array { $$ = $1; }
     ;

@@ -1,4 +1,5 @@
 #include "structs.h"
+#include "main.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -73,12 +74,12 @@ static void hash_setentry(hash_entry *entries, int capacity, const char *k,
 static void hash_expand(Hash *h) {
   int new_capacity = h->capacity * 2;
   if (new_capacity < h->capacity) {
-    fprintf(stderr, "%s: integer overflow\n", __FUNCTION__);
+    fprintf(error_output, "%s: integer overflow\n", __FUNCTION__);
     exit(-1);
   }
   hash_entry *new_entries = calloc(new_capacity, sizeof(hash_entry));
   if (!new_entries) {
-    fprintf(stderr, "%s: no memory\n", __FUNCTION__);
+    fprintf(error_output, "%s: no memory\n", __FUNCTION__);
     exit(-1);
   }
 

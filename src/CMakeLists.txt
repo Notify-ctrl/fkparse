@@ -7,6 +7,8 @@ set(fkparse_SRCS
   "fundamental/list.c"
   "analyze/object.c"
   "analyze/action.c"
+  "analyze/builtin.c"
+  "analyze/generate.c"
 )
 
 add_custom_command(
