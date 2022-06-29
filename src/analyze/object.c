@@ -303,6 +303,7 @@ static SkillObj *newSkill(struct ast *a) {
             iter2 = iter2->l;
           }
         }
+        break;
       default:
         outputError("unexpected skill spec type %d", iter->r->nodetype);
         break;

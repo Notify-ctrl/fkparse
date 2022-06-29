@@ -5,3 +5,5 @@ grammar.c
 grammar.h
 lex.c
 *.kdev4
+doc/manual/*
+!doc/manual/*.tex
