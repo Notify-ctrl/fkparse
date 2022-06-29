@@ -115,7 +115,6 @@ extern Hash *strtab;
 extern List *restrtab;
 const char *translate(const char *orig);
 void addTranslation(const char *orig, const char *translated);
-void addTransWithType(const char *orig, const char *translated, int type);
 
 extern char *event_table[];
 

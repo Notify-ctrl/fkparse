@@ -88,7 +88,7 @@ static MarkAct *newMark(struct astAction *a) {
     addTranslation(strdup(buf), ret->name);
     sym_new_entry(ret->name, TMark, strdup(buf), false);
   } else if (i->type != TMark) {
-    /* error */
+    outputError("%s 不是一个标记", ret->name);
   }
 
   ret->number = newExpression(m->num);

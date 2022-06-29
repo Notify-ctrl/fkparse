@@ -1,6 +1,7 @@
 #include "object.h"
 #include "action.h"
 #include "main.h"
+#include "generate.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,7 +15,7 @@ symtab_item *sym_lookup(const char *k) {
 void sym_set(const char *k, symtab_item *v) {
   symtab_item *i = sym_lookup(k);
   if (i && i->reserved) {
-    /* error */
+    outputError("不能修改预定义的标识符 %s", k);
   } else {
     hash_set(symtab, k, (void *)v);
   }
@@ -24,7 +25,7 @@ void sym_new_entry(const char *k, int type, const char *origtext, bool reserved)
   symtab_item *i = sym_lookup(k);
   symtab_item *v;
   if (i) {
-    /* error */
+    outputError("%s 已经存在于表中", k);
   } else {
     v = malloc(sizeof(symtab_item));
     v->type = type;
@@ -51,35 +52,6 @@ void addTranslation(const char *orig, const char *translated) {
   str_value *v = malloc(sizeof(str_value));
   v->origtxt = orig;
   v->translated = translated;
-  list_append(restrtab, cast(Object *, v));
-}
-
-void addTransWithType(const char *orig, const char *translated, int type) {
-  addTranslation(orig, translated);
-
-  str_value *v = malloc(sizeof(str_value));
-  v->type = type;
-  v->origtxt = orig;
-  v->translated = translated;
-
-  List *node;
-  str_value *p;
-  list_foreach(node, restrtab) {
-    p = cast(str_value *, node->data);
-    if (!strcmp(v->origtxt, p->origtxt)) {
-      /* show warning here */
-      p->translated = v->translated;
-      p->type = v->type;
-      free(v);
-      return;
-    } else if (!strcmp(v->translated, p->translated)) {
-      if (v->type == p->type) {
-        free(v);
-        /* error */
-        return;
-      }
-    }
-  }
   list_append(restrtab, cast(Object *, v));
 }
 
@@ -322,7 +294,7 @@ static SkillObj *newSkill(struct ast *a) {
     switch (iter->r->nodetype) {
       case N_TriggerSkill:
         if (iter2 != NULL) {
-          /* error */
+          outputError("不要在一个技能底下弄许多小触发技");
         } else {
           iter2 = iter->r->l;
           while (iter2 && iter2->r) {
@@ -332,7 +304,7 @@ static SkillObj *newSkill(struct ast *a) {
           }
         }
       default:
-        /* error */
+        outputError("unexpected skill spec type %d", iter->r->nodetype);
         break;
     }
     iter = iter->l;
