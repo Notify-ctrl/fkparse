@@ -1,5 +1,6 @@
 #include "action.h"
 #include "main.h"
+#include "generate.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -197,8 +198,6 @@ ActionObj *newAction(struct ast *a) {
 }
 
 /* -------------------------------- */
-
-#include "generate.h"
 
 static void actDrawcard(Object *o) {
   DrawcardAct *d = cast(DrawcardAct *, o);

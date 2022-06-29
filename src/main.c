@@ -9,6 +9,7 @@ void yyerror(const char *msg, ...) {
   fprintf(error_output, "%d: error: ", yylineno);
   vfprintf(error_output, msg, ap);
   fprintf(error_output, "\n");
+  va_end(ap);
 }
 
 char *readfile_name;
