@@ -1,0 +1,75 @@
+\chapter{所有触发时机}
+
+下表列出了所有触发时机，以及它们对应的相关变量。
+
+（摸鱼了，没写完所有变量）
+
+\begin{center}
+\begin{longtable}{|p{4cm}|p{6cm}|p{1.4cm}|}
+\hline \textbf{时机} & \textbf{相关变量} & \textbf{可重写} \\
+\hline 游戏开始时 & & \\
+\hline 回合即将开始时 & & \\
+\hline 阶段开始时 & & \\
+\hline 阶段结束时 & & \\
+\hline 阶段被跳过时 & & \\
+\hline 摸牌阶段摸牌时 & \verb|'摸牌数量'|：数字类型 & \checkmark \\
+\hline 摸牌阶段摸牌后 & 同上 & \\
+\hline 分发起始手牌时 & 同上 & \checkmark \\
+\hline 分发起始手牌后 & 同上 & \\
+\hline 回复体力时 &
+  \begin{tabular}{@{}c@{}}
+    \verb|'回复来源'|：玩家类型 \\
+    \verb|'回复的牌'|：卡牌类型 \\
+    \verb|'回复值'|：数字类型
+  \end{tabular} & \checkmark \\
+\hline 回复体力后 & 同上 & \\
+\hline 失去体力前 & \verb|'失去值'|：数字类型 & \checkmark \\
+\hline 失去体力后 & 同上 & \\
+\hline 体力变化后 & & \\
+\hline 体力上限变化后 & & \\
+\hline 失去技能后 & \verb|'技能'|：字符串类型 & \\
+\hline 获得技能后 & 同上 & \\
+\hline 开始判定时 & & \\
+\hline 改判前 & & \\
+\hline 改判后 & & \\
+\hline 判定完成后 & & \\
+\hline 拼点时 & & \\
+\hline 拼点后 & & \\
+\hline 翻面后 & & \\
+\hline 连环状态改变后 & & \\
+\hline 造成伤害时 &
+  \begin{tabular}{@{}c@{}}
+    \verb|'伤害来源'|：玩家类型 \\
+    \verb|'伤害目标'|：玩家类型 \\
+    \verb|'造成伤害的牌'|：卡牌类型 \\
+    \verb|'伤害值'|：数字类型 \\
+    \verb|'伤害属性'|：枚举值（数字类型） \\
+    \verb|'造成伤害的原因'|：字符串类型 \\
+    \verb|'伤害被防止'|：布尔类型
+  \end{tabular} & \checkmark \\
+\hline 受到伤害时 & 同上 & \checkmark \\
+\hline 造成伤害后 & 同上 & \\
+\hline 受到伤害后 & 同上 & \\
+\hline 造成伤害结算完成后 & 同上 & \\
+\hline 进入濒死时 & & \\
+\hline 进入濒死后 & & \\
+\hline 脱离濒死后 & & \\
+\hline 求桃开始时 & & \\
+\hline 求桃完成后 & & \\
+\hline 角色阵亡时 & & \\
+\hline 阵亡后判定胜负前 & & \\
+\hline 阵亡后判定胜负时 & & \\
+\hline 打出卡牌时 & & \\
+\hline 打出卡牌后 & & \\
+\hline 卡牌移动前 & & \\
+\hline 卡牌移动后 & & \\
+\hline 卡牌使用后 & & \\
+\hline 指定目标时 & & \\
+\hline 确定目标时 & & \\
+\hline 指定目标后 & & \\
+\hline 确定目标后 & & \\
+\hline 卡牌生效后 & & \\
+\hline 卡牌结算完成后 & & \\
+\hline
+\end{longtable}
+\end{center}
