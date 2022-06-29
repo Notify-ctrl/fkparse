@@ -6,12 +6,14 @@ void yyerror(const char *msg, ...) {
   va_list ap;
   va_start(ap, msg);
 
-  fprintf(stderr, "%d: error: ", yylineno);
-  vfprintf(stderr, msg, ap);
-  fprintf(stderr, "\n");
+  fprintf(error_output, "%d: error: ", yylineno);
+  vfprintf(error_output, msg, ap);
+  fprintf(error_output, "\n");
+  va_end(ap);
 }
 
 char *readfile_name;
+FILE *error_output;
 
 static char *getFileName(char *path) {
   char *retVal = path, *p;
@@ -41,5 +43,8 @@ int main(int argc, char **argv) {
   sprintf(filename, "%s.lua%c", readfile_name, 0);
 
   yyout = fopen(filename, "w+");
+
+  // sprintf(filename, "%s_error.txt%c", readfile_name, 0);
+  error_output = yyout;
   yyparse();
 }

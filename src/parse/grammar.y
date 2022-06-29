@@ -2,7 +2,7 @@
 #include "main.h"
 #include "enums.h"
 #include "ast.h"
-#include "analyzer.h"
+#include "object.h"
 %}
 
 %union {
@@ -31,6 +31,8 @@
 %token DRAW ZHANG CARD LOSE DIAN HP 
 %token TO CAUSE DAMAGE INFLICT RECOVER ACQUIRE SKILL
 %token MEI MARK HIDDEN COUNT
+%token FROM SELECT ANITEM ANPLAYER
+%token INVOKE
 
 %type <a> extension
 %type <a> skillList skill
@@ -41,11 +43,15 @@
 %type <a> triggerSkill triggerspecs triggerspec
 
 %type <a> block statements statement retstat
-%type <a> assign_stat if_stat loop_stat action_stat
+%type <a> assign_stat if_stat loop_stat action_stat action args arglist arg
 %type <a> drawCards loseHp causeDamage inflictDamage recoverHp
 %type <a> acquireSkill detachSkill
 %type <a> addMark loseMark getMark
+%type <a> askForChoice askForChoosePlayer
+%type <a> askForSkillInvoke obtainCard
+
 %type <a> exp prefixexp opexp var
+%type <a> explist array
 
 %start extension
 %define parse.error detailed
@@ -56,7 +62,7 @@
 extension : skillList packageList
               {
                 $$ = newast(N_Extension, $1, $2);
-                analyzeExtension($$);
+                analyzeExtension(newExtension($$));
               }
           ;
 
@@ -128,7 +134,11 @@ if_stat : IF exp THEN block END { $$ = newif($2, $4, NULL); }
 loop_stat : REPEAT block UNTIL exp { $$ = newast(N_Stat_Loop, $2, $4); }
           ;
 
-action_stat : drawCards { $$ = newaction(ActionDrawcard, $1); }
+action_stat : action { $$ = newast(N_Stat_Action, $1, NULL); }
+            | action args { $$ = newast(N_Stat_Action, $1, $2); }
+            ;
+
+action      : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | loseHp { $$ = newaction(ActionLosehp, $1); }
             | causeDamage { $$ = newaction(ActionDamage, $1); }
             | inflictDamage { $$ = newaction(ActionDamage, $1); }
@@ -138,7 +148,21 @@ action_stat : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | addMark { $$ = newaction(ActionMark, $1); }
             | loseMark  { $$ = newaction(ActionMark, $1); }
             | getMark { $$ = newaction(ActionMark, $1); }
+            | askForChoice { $$ = newaction(ActionAskForChoice, $1); }
+            | askForChoosePlayer { $$ = newaction(ActionAskForPlayerChosen, $1); }
+            | askForSkillInvoke { $$ = newaction(ActionAskForSkillInvoke, $1); }
+            | obtainCard { $$ = newaction(ActionObtainCard, $1); }
             ;
+
+args : '{' arglist '}' { $$ = $2; }
+     | '{' '}' { $$ = NULL; }
+     ;
+
+arglist : arglist ',' arg { $$ = newast(N_Args, $1, $3); }
+        | arg {$$ = newast(N_Args, NULL, $1); }
+        ;
+
+arg : IDENTIFIER ':' exp { $$ = newast(N_Arg, newstr($1), $3); };
 
 drawCards : exp DRAW exp ZHANG CARD { $$ = newast(-1, $1, $3); }
           ;
@@ -181,6 +205,22 @@ getMark : exp STRING MARK COUNT
           { $$ = newmark($1, $2, NULL, 1, 3); free($2); }
         ;
 
+askForChoice : exp FROM exp SELECT ANITEM
+          { $$ = newast(-1, $1, $3); }
+          ;
+
+askForChoosePlayer : exp FROM exp SELECT ANPLAYER
+          { $$ = newast(-1, $1, $3); }
+          ;
+
+askForSkillInvoke : exp SELECT INVOKE STRING
+          { $$ = newast(-1, $1, newstr($4)); }
+          ;
+
+obtainCard : exp ACQUIRE CARD exp
+          { $$ = newast(-1, $1, $4); }
+          ;
+
 exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
     | TRUE { $$ = newexp(ExpBool, 1, 0, NULL, NULL); }
     | NUMBER { $$ = newexp(ExpNum, $1, 0, NULL, NULL); }
@@ -190,8 +230,9 @@ exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
     | '(' action_stat ')' 
       {
         $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL);
-        ((struct astAction *)$2)->standalone = 0;
+        ((struct astAction *)($2->l))->standalone = false;
       }
+    | array { $$ = $1; }
     ;
 
 opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct astExp *)$3); }
@@ -205,6 +246,14 @@ opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct as
 prefixexp : var { $$ = newexp(ExpVar, 0, 0, (struct astExp *)$1, NULL); }
           | '(' exp ')' { $$ = $2; ((struct astExp *)$2)->bracketed = 1; }
           ;
+
+explist : exp { $$ = newast(N_Exps, NULL, $1); }
+        | explist ',' exp { $$ = newast(N_Exps, $1, $3); }
+        ;
+
+array : '[' ']' { $$ = newexp(ExpArray, 0, 0, NULL, NULL); }
+      | '[' explist ']' { $$ = newexp(ExpArray, 0, 0, (struct astExp *)$2, NULL); }
+      ;
 
 var : IDENTIFIER { $$ = newast(N_Var, newstr($1), NULL); free($1); }
     | prefixexp FIELD STRING { $$ = newast(N_Var, newstr($3), $1); free($3); }

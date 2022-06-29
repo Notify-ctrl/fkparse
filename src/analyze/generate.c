@@ -1,119 +1,301 @@
-#include "analyzer.h"
+#include "object.h"
+#include "generate.h"
+#include "action.h"
 #include "enums.h"
+#include <stdarg.h>
 
-/* for skill spec analyzing */
-static int analyzedSpecs[16];
-static int specStackPointer;
-static int hasTriggerSkill;
-static int hasViewAsSkill;
+PackageObj *currentpack;
+int indent_level = 0;
 
-/* trigger skill analyzing */
-static int analyzedEvents[256];
-static int eventStackPointer;
-
-void analyzeSkillList(struct ast *a) {
-  checktype(a->nodetype, N_Skills);
-
-  if (a->l) {
-    analyzeSkillList(a->l);
-    analyzeSkill(a->r);
-  }
+void print_indent() {
+  for (int i = 0; i < indent_level; i++)
+    fprintf(yyout, "  ");
 }
 
-void analyzeSkill(struct ast *a) {
-  checktype(a->nodetype, N_Skill);
+void writestr(const char *msg, ...) {
+  va_list ap;
+  va_start(ap, msg);
 
-  struct astskill *s = (struct astskill *)a;
-  currentskill = s;
-
-  char buf[64];
-  sprintf(buf, "%s", s->interid->str);
-  addTranslation(buf, s->id->str);
-  sprintf(buf, ":%s", s->interid->str);
-  addTranslation(buf, s->description->str);
-
-  hasTriggerSkill = 0;
-  hasViewAsSkill = 0;
-
-  /* pre-analyze specs */
-  struct ast *specs = s->skillspec;
-  while (specs->r) {
-    if (specs->r->nodetype == N_TriggerSkill)
-      hasTriggerSkill = 1;
-    specs = specs->l;
-  }
-
-  analyzeSkillspecs(s->skillspec);
-
-  if (!hasTriggerSkill) { /* no trigger skill, create a dummy one */
-    fprintf(yyout, "%s = fkp.CreateTriggerSkill{\n  name = \"%s\",\n  frequency = ", s->interid->str, s->interid->str);
-    analyzeReserved(s->frequency->str);
-    fprintf(yyout, ",\n}\n\n");
-  }
+  vfprintf(yyout, msg, ap);
+  va_end(ap);
 }
 
-static void checkDuplicate(int *arr, int to_check, int p, char *msg) {
-  for (int i = 0; i < p; i++) {
-    if (arr[i] == to_check) {
-      fprintf(stderr, "错误：%s %d\n", msg, to_check);
-      exit(1);
+void writeline(const char *msg, ...) {
+  print_indent();
+  va_list ap;
+  va_start(ap, msg);
+
+  vfprintf(yyout, msg, ap);
+  fprintf(yyout, "\n");
+  va_end(ap);
+}
+
+void outputError(const char *msg, ...) {
+  va_list ap;
+  va_start(ap, msg);
+
+  fprintf(error_output, "错误: ");
+  vfprintf(error_output, msg, ap);
+  fprintf(error_output, "\n");
+  va_end(ap);
+}
+
+static void analyzeVar(VarObj *v);
+static void analyzeBlock(BlockObj *bl);
+
+void analyzeExp(ExpressionObj *e) {
+  if (e->bracketed) writestr("(");
+  ExpVType t = TNone, t2 = TNone;
+  List *node;
+  ExpressionObj *array_item;
+
+  if ((e->exptype == ExpCalc || e->exptype == ExpCmp) && e->optype != 0) {
+    if (e->optype == 3 || e->optype == 4) {
+      analyzeExp(e->oprand1);
+      if (e->oprand1->valuetype == TPlayer) {
+        writestr(":objectName()");
+      }
+      switch (e->optype) {
+        case 3: writestr(" ~= "); break;
+        case 4: writestr(" == "); break;
+      }
+      analyzeExp(e->oprand2);
+      if (e->oprand2->valuetype == TPlayer) {
+        writestr(":objectName()");
+      }
+      t = TBool;
+    } else {
+      analyzeExp(e->oprand1);
+      checktype(e->oprand1->valuetype, TNumber);
+      switch (e->optype) {
+        case 1: writestr(" > "); t = TBool; break;
+        case 2: writestr(" < "); t = TBool; break;
+        case 5: writestr(" >= "); t = TBool; break;
+        case 6: writestr(" <= "); t = TBool; break;
+        default: writestr(" %c ", e->optype); t = TNumber; break;
+      }
+      analyzeExp(e->oprand2);
+      checktype(e->oprand2->valuetype, TNumber);
     }
-  }
-}
-
-void analyzeSkillspecs(struct ast *a) {
-  checktype(a->nodetype, N_SkillSpecs);
-
-  memset(analyzedSpecs, 0, sizeof(int) * 16);
-  specStackPointer = 0;
-
-  if (a->l) {
-    analyzeSkillspecs(a->l);
-
-    struct ast *r = a->r;
-    checkDuplicate(analyzedSpecs, r->nodetype, specStackPointer, "重复的技能类型");
-    analyzedSpecs[specStackPointer] = r->nodetype;
-    specStackPointer++;
-    switch (r->nodetype) {
-      case N_TriggerSkill:
-        analyzeTriggerSkill(r);
+  } else if (e->exptype == ExpLogic) {
+    analyzeExp(e->oprand1);
+    switch (e->optype) {
+      case 7: writestr(" and "); break;
+      case 8: writestr(" or "); break;
+    }
+    analyzeExp(e->oprand2);
+    t = TBool;
+  } else if (e->exptype == ExpArray) {
+    writestr("fkp.newlist{");
+    list_foreach(node, e->array) {
+      array_item = cast(ExpressionObj *, node->data);
+      analyzeExp(array_item);
+      writestr(", ");
+      if (t != TNone && t != array_item->valuetype) {
+        outputError("数组中不能有类别不同的元素(预期类型%d，实际得到%d)", t, array_item->valuetype);
+        t = TNone;
         break;
-
+      }
+      t = array_item->valuetype;
+    }
+    writestr("}");
+    switch (t) {
+      case TPlayer: t = TPlayerList; break;
+      case TCard: t = TCardList; break;
+      case TNumber: t = TNumberList; break;
+      case TString: t = TStringList; break;
       default:
-        yyerror("Unexpected Skill type %d\n", r->nodetype);
-        exit(1);
+        outputError("未知的数组元素类型%d\n", t);
+        break;
+    }
+  } else switch (e->exptype) {
+    case ExpNum:
+      writestr("%lld", e->value);
+      t = TNumber;
+      break;
+    case ExpBool:
+      writestr("%s" ,e->value == 0 ? "false" : "true");
+      t = TBool;
+      break;
+    case ExpStr:
+      writestr("'%s'", e->strvalue);
+      t = TString;
+      break;
+    case ExpVar:
+      analyzeVar(e->varValue);
+      t = e->varValue->type;
+      break;
+    case ExpAction:
+      analyzeAction(e->action);
+      t = e->action->valuetype;
+      break;
+    default:
+      outputError("unknown exptype %d\n", e->exptype);
+      break;
+  }
+
+  e->valuetype = t;
+}
+
+static void analyzeVar(VarObj *v) {
+  const char *name = v->name;
+  if (v->obj) {
+    ExpVType t = TNone;
+    if (!strcmp(name, "所在位置")) {
+      /* 对于不是直接调成员函数的，得区别对待 */
+      /* 在客户端用这个属性的人还是后果自负罢 */
+      writestr("room:getCardPlace(");
+      analyzeExp(v->obj);
+      checktype(v->obj->valuetype, TCard);
+      writestr(":getId())");
+    } else if (!strcmp(name, "持有者")) {
+      writestr("room:getCardOwner(");
+      analyzeExp(v->obj);
+      checktype(v->obj->valuetype, TCard);
+      writestr(":getId())");
+    } else {
+      analyzeExp(v->obj);
+      switch (v->obj->valuetype) {
+        case TPlayer:
+          if (!strcmp(name, "体力值")) {
+            writestr(":getHp()");
+            t = TNumber;
+          } else if (!strcmp(name, "手牌数")) {
+            writestr(":getHandcardNum()");
+            t = TNumber;
+          } else if (!strcmp(name, "体力上限")) {
+            writestr(":getMaxHp()");
+            t = TNumber;
+          } else if (!strcmp(name, "当前阶段")) {
+            writestr(":getPhase()");
+            t = TNumber;
+          } else if (!strcmp(name, "身份")) {
+            writestr(":getRoleEnum()");
+            t = TNumber;
+          } else {
+            outputError("无法获取 玩家 的属性 \"%s\"\n", name);
+            t = TNone;
+          }
+          break;
+        case TCard:
+          if (!strcmp(name, "点数")) {
+            writestr(":getNumber()");
+            t = TNumber;
+          } else if (!strcmp(name, "花色")) {
+            writestr(":getSuit()");
+            t = TNumber;
+          } else if (!strcmp(name, "类别")) {
+            writestr(":getTypeId()");
+            t = TNumber;
+          } else if (!strcmp(name, "牌名")) {
+            writestr(":objectName()");
+            t = TNumber;
+          } else {
+            outputError("无法获取 卡牌 的属性 \"%s\"\n", name);
+            t = TNone;
+          }
+          break;
+        default:
+          outputError("不能获取类型为%d的对象的属性\n", v->obj->valuetype);
+          t = TNone;
+      }
+    }
+    v->type = t;
+  } else {
+    symtab_item *i = sym_lookup(name);
+    if (!i || i->type == TNone) {
+      outputError("标识符\"%s\"尚未定义", name);
+    } else {
+      v->type = i->type;
+      if (i->origtext)
+        writestr("%s", i->origtext);
+      else
+        writestr("locals[\"%s\"]", name);
     }
   }
 }
 
-void analyzeTriggerSkill(struct ast *a) {
-  checktype(a->nodetype, N_TriggerSkill);
+static void analyzeAssign(AssignObj *a) {
+  print_indent();
+  sym_lookup(a->var->name)->type = TAny;
+  analyzeVar(a->var);
+  writestr(" = ");
+  analyzeExp(a->value);
+  writestr("\n");
 
-  fprintf(yyout, "%s = fkp.CreateTriggerSkill{\n  name = \"%s\",\n  frequency = ", currentskill->interid->str, currentskill->interid->str);
-  analyzeReserved(currentskill->frequency->str);
-  fprintf(yyout, ",\n  specs = {\n");
-  indent_level++;
-  analyzeTriggerspecs(a->l);
-  fprintf(yyout, "  }\n}\n\n");
-  indent_level--;
+  if (!a->var->obj){
+    symtab_item *i = sym_lookup(a->var->name);
+    if (i) {
+      if (i->reserved) {
+        outputError("不允许重定义标识符 \"%s\"", a->var->name);
+      } else {
+        i->type = a->value->valuetype;
+      }
+    }
+  }
 }
 
-void analyzeTriggerspecs(struct ast *a) {
-  checktype(a->nodetype, N_TriggerSpecs);
-
-  memset(analyzedEvents, 0, sizeof(int) * 256);
-  eventStackPointer = 0;
-
-  if (a->l) {
-    analyzeTriggerspecs(a->l);
+static void analyzeIf(IfObj *i) {
+  print_indent();
+  writestr("if ");
+  analyzeExp(i->cond);
+  writestr(" then\n");
+  indent_level++;
+  analyzeBlock(i->then);
+  if (i->el) {
+    indent_level--;
+    writeline("else");
+    indent_level++;
+    analyzeBlock(i->el);
   }
+  indent_level--;
+  writeline("end");
+}
 
-  analyzeTriggerspec(a->r);
+static void analyzeLoop(LoopObj *l) {
+  writeline("repeat");
+  indent_level++;
+  analyzeBlock(l->body);
+  indent_level--;
+  print_indent();
+  writestr("until ");
+  analyzeExp(l->cond);
+  writestr("\n");
+}
+
+void analyzeBlock(BlockObj *bl) {
+  List *node;
+  list_foreach(node, bl->statements) {
+    switch (node->data->objtype) {
+    case Obj_Assign:
+      analyzeAssign(cast(AssignObj *, node->data));
+      break;
+    case Obj_If:
+      analyzeIf(cast(IfObj *, node->data));
+      break;
+    case Obj_Loop:
+      analyzeLoop(cast(LoopObj *, node->data));
+      break;
+    case Obj_Break:
+      writeline("break");
+      break;
+    case Obj_Return:
+      break;
+    case Obj_Action:
+      analyzeAction(cast(ActionObj *, node->data));
+      break;
+    default:
+      break;
+    }
+  }
 }
 
 static void defineLocal(char *k, char *v, int type) {
   writeline("locals[\"%s\"] = %s", k, v);
-  lookup(k)->type = type;
+  if (!sym_lookup(k)) {
+    sym_new_entry(k, TNone, v, true);
+  }
+  sym_lookup(k)->type = type;
 }
 
 static void initData(int event) {
@@ -134,7 +316,7 @@ static void initData(int event) {
       defineLocal("回复的牌", "recover.card", TCard);
       defineLocal("回复值", "recover.recover", TNumber);
       break;
-      
+
     case PreHpLost:
     case HpLost:
       writeline("local lost = data:toInt()");
@@ -299,11 +481,11 @@ static void initData(int event) {
     default:
       break;
   }
-  writeline("");
+  writestr("\n");
 }
 
 static void clearLocal(char *k, char *v, int rewrite) {
-  lookup(k)->type = TNone;
+  sym_lookup(k)->type = TNone;
   if (rewrite) {
     writeline("%s = locals[\"%s\"]", v, k);
   }
@@ -343,13 +525,13 @@ static void clearData(int event) {
 
     case PreHpRecover:
     case HpRecover:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("回复来源", "recover.who", rewrite);
       clearLocal("回复的牌", "recover.card", rewrite);
       clearLocal("回复值", "recover.recover", rewrite);
       if (rewrite) writeline("data:setValue(recover)");
       break;
-      
+
     case PreHpLost:
     case HpLost:
       clearLocal("失去值", "lost", rewrite);
@@ -366,7 +548,7 @@ static void clearData(int event) {
     case AskForRetrial:
     case FinishRetrial:
     case FinishJudge:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("判定效果是负收益", "judge.negative", rewrite);
       clearLocal("播放判定动画", "judge.play_animation", rewrite);
       clearLocal("判定角色", "judge.who", rewrite);
@@ -381,7 +563,7 @@ static void clearData(int event) {
 
     case PindianVerifying:
     case Pindian:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("拼点来源", "pindian.from", rewrite);
       clearLocal("拼点目标", "pindian.to", rewrite);
       clearLocal("拼点来源的牌", "pindian.from_card", rewrite);
@@ -403,7 +585,7 @@ static void clearData(int event) {
     case Damage:
     case Damaged:
     case DamageComplete:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("伤害来源", "damage.from", rewrite);
       clearLocal("伤害目标", "damage.to", rewrite);
       clearLocal("造成伤害的牌", "damage.card", rewrite);
@@ -419,7 +601,7 @@ static void clearData(int event) {
       break;
 
     case EventPhaseChanging:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("上个阶段", "change.from", rewrite);
       clearLocal("下个阶段", "change.to", rewrite);
       if (rewrite) writeline("data:setValue(change)");
@@ -430,7 +612,7 @@ static void clearData(int event) {
     case QuitDying:
     case AskForPeaches:
     case AskForPeachesDone:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("濒死的角色", "dying.who", rewrite);
       clearLocal("濒死的伤害来源", "dying.damage.from", rewrite);
       clearLocal("濒死的伤害目标", "dying.damage.to", rewrite);
@@ -450,7 +632,7 @@ static void clearData(int event) {
     case BuryVictim:
     case BeforeGameOverJudge:
     case GameOverJudge:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("死亡的角色", "death.who", rewrite);
       clearLocal("死亡的伤害来源", "death.damage.from", rewrite);
       clearLocal("死亡的伤害目标", "death.damage.to", rewrite);
@@ -468,7 +650,7 @@ static void clearData(int event) {
 
     case PreCardResponded:
     case CardResponded:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("响应的牌", "resp.m_card", rewrite);
       clearLocal("响应的目标", "resp.m_who", rewrite);
       clearLocal("响应的牌被使用", "resp.m_isUse", rewrite);
@@ -479,7 +661,7 @@ static void clearData(int event) {
 
     case BeforeCardsMove:
     case CardsMoveOneTime:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("移动的牌", "move.card_ids", rewrite);
       clearLocal("移动产地", "move.from_place", rewrite);
       clearLocal("移动目的地", "move.to_place", rewrite);
@@ -501,7 +683,7 @@ static void clearData(int event) {
     case TargetSpecified:
     case TargetConfirmed:
     case CardFinished:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("使用的牌", "use.card", rewrite);
       clearLocal("使用者", "use.from", rewrite);
       clearLocal("目标", "use.to", rewrite);
@@ -513,7 +695,7 @@ static void clearData(int event) {
       break;
 
     case CardEffected:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("生效的牌", "effect.card", rewrite);
       clearLocal("使用者", "effect.from", rewrite);
       clearLocal("目标", "effect.to", rewrite);
@@ -526,25 +708,18 @@ static void clearData(int event) {
   }
 }
 
-void analyzeTriggerspec(struct ast *a) {
-  checktype(a->nodetype, N_TriggerSpec);
-
-  struct astTriggerSpec *ts = (struct astTriggerSpec *)a;
-  checkDuplicate(analyzedEvents, ts->event, eventStackPointer, "重复的时机");
-  analyzedEvents[eventStackPointer] = ts->event;
-  eventStackPointer++;
-
-  writeline("[%s] = {", event_table[ts->event]);
+static void analyzeTriggerSpec(TriggerSpecObj *t) {
+  writeline("[%s] = {", event_table[t->event]);
   indent_level++;
   writeline("-- can_trigger");
   writeline("function (self, target, player, data)");
   indent_level++;
-  if (ts->cond) {
+  if (t->can_trigger) {
     writeline("local room = player:getRoom()");
     writeline("local locals = {}\n");
-    initData(ts->event);
-    analyzeBlock(ts->cond);
-    clearData(ts->event);
+    initData(t->event);
+    analyzeBlock(t->can_trigger);
+    clearData(t->event);
   } else {
     writeline("return target and player == target and player:hasSkill(self:objectName())");
   }
@@ -557,12 +732,91 @@ void analyzeTriggerspec(struct ast *a) {
   indent_level++;
   writeline("local room = player:getRoom()");
   writeline("local locals = {}\n");
-  initData(ts->event);
-  analyzeBlock(ts->effect);
-  clearData(ts->event);
+  initData(t->event);
+  analyzeBlock(t->on_trigger);
+  clearData(t->event);
   indent_level--;
   writeline("end,");
 
   indent_level--;
   writeline("},");
+}
+
+static void analyzeSkill(SkillObj *s) {
+  List *node;
+
+  writeline("%s = fkp.CreateTriggerSkill{", s->interid);
+  indent_level++;
+  writeline("name = \"%s\",", s->interid);
+  writeline("frequency = %s,", sym_lookup(s->frequency)->origtext);
+  writeline("specs = {");
+  indent_level++;
+  list_foreach(node, s->triggerSpecs) {
+    analyzeTriggerSpec(cast(TriggerSpecObj *, node->data));
+  }
+  indent_level--;
+  writeline("}");
+  indent_level--;
+  writeline("}\n");
+}
+
+static void analyzeGeneral(GeneralObj *g) {
+  const char *orig = sym_lookup(g->id)->origtext;
+  writestr("%s = sgs.General(extension%d, \"%s\", %s, %lld)\n",
+           orig, currentpack->internal_id, orig,
+           sym_lookup(g->kingdom)->origtext, g->hp);
+  writestr("%s:setGender(%s)\n", orig, sym_lookup(g->gender)->origtext);
+
+  List *node;
+  list_foreach(node, g->skills) {
+    writestr("%s:addSkill(%s)\n",
+             orig, sym_lookup(cast(const char *, node->data))->origtext);
+  }
+  writestr("\n");
+}
+
+static void analyzePackage(PackageObj *p) {
+  currentpack = p;
+  writestr("local extension%d = sgs.Package(\"%sp%d\")\n",
+           p->internal_id, readfile_name, p->internal_id);
+  writestr("\n");
+
+  List *node;
+  list_foreach(node, p->generals) {
+    GeneralObj *g = cast(GeneralObj *, node->data);
+    analyzeGeneral(g);
+  }
+}
+
+static void loadTranslations() {
+  writestr("sgs.LoadTranslationTable{\n");
+  List *node;
+  indent_level++;
+  list_foreach(node, restrtab) {
+    str_value *v = cast(str_value *, node->data);
+    writeline("[\"%s\"] = \"%s\",", v->origtxt, v->translated);
+  }
+  indent_level--;
+  writeline("}\n");
+}
+
+void analyzeExtension(ExtensionObj *e) {
+  writeline("require \"fkparser\"\n");
+
+  loadTranslations();
+
+  List *node;
+  list_foreach(node, e->skills) {
+    analyzeSkill(cast(SkillObj *, node->data));
+  }
+
+  list_foreach(node, e->packages) {
+    analyzePackage(cast(PackageObj *, node->data));
+  }
+
+  writestr("return {");
+  list_foreach(node, e->packages) {
+    writestr("extension%d, ", cast(PackageObj *, node->data)->internal_id);
+  }
+  writestr("}\n");
 }

@@ -1,41 +1,6 @@
-#include "analyzer.h"
-
-#define NHASH 9997
-static struct symbol symtab[NHASH];
-
-/* symbol table */
-/* hash a symbol */
-static unsigned
-symhash(char *sym)
-{
-  unsigned int hash = 0;
-  unsigned c;
-
-  while ((c = *(sym++))) hash = hash * 9 ^ c;
-
-  return hash;
-}
-
-struct symbol *lookup(char *sym)
-{
-  struct symbol *sp = &symtab[symhash(sym) % NHASH];
-  int scount = NHASH;		/* how many have we looked at */
-
-  while(--scount >= 0) {
-    if(sp->name && !strcmp(sp->name, sym)) { return sp; }
-
-    if(!sp->name) { /* new entry */
-      sp->name = sym;
-      sp->type = TNone;
-      return sp;
-    }
-
-    if(++sp >= symtab+NHASH) sp = symtab; /* try the next entry */
-  }
-  yyerror("symbol table overflow\n");
-  abort(); /* tried them all, table is full */
-
-}
+#include "structs.h"
+#include "ast.h"
+#include <stdlib.h>
 
 static struct {
   char *dst;
@@ -141,33 +106,18 @@ static struct {
   {"女性", "sgs.General_Female", TNumber},
   {"中性", "sgs.General_Neuter", TNumber},
 
+  {"其他角色", "room:getOtherPlayers(player)", TPlayerList},
+
   {NULL, NULL, TNone}
 };
 
-int isReserved(char *k) {
-  int ret = 0;
-  for (int i = 0; ; i++) {
+void sym_init() {
+  symtab = hash_new();
+  symtab_item *v;
+  for (int i=0; ; i++) {
     if (reserved[i].dst == NULL) break;
-    if (!strcmp(k, reserved[i].dst)) {
-      ret = 1;
-      break;
-    }
+    sym_new_entry(reserved[i].dst, reserved[i].type, reserved[i].src, true);
   }
-  return ret;
-}
-
-int analyzeReserved(char *k) {
-  int ret = TNone;
-  for (int i = 0; ; i++) {
-    if (reserved[i].dst == NULL) break;
-    if (!strcmp(k, reserved[i].dst)) {
-      fprintf(yyout, "%s", reserved[i].src);
-      ret = reserved[i].type;
-      return ret;
-    }
-  }
-  fprintf(stderr, "错误：未在预定义符号表中发现\"%s\"，请检查\n", k);
-  exit(1);
 }
 
 char *event_table[] = {
@@ -207,16 +157,16 @@ char *event_table[] = {
   "sgs.TurnedOver",
   "sgs.ChainStateChanged",
 
-  "sgs.ConfirmDamage",    
-  "sgs.Predamage",        
-  "sgs.DamageForseen",    
-  "sgs.DamageCaused",     
-  "sgs.DamageInflicted",  
-  "sgs.PreDamageDone",    
-  "sgs.DamageDone",       
-  "sgs.Damage",           
-  "sgs.Damaged",          
-  "sgs.DamageComplete",   
+  "sgs.ConfirmDamage",
+  "sgs.Predamage",
+  "sgs.DamageForseen",
+  "sgs.DamageCaused",
+  "sgs.DamageInflicted",
+  "sgs.PreDamageDone",
+  "sgs.DamageDone",
+  "sgs.Damage",
+  "sgs.Damaged",
+  "sgs.DamageComplete",
 
   "sgs.EnterDying",
   "sgs.Dying",
@@ -240,16 +190,16 @@ char *event_table[] = {
   "sgs.CardAsked",
   "sgs.PreCardResponded",
   "sgs.CardResponded",
-  "sgs.BeforeCardsMove", 
+  "sgs.BeforeCardsMove",
   "sgs.CardsMoveOneTime",
 
-  "sgs.PreCardUsed", 
+  "sgs.PreCardUsed",
   "sgs.CardUsed",
   "sgs.TargetSpecifying",
   "sgs.TargetConfirming",
   "sgs.TargetSpecified",
   "sgs.TargetConfirmed",
-  "sgs.CardEffect", 
+  "sgs.CardEffect",
   "sgs.CardEffected",
   "sgs.PostCardEffected",
   "sgs.CardFinished",
@@ -258,11 +208,11 @@ char *event_table[] = {
 
   "sgs.ChoiceMade",
 
-  "sgs.StageChange", 
-  "sgs.FetchDrawPileCard", 
-  "sgs.Debut", 
+  "sgs.StageChange",
+  "sgs.FetchDrawPileCard",
+  "sgs.Debut",
 
-  "sgs.TurnBroken", 
+  "sgs.TurnBroken",
 
   "sgs.NumOfEvents"
 };
