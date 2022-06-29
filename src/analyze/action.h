@@ -69,6 +69,18 @@ typedef struct {
   ExpressionObj *targets;
 } AskForChoosePlayerAct;
 
+typedef struct {
+  ObjType objtype;
+  ExpressionObj *player;
+  const char *skill_name;
+} AskForSkillInvokeAct;
+
+typedef struct {
+  ObjType objtype;
+  ExpressionObj *player;
+  ExpressionObj *card;
+} ObtainCardAct;
+
 ActionObj *newAction(struct ast *a);
 void analyzeAction(ActionObj *a);
 

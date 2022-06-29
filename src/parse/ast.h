@@ -62,7 +62,9 @@ enum ActionType {
   ActionDetachSkill,
   ActionMark,
   ActionAskForChoice,
-  ActionAskForPlayerChosen
+  ActionAskForPlayerChosen,
+  ActionAskForSkillInvoke,
+  ActionObtainCard
 };
 
 typedef enum ActionType ActionType;

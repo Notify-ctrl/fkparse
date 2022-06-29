@@ -117,6 +117,26 @@ static AskForChoosePlayerAct *newAskForChoosePlayer(struct astAction *a) {
   return ret;
 }
 
+static AskForSkillInvokeAct *newAskForSkillInvoke(struct astAction *a) {
+  checktype(a->actiontype, ActionAskForSkillInvoke);
+
+  AskForSkillInvokeAct *ret = malloc(sizeof(AskForSkillInvokeAct));
+  ret->player = newExpression(a->action->l);
+  ret->skill_name = cast(struct aststr *, a->action->r)->str;
+
+  return ret;
+}
+
+static ObtainCardAct *newObtainCard(struct astAction *a) {
+  checktype(a->actiontype, ActionObtainCard);
+
+  ObtainCardAct *ret = malloc(sizeof(ObtainCardAct));
+  ret->player = newExpression(a->action->l);
+  ret->card = newExpression(a->action->r);
+
+  return ret;
+}
+
 ActionObj *newAction(struct ast *a) {
   checktype(a->nodetype, N_Stat_Action);
 
@@ -162,6 +182,14 @@ ActionObj *newAction(struct ast *a) {
   case ActionAskForPlayerChosen:
     ret->action = cast(Object *, newAskForChoosePlayer(as));
     ret->valuetype = TPlayer;
+    break;
+  case ActionAskForSkillInvoke:
+    ret->action = cast(Object *, newAskForSkillInvoke(as));
+    ret->valuetype = TBool;
+    break;
+  case ActionObtainCard:
+    ret->action = cast(Object *, newObtainCard(as));
+    ret->valuetype = TNone;
     break;
   }
 
@@ -294,6 +322,23 @@ static void actAskForPlayerChosen(Object *o) {
   writestr(", self:objectName(), nil, false, true)");
 }
 
+static void actAskForSkillInvoke(Object *o) {
+  AskForSkillInvokeAct *a = cast(AskForSkillInvokeAct *, o);
+  writestr("room:askForSkillInvoke(");
+  analyzeExp(a->player); checktype(a->player->valuetype, TPlayer);
+  writestr(", \"%s\")", sym_lookup(a->skill_name)->origtext);
+}
+
+static void actObtainCard(Object *o) {
+  ObtainCardAct *d = cast(ObtainCardAct *, o);
+  analyzeExp(d->player);
+  checktype(d->player->valuetype, TPlayer);
+  writestr(":obtainCard(");
+  analyzeExp(d->card);
+  checktype(d->card->valuetype, TCard);
+  writestr(", false)");
+}
+
 typedef void(*ActFunc)(Object *);
 static ActFunc act_func_table[] = {
   actDrawcard,
@@ -304,7 +349,9 @@ static ActFunc act_func_table[] = {
   actDetachSkill,
   actMark,
   actAskForChoice,
-  actAskForPlayerChosen
+  actAskForPlayerChosen,
+  actAskForSkillInvoke,
+  actObtainCard
 };
 
 void analyzeAction(ActionObj *a) {

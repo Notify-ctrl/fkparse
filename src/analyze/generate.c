@@ -481,7 +481,7 @@ static void initData(int event) {
     default:
       break;
   }
-  writeline("");
+  writestr("\n");
 }
 
 static void clearLocal(char *k, char *v, int rewrite) {
@@ -525,7 +525,7 @@ static void clearData(int event) {
 
     case PreHpRecover:
     case HpRecover:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("回复来源", "recover.who", rewrite);
       clearLocal("回复的牌", "recover.card", rewrite);
       clearLocal("回复值", "recover.recover", rewrite);
@@ -548,7 +548,7 @@ static void clearData(int event) {
     case AskForRetrial:
     case FinishRetrial:
     case FinishJudge:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("判定效果是负收益", "judge.negative", rewrite);
       clearLocal("播放判定动画", "judge.play_animation", rewrite);
       clearLocal("判定角色", "judge.who", rewrite);
@@ -563,7 +563,7 @@ static void clearData(int event) {
 
     case PindianVerifying:
     case Pindian:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("拼点来源", "pindian.from", rewrite);
       clearLocal("拼点目标", "pindian.to", rewrite);
       clearLocal("拼点来源的牌", "pindian.from_card", rewrite);
@@ -585,7 +585,7 @@ static void clearData(int event) {
     case Damage:
     case Damaged:
     case DamageComplete:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("伤害来源", "damage.from", rewrite);
       clearLocal("伤害目标", "damage.to", rewrite);
       clearLocal("造成伤害的牌", "damage.card", rewrite);
@@ -601,7 +601,7 @@ static void clearData(int event) {
       break;
 
     case EventPhaseChanging:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("上个阶段", "change.from", rewrite);
       clearLocal("下个阶段", "change.to", rewrite);
       if (rewrite) writeline("data:setValue(change)");
@@ -612,7 +612,7 @@ static void clearData(int event) {
     case QuitDying:
     case AskForPeaches:
     case AskForPeachesDone:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("濒死的角色", "dying.who", rewrite);
       clearLocal("濒死的伤害来源", "dying.damage.from", rewrite);
       clearLocal("濒死的伤害目标", "dying.damage.to", rewrite);
@@ -632,7 +632,7 @@ static void clearData(int event) {
     case BuryVictim:
     case BeforeGameOverJudge:
     case GameOverJudge:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("死亡的角色", "death.who", rewrite);
       clearLocal("死亡的伤害来源", "death.damage.from", rewrite);
       clearLocal("死亡的伤害目标", "death.damage.to", rewrite);
@@ -650,7 +650,7 @@ static void clearData(int event) {
 
     case PreCardResponded:
     case CardResponded:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("响应的牌", "resp.m_card", rewrite);
       clearLocal("响应的目标", "resp.m_who", rewrite);
       clearLocal("响应的牌被使用", "resp.m_isUse", rewrite);
@@ -661,7 +661,7 @@ static void clearData(int event) {
 
     case BeforeCardsMove:
     case CardsMoveOneTime:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("移动的牌", "move.card_ids", rewrite);
       clearLocal("移动产地", "move.from_place", rewrite);
       clearLocal("移动目的地", "move.to_place", rewrite);
@@ -683,7 +683,7 @@ static void clearData(int event) {
     case TargetSpecified:
     case TargetConfirmed:
     case CardFinished:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("使用的牌", "use.card", rewrite);
       clearLocal("使用者", "use.from", rewrite);
       clearLocal("目标", "use.to", rewrite);
@@ -695,7 +695,7 @@ static void clearData(int event) {
       break;
 
     case CardEffected:
-      if (rewrite) writeline("");
+      if (rewrite) writestr("\n");
       clearLocal("生效的牌", "effect.card", rewrite);
       clearLocal("使用者", "effect.from", rewrite);
       clearLocal("目标", "effect.to", rewrite);
@@ -748,7 +748,7 @@ static void analyzeSkill(SkillObj *s) {
   writeline("%s = fkp.CreateTriggerSkill{", s->interid);
   indent_level++;
   writeline("name = \"%s\",", s->interid);
-  writeline("frequency = %s,", sym_lookup(s->frequency));
+  writeline("frequency = %s,", sym_lookup(s->frequency)->origtext);
   writeline("specs = {");
   indent_level++;
   list_foreach(node, s->triggerSpecs) {
@@ -769,7 +769,7 @@ static void analyzeGeneral(GeneralObj *g) {
 
   List *node;
   list_foreach(node, g->skills) {
-    writestr("%s:addSkill(\"%s\")\n",
+    writestr("%s:addSkill(%s)\n",
              orig, sym_lookup(cast(const char *, node->data))->origtext);
   }
   writestr("\n");

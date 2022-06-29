@@ -32,6 +32,7 @@
 %token TO CAUSE DAMAGE INFLICT RECOVER ACQUIRE SKILL
 %token MEI MARK HIDDEN COUNT
 %token FROM SELECT ANITEM ANPLAYER
+%token INVOKE
 
 %type <a> extension
 %type <a> skillList skill
@@ -47,6 +48,7 @@
 %type <a> acquireSkill detachSkill
 %type <a> addMark loseMark getMark
 %type <a> askForChoice askForChoosePlayer
+%type <a> askForSkillInvoke obtainCard
 
 %type <a> exp prefixexp opexp var
 %type <a> explist array
@@ -148,6 +150,8 @@ action      : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | getMark { $$ = newaction(ActionMark, $1); }
             | askForChoice { $$ = newaction(ActionAskForChoice, $1); }
             | askForChoosePlayer { $$ = newaction(ActionAskForPlayerChosen, $1); }
+            | askForSkillInvoke { $$ = newaction(ActionAskForSkillInvoke, $1); }
+            | obtainCard { $$ = newaction(ActionObtainCard, $1); }
             ;
 
 args : '{' arglist '}' { $$ = $2; }
@@ -207,6 +211,14 @@ askForChoice : exp FROM exp SELECT ANITEM
 
 askForChoosePlayer : exp FROM exp SELECT ANPLAYER
           { $$ = newast(-1, $1, $3); }
+          ;
+
+askForSkillInvoke : exp SELECT INVOKE STRING
+          { $$ = newast(-1, $1, newstr($4)); }
+          ;
+
+obtainCard : exp ACQUIRE CARD exp
+          { $$ = newast(-1, $1, $4); }
           ;
 
 exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }

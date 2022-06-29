@@ -76,6 +76,7 @@
 "选择"  { return SELECT; }
 "一项"  { return ANITEM; }
 "一名角色" { return ANPLAYER; }
+"发动"  { return INVOKE; }
 
 "游戏开始时"     { yylval.enum_v = GameStart; return EVENT; }
 "回合即将开始时"   { yylval.enum_v = TurnStart; return EVENT; }
