@@ -134,6 +134,7 @@ void analyzeExp(ExpressionObj *e) {
       break;
   }
 
+  if (e->bracketed) writestr(")");
   e->valuetype = t;
 }
 
