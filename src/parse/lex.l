@@ -212,6 +212,6 @@
 "，"
 "。"
 [ \t\r\n]
-. { yyerror("unrecognized char"); }
+. //{ yyerror("unrecognized char"); }
 
 %%
