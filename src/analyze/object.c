@@ -374,6 +374,7 @@ ExtensionObj *newExtension(struct ast *a) {
 
   ExtensionObj *ret = malloc(sizeof(ExtensionObj));
   ret->objtype = Obj_Extension;
+  struct astextension *e = cast(struct astextension *, a);
   struct ast *iter;
 
   sym_init();
@@ -381,7 +382,7 @@ ExtensionObj *newExtension(struct ast *a) {
   restrtab = list_new();
 
   ret->skills = list_new();
-  iter = a->l;
+  iter = e->skillList;
   checktype(iter->nodetype, N_Skills);
   while (iter && iter->r) {
     list_prepend(ret->skills, cast(Object *, newSkill(iter->r)));
@@ -389,7 +390,7 @@ ExtensionObj *newExtension(struct ast *a) {
   }
 
   ret->packages = list_new();
-  iter = a->r;
+  iter = e->pkgList;
   checktype(iter->nodetype, N_Packages);
   while (iter && iter->r) {
     list_prepend(ret->packages, cast(Object *, newPackage(iter->r)));
@@ -397,4 +398,21 @@ ExtensionObj *newExtension(struct ast *a) {
   }
   return ret;
 }
+
+Hash *analyzeParams(struct ast *params) {
+  if (!params)
+    return NULL;
+
+  checktype(params->nodetype, N_Args);
+  Hash *ret = hash_new();
+  while (params && params->r) {
+    checktype(params->r->nodetype, N_Arg);
+    hash_set(ret, cast(struct aststr *, params->r->l)->str,
+             cast(void *, newExpression(params->r->r)));
+    params = params->l;
+  }
+
+  return ret;
+}
+
 

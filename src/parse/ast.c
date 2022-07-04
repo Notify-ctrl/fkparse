@@ -14,6 +14,23 @@ struct ast *newast(NodeType nodetype, struct ast *l, struct ast *r) {
   return a;
 }
 
+struct ast *newextension(struct ast *funcList, struct ast *skillList,
+                         struct ast *pkgList)
+{
+  struct astextension *a = malloc(sizeof(struct astextension));
+
+  if(!a) {
+    yyerror("out of space");
+    exit(0);
+  }
+  a->nodetype = N_Extension;
+  a->funcList = funcList;
+  a->skillList = skillList;
+  a->pkgList = pkgList;
+
+  return (struct ast *)a;
+}
+
 struct ast *newnum(long long n) {
   struct numval *a = malloc(sizeof(struct numval));
 
@@ -35,6 +52,24 @@ struct ast *newstr(char *s) {
   }
   a->nodetype = N_Str;
   a->str = strdup(s);
+  return (struct ast *)a;
+}
+
+struct ast *newfuncdef(struct ast *name, struct ast *params,
+                              struct ast *funcbody)
+{
+  struct astfuncdef *a = malloc(sizeof(struct astfuncdef));
+
+  if(!a) {
+    yyerror("out of space");
+    exit(0);
+  }
+
+  a->nodetype = N_Funcdef;
+  a->name = (struct aststr *)name;
+  a->params = params;
+  a->funcbody = funcbody;
+
   return (struct ast *)a;
 }
 

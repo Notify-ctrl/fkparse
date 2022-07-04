@@ -3,6 +3,7 @@
 %{
 #include "grammar.h"
 #include "main.h"
+#include "ast.h"
 #include "enums.h"
 %}
 
@@ -54,6 +55,7 @@
 "假"  { return FALSE; }
 "真"  { return TRUE; }
 "中止此流程"    { return BREAK; }
+"定义函数"  { return FUNCDEF; }
 
 "摸"    { return DRAW; }
 "张"    { return ZHANG; }
@@ -169,6 +171,16 @@
 "," |
 "." |
 ":" { return yytext[0]; }
+
+"数字类型"  { yylval.enum_v = TNumber; return TYPE; }
+"布尔类型"  { yylval.enum_v = TBool; return TYPE; }
+"字符串类型" { yylval.enum_v = TString; return TYPE; }
+"玩家类型"  { yylval.enum_v = TPlayer; return TYPE; }
+"卡牌类型"  { yylval.enum_v = TCard; return TYPE; }
+"数字数组"  { yylval.enum_v = TNumberList; return TYPE; }
+"字符串数组" { yylval.enum_v = TStringList; return TYPE; }
+"玩家数组"  { yylval.enum_v = TPlayerList; return TYPE; }
+"卡牌数组"  { yylval.enum_v = TCardList; return TYPE; }
 
 "大于"     { yylval.enum_v = 1; return CMP; }
 "小于"     { yylval.enum_v = 2; return CMP; }

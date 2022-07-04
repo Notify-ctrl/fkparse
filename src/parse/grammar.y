@@ -21,8 +21,10 @@
 %token <s> KINGDOM
 %token PKGSTART
 %token TRIGGER EVENTI COND EFFECT
+%token FUNCDEF
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
+%token <enum_v> TYPE
 %left <enum_v> LOGICOP
 %left '+' '-' '*' '/'
 %nonassoc <enum_v> CMP
@@ -35,6 +37,7 @@
 %token INVOKE
 
 %type <a> extension
+%type <a> funcdefList funcdef defargs defarglist defarg
 %type <a> skillList skill
 %type <a> packageList package
 %type <a> generalList general
@@ -59,12 +62,32 @@
 
 %%
 
-extension : skillList packageList
+extension : funcdefList skillList packageList
               {
-                $$ = newast(N_Extension, $1, $2);
+                $$ = newextension($1, $2, $3);
                 analyzeExtension(newExtension($$));
               }
           ;
+
+funcdefList : %empty { $$ = newast(N_Funcdefs, NULL, NULL); }
+            | funcdefList funcdef { $$ = newast(N_Funcdefs, $1, $2); }
+            ;
+
+funcdef : FUNCDEF IDENTIFIER defargs block
+          { $$ = newfuncdef(newstr($2), $3, $4); }
+        ;
+
+defargs : '{' defarglist '}' { $$ = $2; }
+        | '{' '}' { $$ = NULL; }
+        ;
+
+defarglist : defarglist ',' defarg { $$ = newast(N_Defargs, $1, $3); }
+           | defarg {$$ = newast(N_Args, NULL, $1); }
+           ;
+
+defarg : IDENTIFIER ':' TYPE { $$ = newast(N_Defarg, newstr($1),
+                                            (struct ast *)(long)$3); }
+       ;
 
 skillList : %empty  { $$ = newast(N_Skills, NULL, NULL); }
           | skillList skill { $$ = newast(N_Skills, $1, $2); }
@@ -162,7 +185,8 @@ arglist : arglist ',' arg { $$ = newast(N_Args, $1, $3); }
         | arg {$$ = newast(N_Args, NULL, $1); }
         ;
 
-arg : IDENTIFIER ':' exp { $$ = newast(N_Arg, newstr($1), $3); };
+arg : IDENTIFIER ':' exp { $$ = newast(N_Arg, newstr($1), $3); }
+    ;
 
 drawCards : exp DRAW exp ZHANG CARD { $$ = newast(-1, $1, $3); }
           ;

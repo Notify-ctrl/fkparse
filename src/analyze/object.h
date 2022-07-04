@@ -128,4 +128,6 @@ typedef struct ActionObj {
   bool standalone;
 } ActionObj;
 
+Hash *analyzeParams(struct ast *params);
+
 #endif
