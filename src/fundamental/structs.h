@@ -65,6 +65,13 @@ int list_length(List *l);
 #define list_empty(l) (list_length(l) == 0)
 void list_free(List *l);
 
+/* stack */
+typedef List Stack;
+#define stack_new list_new
+#define stack_push list_prepend
+#define stack_pop(l) list_removeOne((l),list_at((l),0))
+#define stack_gettop(l) list_at((l), 0)
+
 /* ------------------------- */
 /* 哈希表 */
 
@@ -92,11 +99,15 @@ typedef struct {
   bool reserved;
 } symtab_item;
 
-extern Hash *symtab;
+extern Hash *global_symtab;
+extern Hash *current_tab;
+extern Hash *last_lookup_tab;
+extern Stack *symtab_stack;
 void sym_init();
 symtab_item *sym_lookup(const char *k);
 void sym_new_entry(const char *k, int type, const char *origtext, bool reserved);
 void sym_set(const char *k, symtab_item *v);
+void sym_free(Hash *h);
 
 enum StrType {
   Str_Package,

@@ -218,6 +218,12 @@ static void analyzeVar(VarObj *v) {
 
 static void analyzeAssign(AssignObj *a) {
   print_indent();
+
+  /* pre-analyze var for symtab */
+  if (!a->var->obj && !sym_lookup(a->var->name)) {
+    sym_new_entry(a->var->name, TNone, NULL, false);
+  }
+
   sym_lookup(a->var->name)->type = TAny;
   analyzeVar(a->var);
   writestr(" = ");
@@ -266,6 +272,10 @@ static void analyzeLoop(LoopObj *l) {
 
 void analyzeBlock(BlockObj *bl) {
   List *node;
+  Hash *symtab = hash_new();
+  current_tab = symtab;
+  stack_push(symtab_stack, cast(Object *, current_tab));
+
   list_foreach(node, bl->statements) {
     switch (node->data->objtype) {
     case Obj_Assign:
@@ -289,12 +299,16 @@ void analyzeBlock(BlockObj *bl) {
       break;
     }
   }
+
+  stack_pop(symtab_stack);
+  sym_free(symtab);
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
 static void defineLocal(char *k, char *v, int type) {
   writeline("locals[\"%s\"] = %s", k, v);
   if (!sym_lookup(k)) {
-    sym_new_entry(k, TNone, v, true);
+    sym_new_entry(k, TNone, NULL, false);
   }
   sym_lookup(k)->type = type;
 }

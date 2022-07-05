@@ -6,10 +6,24 @@
 #include <stdio.h>
 #include <string.h>
 
-Hash *symtab;
+Hash *global_symtab;
+Hash *current_tab;
+Hash *last_lookup_tab;
+Stack *symtab_stack;
 
 symtab_item *sym_lookup(const char *k) {
-  return (symtab_item *)hash_get(symtab, k);
+  void *v = NULL;
+  Stack *node;
+  last_lookup_tab = NULL;
+  list_foreach(node, symtab_stack) {
+    Hash *h = cast(Hash *, node->data);
+    v = hash_get(h, k);
+    if (v) {
+      last_lookup_tab = h;
+      break;
+    }
+  }
+  return cast(symtab_item *, v);
 }
 
 void sym_set(const char *k, symtab_item *v) {
@@ -17,7 +31,8 @@ void sym_set(const char *k, symtab_item *v) {
   if (i && i->reserved) {
     outputError("不能修改预定义的标识符 %s", k);
   } else {
-    hash_set(symtab, k, (void *)v);
+    if (i) checktype(i->type, v->type);
+    hash_set(last_lookup_tab ? last_lookup_tab : current_tab, k, (void *)v);
   }
 }
 
@@ -25,7 +40,13 @@ void sym_new_entry(const char *k, int type, const char *origtext, bool reserved)
   symtab_item *i = sym_lookup(k);
   symtab_item *v;
   if (i) {
-    outputError("%s 已经存在于表中", k);
+    if (i->type != TNone)
+      outputError("%s 已经存在于表中，类型为 %d", k, i->type);
+    else {
+      i->type = type;
+      i->origtext = origtext;
+      i->reserved = reserved;
+    }
   } else {
     v = malloc(sizeof(symtab_item));
     v->type = type;
@@ -33,6 +54,16 @@ void sym_new_entry(const char *k, int type, const char *origtext, bool reserved)
     v->reserved = reserved;
     sym_set(k, cast(void *, v));
   }
+}
+
+void sym_free(Hash *h) {
+  for (size_t i = 0; i < h->capacity; i++) {
+    free((void*)h->entries[i].key);
+    free((void*)h->entries[i].value);
+  }
+
+  free(h->entries);
+  free(h);
 }
 
 Hash *strtab;
@@ -140,7 +171,7 @@ VarObj *newVar(struct ast *a) {
       ret->type = i->type;
     } else {
       ret->type = TNone;
-      sym_new_entry(ret->name, TNone, NULL, false);
+      /* sym_new_entry(ret->name, TNone, NULL, false); */
     }
   } else {
     ret->type = TNone;  /* determine type later */
