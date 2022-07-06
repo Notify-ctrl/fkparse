@@ -399,6 +399,56 @@ static PackageObj *newPackage(struct ast *a) {
   return ret;
 }
 
+static DefargObj *newDefarg(struct ast *a) {
+  checktype(a->nodetype, N_Defarg);
+
+  DefargObj *ret = malloc(sizeof(DefargObj));
+  ret->objtype = Obj_Defarg;
+
+  struct astdefarg *d = cast(struct astdefarg *, a);
+  ret->name = d->name->str;
+  ret->type = d->type;
+  ret->d = newExpression(d->d);
+
+  return ret;
+}
+
+static List *analyzeDefParams(struct ast *a) {
+  if (!a)
+    return NULL;
+
+  List *ret = list_new();
+
+  checktype(a->nodetype, N_Defargs);
+  while (a && a->r) {
+    checktype(a->r->nodetype, N_Defarg);
+    list_prepend(ret, cast(Object *, newDefarg(a->r)));
+    a = a->l;
+  }
+
+  return ret;
+}
+
+static FuncdefObj *newFuncdef(struct ast *a) {
+  checktype(a->nodetype, N_Funcdef);
+
+  FuncdefObj *ret = malloc(sizeof(FuncdefObj));
+  ret->objtype = Obj_Funcdef;
+
+  struct astfuncdef *f = cast(struct astfuncdef *, a);
+  static int funcId = 0;
+  char buf[64];
+  sprintf(buf, "%sfunc%d", readfile_name, funcId);
+  funcId++;
+
+  ret->funcname = strdup(buf);
+  sym_new_entry(f->name->str, TFunc, cast(const char *, ret), false);
+  ret->params = analyzeDefParams(f->params);
+  ret->funcbody = newBlock(f->funcbody);
+
+  return ret;
+}
+
 /* main */
 ExtensionObj *newExtension(struct ast *a) {
   checktype(a->nodetype, N_Extension);
@@ -411,6 +461,14 @@ ExtensionObj *newExtension(struct ast *a) {
   sym_init();
   strtab = hash_new();
   restrtab = list_new();
+
+  ret->funcdefs = list_new();
+  iter = e->funcList;
+  checktype(iter->nodetype, N_Funcdefs);
+  while (iter && iter->r) {
+    list_prepend(ret->funcdefs, cast(Object *, newFuncdef(iter->r)));
+    iter = iter->l;
+  }
 
   ret->skills = list_new();
   iter = e->skillList;

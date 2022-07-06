@@ -82,11 +82,13 @@ defargs : '{' defarglist '}' { $$ = $2; }
         ;
 
 defarglist : defarglist ',' defarg { $$ = newast(N_Defargs, $1, $3); }
-           | defarg {$$ = newast(N_Args, NULL, $1); }
+           | defarg {$$ = newast(N_Defargs, NULL, $1); }
            ;
 
-defarg : IDENTIFIER ':' TYPE { $$ = newast(N_Defarg, newstr($1),
-                                            (struct ast *)(long)$3); }
+defarg : IDENTIFIER ':' TYPE
+         { $$ = newdefarg(newstr($1), $3, NULL); }
+       | IDENTIFIER ':' TYPE '=' exp
+         { $$ = newdefarg(newstr($1), $3, $5); }
        ;
 
 skillList : %empty  { $$ = newast(N_Skills, NULL, NULL); }

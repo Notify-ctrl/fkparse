@@ -23,6 +23,7 @@ typedef struct {
 
 typedef struct {
   ObjType objtype;
+  List *funcdefs;
   List *skills;
   List *packages;
 } ExtensionObj;
@@ -92,6 +93,20 @@ typedef struct VarObj {
 } VarObj;
 
 VarObj *newVar(struct ast *a);
+
+typedef struct {
+  ObjType objtype;
+  const char *name;
+  ExpVType type;
+  ExpressionObj *d;
+} DefargObj;
+
+typedef struct {
+  ObjType objtype;
+  const char *funcname;
+  List *params;
+  BlockObj *funcbody;
+} FuncdefObj;
 
 typedef struct {
   ObjType objtype;

@@ -156,6 +156,15 @@ struct astfuncdef {
 struct ast *newfuncdef(struct ast *name, struct ast *params,
                               struct ast *funcbody);
 
+struct astdefarg {
+  NodeType nodetype;
+  struct aststr *name;
+  int type;
+  struct ast *d;  /* default value */
+};
+
+struct ast *newdefarg(struct ast *name, int type, struct ast *d);
+
 struct astpackage {
   NodeType nodetype;
   struct ast *id;

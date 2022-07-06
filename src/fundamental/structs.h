@@ -17,6 +17,8 @@ enum ObjType {
   Obj_String,
 
   Obj_Extension,
+  Obj_Defarg,
+  Obj_Funcdef,
   Obj_Package,
   Obj_General,
   Obj_Skill,
@@ -28,6 +30,7 @@ enum ObjType {
   Obj_If,
   Obj_Loop,
   Obj_Break,
+  Obj_Funccall,
   Obj_Return,
   Obj_Assign,
   Obj_Action,

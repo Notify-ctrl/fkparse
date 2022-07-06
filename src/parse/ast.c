@@ -73,6 +73,22 @@ struct ast *newfuncdef(struct ast *name, struct ast *params,
   return (struct ast *)a;
 }
 
+struct ast *newdefarg(struct ast *name, int type, struct ast *d) {
+  struct astdefarg *a = malloc(sizeof(struct astdefarg));
+
+  if(!a) {
+    yyerror("out of space");
+    exit(0);
+  }
+
+  a->nodetype = N_Defarg;
+  a->name = (struct aststr *)name;
+  a->type = type;
+  a->d = d;
+
+  return (struct ast *)a;
+}
+
 struct ast *newpackage(char *id, struct ast *generals) {
   struct astpackage *a = malloc(sizeof(struct astpackage));
 

@@ -731,7 +731,8 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
   indent_level++;
   if (t->can_trigger) {
     writeline("local room = player:getRoom()");
-    writeline("local locals = {}\n");
+    writeline("local locals = {}");
+    writeline("global_self = self\n");
     initData(t->event);
     analyzeBlock(t->can_trigger);
     clearData(t->event);
@@ -746,7 +747,8 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
   writeline("function (self, target, player, data)");
   indent_level++;
   writeline("local room = player:getRoom()");
-  writeline("local locals = {}\n");
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
   initData(t->event);
   analyzeBlock(t->on_trigger);
   clearData(t->event);
@@ -815,12 +817,68 @@ static void loadTranslations() {
   writeline("}\n");
 }
 
+static void analyzeFuncdef(FuncdefObj *f) {
+  writestr("local function %s(", f->funcname);
+  List *node;
+  int argId = 0;
+  Hash *param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  List *param_gclist = list_new();
+  const char *s;
+  DefargObj *d;
+  char buf[64];
+  list_foreach(node, f->params) {
+    d = cast(DefargObj *, node->data);
+    if (argId != 0) writestr(", ");
+    sprintf(buf, "arg%d", argId);
+    s = strdup(buf);
+    writestr(s);
+    sym_new_entry(d->name, d->type, s, false);
+    list_append(param_gclist, cast(Object *, s));
+    argId++;
+  }
+
+  writestr(")\n");
+  indent_level++;
+
+  argId = 0;
+  list_foreach(node, f->params) {
+    /* type check should done by fkparse */
+    d = cast(DefargObj *, node->data);
+    if (d->d) {
+      print_indent();
+      writestr("if arg%d == nil then arg%d = ", argId, argId);
+      analyzeExp(d->d);
+      writestr(" end\n");
+    }
+    argId++;
+  }
+  writeline("local self = global_self");
+
+  analyzeBlock(f->funcbody);
+  indent_level--;
+  writestr("end\n\n");
+
+  list_foreach(node, param_gclist) {
+    free(node->data);
+  }
+  list_free(param_gclist);
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
+}
+
 void analyzeExtension(ExtensionObj *e) {
-  writeline("require \"fkparser\"\n");
+  writeline("require \"fkparser\"\n\nlocal global_self\n");
 
   loadTranslations();
 
   List *node;
+  list_foreach(node, e->funcdefs) {
+    analyzeFuncdef(cast(FuncdefObj *, node->data));
+  }
+
   list_foreach(node, e->skills) {
     analyzeSkill(cast(SkillObj *, node->data));
   }
