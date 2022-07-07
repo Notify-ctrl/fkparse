@@ -290,14 +290,19 @@ void analyzeBlock(BlockObj *bl) {
     case Obj_Break:
       writeline("break");
       break;
-    case Obj_Return:
-      break;
     case Obj_Action:
       analyzeAction(cast(ActionObj *, node->data));
       break;
     default:
       break;
     }
+  }
+
+  if (bl->ret) {
+    print_indent();
+    writestr("return ");
+    analyzeExp(bl->ret);
+    writestr("\n");
   }
 
   stack_pop(symtab_stack);

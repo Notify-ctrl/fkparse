@@ -25,6 +25,7 @@
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
 %token <enum_v> TYPE
+%token RETURN
 %left <enum_v> LOGICOP
 %left '+' '-' '*' '/'
 %nonassoc <enum_v> CMP
@@ -74,7 +75,9 @@ funcdefList : %empty { $$ = newast(N_Funcdefs, NULL, NULL); }
             ;
 
 funcdef : FUNCDEF IDENTIFIER defargs block
-          { $$ = newfuncdef(newstr($2), $3, $4); }
+          { $$ = newfuncdef(newstr($2), $3, TNone, $4); }
+        | FUNCDEF IDENTIFIER defargs RETURN TYPE block
+          { $$ = newfuncdef(newstr($2), $3, $5, $6); }
         ;
 
 defargs : '{' defarglist '}' { $$ = $2; }

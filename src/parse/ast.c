@@ -56,7 +56,7 @@ struct ast *newstr(char *s) {
 }
 
 struct ast *newfuncdef(struct ast *name, struct ast *params,
-                              struct ast *funcbody)
+                       int rettype, struct ast *funcbody)
 {
   struct astfuncdef *a = malloc(sizeof(struct astfuncdef));
 
@@ -68,6 +68,7 @@ struct ast *newfuncdef(struct ast *name, struct ast *params,
   a->nodetype = N_Funcdef;
   a->name = (struct aststr *)name;
   a->params = params;
+  a->rettype = rettype;
   a->funcbody = funcbody;
 
   return (struct ast *)a;

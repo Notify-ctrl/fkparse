@@ -52,6 +52,7 @@
 "直到"  { return UNTIL; }
 "的"    { return FIELD; }
 "返回"  { return RET; }
+"->"    { return RETURN; }
 "假"  { return FALSE; }
 "真"  { return TRUE; }
 "中止此流程"    { return BREAK; }

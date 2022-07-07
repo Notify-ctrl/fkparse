@@ -226,15 +226,6 @@ static Object *newBreak(struct ast *a) {
   return ret;
 }
 
-static Object *newReturn(struct ast *a) {
-  checktype(a->nodetype, N_Stat_Ret);
-
-  Object *ret = malloc(sizeof(Object));
-  ret->objtype = Obj_Return;
-
-  return ret;
-}
-
 static Object *newStatement(struct ast *a) {
   Object *ret = NULL;
   switch (a->nodetype) {
@@ -254,9 +245,6 @@ static Object *newStatement(struct ast *a) {
     break;
   case N_Stat_Action:
     ret = cast(Object *, newAction(a));
-    break;
-  case N_Stat_Ret:
-    ret = cast(Object *, newReturn(a));
     break;
   default:
     break;
@@ -280,7 +268,12 @@ static BlockObj *newBlock(struct ast *a) {
     iter = iter->l;
   }
 
-  /* TODO: retstat in block */
+  if (a->r) {
+    checktype(a->r->nodetype, N_Stat_Ret);
+    ret->ret = newExpression(a->r->l);
+  } else {
+    ret->ret = NULL;
+  }
 
   return ret;
 }
@@ -444,6 +437,7 @@ static FuncdefObj *newFuncdef(struct ast *a) {
   ret->funcname = strdup(buf);
   sym_new_entry(f->name->str, TFunc, cast(const char *, ret), false);
   ret->params = analyzeDefParams(f->params);
+  ret->rettype = f->rettype;
   ret->funcbody = newBlock(f->funcbody);
 
   return ret;

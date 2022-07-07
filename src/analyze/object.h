@@ -66,6 +66,7 @@ typedef struct {
 typedef struct {
   ObjType objtype;
   List *statements; /* maybe empty */
+  struct ExpressionObj *ret;
 } BlockObj;
 
 typedef struct ExpressionObj {
@@ -105,6 +106,7 @@ typedef struct {
   ObjType objtype;
   const char *funcname;
   List *params;
+  int rettype;
   BlockObj *funcbody;
 } FuncdefObj;
 

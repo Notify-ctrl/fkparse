@@ -31,7 +31,6 @@ enum ObjType {
   Obj_Loop,
   Obj_Break,
   Obj_Funccall,
-  Obj_Return,
   Obj_Assign,
   Obj_Action,
   Obj_ActionBody,

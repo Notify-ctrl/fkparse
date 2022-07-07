@@ -150,11 +150,12 @@ struct astfuncdef {
   NodeType nodetype;
   struct aststr *name;
   struct ast *params;
+  int rettype;
   struct ast *funcbody;
 };
 
 struct ast *newfuncdef(struct ast *name, struct ast *params,
-                              struct ast *funcbody);
+                       int rettype, struct ast *funcbody);
 
 struct astdefarg {
   NodeType nodetype;
