@@ -42,6 +42,7 @@ void outputError(const char *msg, ...) {
 
 static void analyzeVar(VarObj *v);
 static void analyzeBlock(BlockObj *bl);
+static void analyzeFunccall(FunccallObj *f);
 
 void analyzeExp(ExpressionObj *e) {
   if (e->bracketed) writestr("(");
@@ -125,6 +126,10 @@ void analyzeExp(ExpressionObj *e) {
       analyzeVar(e->varValue);
       t = e->varValue->type;
       break;
+    case ExpFunc:
+      analyzeFunccall(e->func);
+      t = e->func->rettype;
+      return;
     case ExpAction:
       analyzeAction(e->action);
       t = e->action->valuetype;
@@ -270,6 +275,43 @@ static void analyzeLoop(LoopObj *l) {
   writestr("\n");
 }
 
+static void analyzeFunccall(FunccallObj *f) {
+  symtab_item *i = sym_lookup(f->name);
+  if (!i) {
+    outputError("调用了未定义的函数“%s”", f->name);
+    return;
+  }
+  FuncdefObj *d = cast(FuncdefObj *, i->origtext);
+  writestr("%s(", d->funcname);
+
+  List *node;
+  bool start = true;
+  list_foreach(node, d->params) {
+    if (!start) {
+      writestr(", ");
+    } else {
+      start = false;
+    }
+
+    DefargObj *a = cast(DefargObj *, node->data);
+    const char *name = a->name;
+    ExpressionObj *e = hash_get(f->params, a->name);
+    if (!e) {
+      if (!a->d) {
+        outputError("函数“%s”的参数“%s”没有默认值，调用时必须传入值", f->name, name);
+      } else {
+        analyzeExp(a->d);
+      }
+    } else {
+      analyzeExp(e);
+      checktype(e->valuetype, a->type);
+    }
+  }
+
+  writestr(")");
+  f->rettype = d->rettype;
+}
+
 void analyzeBlock(BlockObj *bl) {
   List *node;
   Hash *symtab = hash_new();
@@ -292,6 +334,11 @@ void analyzeBlock(BlockObj *bl) {
       break;
     case Obj_Action:
       analyzeAction(cast(ActionObj *, node->data));
+      break;
+    case Obj_Funccall:
+      print_indent();
+      analyzeFunccall(cast(FunccallObj *, node->data));
+      writestr("\n");
       break;
     default:
       break;

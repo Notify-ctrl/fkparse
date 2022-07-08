@@ -57,6 +57,7 @@
 "真"  { return TRUE; }
 "中止此流程"    { return BREAK; }
 "定义函数"  { return FUNCDEF; }
+"调用"    { return CALL; }
 
 "摸"    { return DRAW; }
 "张"    { return ZHANG; }

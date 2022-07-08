@@ -107,6 +107,25 @@ static StringObj *newString(const char *a) {
   return ret;
 }
 
+static FunccallObj *newFunccall(struct ast *a) {
+  checktype(a->nodetype, N_Stat_Funccall);
+
+  FunccallObj *ret = malloc(sizeof(FunccallObj));
+  ret->objtype = Obj_Funccall;
+
+  ret->name = cast(struct aststr *, a->l)->str;
+  ret->params = hash_new();
+  struct ast *iter = a->r, *arg;
+  while (iter && iter->r) {
+    arg = iter->r;
+    hash_set(ret->params, cast(struct aststr *, arg->l)->str,
+             cast(void *, newExpression(arg->r)));
+    iter = iter->l;
+  }
+
+  return ret;
+}
+
 ExpressionObj *newExpression(struct ast *a) {
   if (!a) return NULL;
   checktype(a->nodetype, N_Exp);
@@ -147,6 +166,9 @@ ExpressionObj *newExpression(struct ast *a) {
       if (exp) list_prepend(ret->array, cast(Object *, exp));
       iter = iter->l;
     }
+    break;
+  case ExpFunc:
+    ret->func = newFunccall(cast(struct ast *, e->l));
     break;
   case ExpAction:
     ret->action = newAction(cast(struct ast *, e->l));
@@ -242,6 +264,9 @@ static Object *newStatement(struct ast *a) {
     break;
   case N_Stat_Break:
     ret = cast(Object *, newBreak(a));
+    break;
+  case N_Stat_Funccall:
+    ret=  cast(Object *, newFunccall(a));
     break;
   case N_Stat_Action:
     ret = cast(Object *, newAction(a));

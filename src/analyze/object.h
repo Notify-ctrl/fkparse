@@ -77,6 +77,7 @@ typedef struct ExpressionObj {
   const char *strvalue;
   struct VarObj *varValue;
   struct ActionObj *action;
+  struct FunccallObj *func;
   List *array;
   int optype;
   struct ExpressionObj *oprand1; /* maybe NULL */
@@ -136,6 +137,13 @@ typedef struct {
   VarObj *var;
   ExpressionObj *value;
 } AssignObj;
+
+typedef struct FunccallObj {
+  ObjType objtype;
+  ExpVType rettype;
+  const char *name;
+  Hash *params;
+} FunccallObj;
 
 typedef struct ActionObj {
   ObjType objtype;

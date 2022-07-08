@@ -25,7 +25,7 @@
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
 %token <enum_v> TYPE
-%token RETURN
+%token RETURN CALL
 %left <enum_v> LOGICOP
 %left '+' '-' '*' '/'
 %nonassoc <enum_v> CMP
@@ -55,7 +55,7 @@
 %type <a> askForSkillInvoke obtainCard
 
 %type <a> exp prefixexp opexp var
-%type <a> explist array
+%type <a> explist array func_call
 
 %start extension
 %define parse.error detailed
@@ -146,6 +146,7 @@ statement   : ';' { $$ = newast(N_Stat_None, NULL, NULL); }
             | if_stat { $$ = $1; }
             | loop_stat { $$ = $1; }
             | BREAK { $$ = newast(N_Stat_Break, NULL, NULL); }
+            | func_call { $$ = $1; }
             | action_stat { $$ = $1; }
             ;
 
@@ -160,6 +161,9 @@ if_stat : IF exp THEN block END { $$ = newif($2, $4, NULL); }
         ;
 
 loop_stat : REPEAT block UNTIL exp { $$ = newast(N_Stat_Loop, $2, $4); }
+          ;
+
+func_call : CALL IDENTIFIER args  { $$ = newast(N_Stat_Funccall, newstr($2), $3); }
           ;
 
 action_stat : action { $$ = newast(N_Stat_Action, $1, NULL); }
@@ -273,6 +277,8 @@ opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct as
       ;
 
 prefixexp : var { $$ = newexp(ExpVar, 0, 0, (struct astExp *)$1, NULL); }
+          | '(' func_call ')'
+              { $$ = newexp(ExpFunc, 0, 0, (struct astExp *)$2, NULL); }
           | '(' exp ')' { $$ = $2; ((struct astExp *)$2)->bracketed = 1; }
           ;
 

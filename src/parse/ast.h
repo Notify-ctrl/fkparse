@@ -83,6 +83,7 @@ enum ExpType {
   ExpBool,
   ExpVar,
   ExpArray,
+  ExpFunc,
   ExpAction
 };
 
