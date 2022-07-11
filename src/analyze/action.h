@@ -81,6 +81,14 @@ typedef struct {
   ExpressionObj *card;
 } ObtainCardAct;
 
+typedef struct {
+  ObjType objtype;
+  ActionObj *parent;
+  ExpressionObj *array;
+  ExpressionObj *oprand;
+  int op; /* 0,1,2,3 - prepend,append,remove,at */
+} ArrayOp;
+
 ActionObj *newAction(struct ast *a);
 void analyzeAction(ActionObj *a);
 

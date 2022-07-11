@@ -29,6 +29,7 @@ enum ObjType {
   Obj_TriggerSpec,
   Obj_If,
   Obj_Loop,
+  Obj_Traverse,
   Obj_Break,
   Obj_Funccall,
   Obj_Assign,

@@ -105,6 +105,7 @@ void analyzeExp(ExpressionObj *e) {
       case TCard: t = TCardList; break;
       case TNumber: t = TNumberList; break;
       case TString: t = TStringList; break;
+      case TNone: t = TEmptyList; break;
       default:
         outputError("未知的数组元素类型%d\n", t);
         break;
@@ -201,6 +202,18 @@ static void analyzeVar(VarObj *v) {
             t = TNone;
           }
           break;
+        case TCardList:
+        case TNumberList:
+        case TStringList:
+        case TPlayerList:
+          if (!strcmp(name, "长度")) {
+            writestr(":length()");
+            t = TNumber;
+          } else {
+            outputError("无法获取 数组 的属性 \"%s\"\n", name);
+            t = TNone;
+          }
+          break;
         default:
           outputError("不能获取类型为%d的对象的属性\n", v->obj->valuetype);
           t = TNone;
@@ -275,6 +288,54 @@ static void analyzeLoop(LoopObj *l) {
   writestr("\n");
 }
 
+static void analyzeTraverse(TraverseObj *t) {
+  static int iter_index = 0;
+  print_indent();
+  writestr("for _, iter%d in sgs.list(", iter_index);
+  analyzeExp(t->array);
+  ExpVType type = t->array->valuetype;
+  if (type != TCardList && type != TNumberList
+    && type != TPlayerList && type != TStringList && type != TEmptyList
+  ) {
+    outputError("只能对数组进行遍历操作");
+    return;
+  }
+
+  writestr(") do\n");
+
+  char buf[16];
+  sprintf(buf, "iter%d", iter_index);
+  char *s = strdup(buf);
+  ExpVType vtype = TNone;
+  switch (type) {
+    case TCardList: vtype = TCard; break;
+    case TNumberList: vtype = TNumberList; break;
+    case TPlayerList: vtype = TPlayer; break;
+    case TStringList: vtype = TString; break;
+    case TEmptyList: outputError("不允许遍历空数组"); break;
+    default: break;
+  }
+  sym_new_entry(t->expname, vtype, s, false);
+
+  Hash *symtab = hash_new();
+  current_tab = symtab;
+  stack_push(symtab_stack, cast(Object *, current_tab));
+
+  iter_index++;
+  indent_level++;
+  analyzeBlock(t->body);
+  indent_level--;
+  iter_index--;
+
+  stack_pop(symtab_stack);
+  sym_free(symtab);
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
+
+  free(s);
+
+  writeline("end");
+}
+
 static void analyzeFunccall(FunccallObj *f) {
   symtab_item *i = sym_lookup(f->name);
   if (!i) {
@@ -328,6 +389,9 @@ void analyzeBlock(BlockObj *bl) {
       break;
     case Obj_Loop:
       analyzeLoop(cast(LoopObj *, node->data));
+      break;
+    case Obj_Traverse:
+      analyzeTraverse(cast(TraverseObj *, node->data));
       break;
     case Obj_Break:
       writeline("break");

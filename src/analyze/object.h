@@ -134,6 +134,13 @@ typedef struct {
 
 typedef struct {
   ObjType objtype;
+  ExpressionObj *array;
+  const char *expname;
+  BlockObj *body;
+} TraverseObj;
+
+typedef struct {
+  ObjType objtype;
   VarObj *var;
   ExpressionObj *value;
 } AssignObj;

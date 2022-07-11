@@ -159,6 +159,7 @@ ExpressionObj *newExpression(struct ast *a) {
     break;
   case ExpArray:
     ret->array = list_new();
+    if (!e->l) break;
     iter = cast(struct ast *, e->l);
     checktype(iter->nodetype, N_Exps);
     while (iter && iter->r) {
@@ -239,6 +240,18 @@ static LoopObj *newLoop(struct ast *a) {
   return ret;
 }
 
+static TraverseObj *newTraverse(struct ast *a) {
+  checktype(a->nodetype, N_Stat_Traverse);
+
+  TraverseObj *ret = malloc(sizeof(TraverseObj));
+  ret->objtype = Obj_Traverse;
+  struct astTraverse *t = cast(struct astTraverse *, a);
+  ret->array = newExpression(t->array);
+  ret->expname = cast(struct aststr *, t->expname)->str;
+  ret->body = newBlock(t->body);
+  return ret;
+}
+
 static Object *newBreak(struct ast *a) {
   checktype(a->nodetype, N_Stat_Break);
 
@@ -261,6 +274,9 @@ static Object *newStatement(struct ast *a) {
     break;
   case N_Stat_Loop:
     ret = cast(Object *, newLoop(a));
+    break;
+  case N_Stat_Traverse:
+    ret = cast(Object *, newTraverse(a));
     break;
   case N_Stat_Break:
     ret = cast(Object *, newBreak(a));

@@ -180,6 +180,20 @@ struct ast *newif(struct ast *cond, struct ast *then, struct ast *el) {
   return (struct ast *)a;
 }
 
+struct ast *newtraverse(struct ast *array, struct ast *expname, struct ast *body) {
+  struct astTraverse *a = malloc(sizeof(struct astTraverse));
+
+  if(!a) {
+    yyerror("out of space");
+    exit(0);
+  }
+  a->nodetype = N_Stat_Traverse;
+  a->array = array;
+  a->expname = expname;
+  a->body = body;
+  return (struct ast *)a;
+}
+
 struct ast *newaction(int type, struct ast *action) {
   struct astAction *a = malloc(sizeof(struct astAction));
 

@@ -32,6 +32,7 @@ enum NodeType {
   N_Stat_Assign,
   N_Stat_If,
   N_Stat_Loop,
+  N_Stat_Traverse,
   N_Stat_Break,
   N_Stat_Funccall,
   N_Stat_Ret,
@@ -69,7 +70,11 @@ enum ActionType {
   ActionAskForChoice,
   ActionAskForPlayerChosen,
   ActionAskForSkillInvoke,
-  ActionObtainCard
+  ActionObtainCard,
+  ArrayPrepend,
+  ArrayAppend,
+  ArrayRemoveOne,
+  ArrayAt
 };
 
 typedef enum ActionType ActionType;
@@ -237,6 +242,15 @@ struct astLoop {
   struct ast *body;
   struct ast *cond;
 }; 
+
+struct astTraverse {
+  NodeType nodetype;
+  struct ast *array;
+  struct ast *expname;
+  struct ast *body;
+};
+
+struct ast *newtraverse(struct ast *array, struct ast *expname, struct ast *body);
 
 struct astAction {
   NodeType nodetype;

@@ -66,6 +66,8 @@
 "点"    { return DIAN; }
 "体力"  { return HP; }
 "对"    { return TO; }
+"中"     { return IN; }
+"每个"    { return EVERY; }
 "造成"  { return CAUSE; }
 "伤害"  { return DAMAGE; }
 "受到"  { return INFLICT; }
@@ -81,6 +83,13 @@
 "一项"  { return ANITEM; }
 "一名角色" { return ANPLAYER; }
 "发动"  { return INVOKE; }
+"向" { return TOWARD; }
+"插入" { return PREPEND; }
+"追加" { return APPEND; }
+"删除" { return DELETE; }
+"第" { return DI; }
+"个" { return GE; }
+"元素" { return ELEMENT; }
 
 "游戏开始时"     { yylval.enum_v = GameStart; return EVENT; }
 "回合即将开始时"   { yylval.enum_v = TurnStart; return EVENT; }

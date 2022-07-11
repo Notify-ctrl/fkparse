@@ -26,6 +26,7 @@
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
 %token <enum_v> TYPE
 %token RETURN CALL
+%token IN EVERY TOWARD PREPEND APPEND DELETE DI GE ELEMENT
 %left <enum_v> LOGICOP
 %left '+' '-' '*' '/'
 %nonassoc <enum_v> CMP
@@ -46,13 +47,14 @@
 %type <a> skillspecs skillspec
 %type <a> triggerSkill triggerspecs triggerspec
 
-%type <a> block statements statement retstat
+%type <a> block statements statement retstat traverse_stat
 %type <a> assign_stat if_stat loop_stat action_stat action args arglist arg
 %type <a> drawCards loseHp causeDamage inflictDamage recoverHp
 %type <a> acquireSkill detachSkill
 %type <a> addMark loseMark getMark
 %type <a> askForChoice askForChoosePlayer
 %type <a> askForSkillInvoke obtainCard
+%type <a> arrayPrepend arrayAppend arrayRemoveOne arrayAt
 
 %type <a> exp prefixexp opexp var
 %type <a> explist array func_call
@@ -145,6 +147,7 @@ statement   : ';' { $$ = newast(N_Stat_None, NULL, NULL); }
             | assign_stat { $$ = $1; }
             | if_stat { $$ = $1; }
             | loop_stat { $$ = $1; }
+            | traverse_stat { $$ = $1; }
             | BREAK { $$ = newast(N_Stat_Break, NULL, NULL); }
             | func_call { $$ = $1; }
             | action_stat { $$ = $1; }
@@ -162,6 +165,10 @@ if_stat : IF exp THEN block END { $$ = newif($2, $4, NULL); }
 
 loop_stat : REPEAT block UNTIL exp { $$ = newast(N_Stat_Loop, $2, $4); }
           ;
+
+traverse_stat : TO exp IN EVERY IDENTIFIER REPEAT block END
+                { $$ = newtraverse($2, newstr($5), $7); }
+              ;
 
 func_call : CALL IDENTIFIER args  { $$ = newast(N_Stat_Funccall, newstr($2), $3); }
           ;
@@ -184,6 +191,10 @@ action      : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | askForChoosePlayer { $$ = newaction(ActionAskForPlayerChosen, $1); }
             | askForSkillInvoke { $$ = newaction(ActionAskForSkillInvoke, $1); }
             | obtainCard { $$ = newaction(ActionObtainCard, $1); }
+            | arrayPrepend { $$ = newaction(ArrayPrepend, $1); }
+            | arrayAppend { $$ = newaction(ArrayAppend, $1); }
+            | arrayRemoveOne { $$ = newaction(ArrayRemoveOne, $1); }
+            | arrayAt { $$ = newaction(ArrayAt, $1); }
             ;
 
 args : '{' arglist '}' { $$ = $2; }
@@ -252,6 +263,22 @@ askForSkillInvoke : exp SELECT INVOKE STRING
 
 obtainCard : exp ACQUIRE CARD exp
           { $$ = newast(-1, $1, $4); }
+          ;
+
+arrayPrepend : TOWARD exp PREPEND exp
+          { $$ = newast(-1, $2, $4); }
+          ;
+
+arrayAppend : TOWARD exp APPEND exp
+          { $$ = newast(-1, $2, $4); }
+          ;
+
+arrayRemoveOne : FROM exp DELETE exp
+          { $$ = newast(-1, $2, $4); }
+          ;
+
+arrayAt : exp DI exp GE ELEMENT
+          { $$ = newast(-1, $1, $3); }
           ;
 
 exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }

@@ -138,6 +138,20 @@ static ObtainCardAct *newObtainCard(struct astAction *a) {
   return ret;
 }
 
+static ArrayOp *newArrayOp(struct astAction *a) {
+  ArrayOp *ret = malloc(sizeof(ArrayOp));
+  ret->array = newExpression(a->action->l);
+  ret->oprand = newExpression(a->action->r);
+  switch (a->actiontype) {
+  case ArrayPrepend: ret->op = 0; break;
+  case ArrayAppend: ret->op = 1; break;
+  case ArrayRemoveOne: ret->op = 2; break;
+  case ArrayAt: ret->op = 3; break;
+  default: break;
+  }
+  return ret;
+}
+
 ActionObj *newAction(struct ast *a) {
   checktype(a->nodetype, N_Stat_Action);
 
@@ -190,6 +204,14 @@ ActionObj *newAction(struct ast *a) {
     break;
   case ActionObtainCard:
     ret->action = cast(Object *, newObtainCard(as));
+    ret->valuetype = TNone;
+    break;
+  case ArrayPrepend:
+  case ArrayAppend:
+  case ArrayRemoveOne:
+  case ArrayAt:
+    ret->action = cast(Object *, newArrayOp(as));
+    cast(ArrayOp *, ret->action)->parent = ret;
     ret->valuetype = TNone;
     break;
   }
@@ -338,6 +360,96 @@ static void actObtainCard(Object *o) {
   writestr(", false)");
 }
 
+static void arrayOperation(Object *o) {
+  ArrayOp *a = cast(ArrayOp *, o);
+  analyzeExp(a->array);
+  switch (a->op) {
+  case 0:
+  case 1:
+    writestr("%s", a->op == 0 ? ":prepend(" : ":append(");
+    analyzeExp(a->oprand);
+    writestr(")");
+
+    if (a->array->valuetype == TEmptyList) {
+      switch (a->oprand->valuetype) {
+      case TNumber:
+        a->array->valuetype = TNumberList;
+        break;
+      case TString:
+        a->array->valuetype = TStringList;
+        break;
+      case TCard:
+        a->array->valuetype = TCardList;
+        break;
+      case TPlayer:
+        a->array->valuetype = TPlayerList;
+        break;
+      default:
+        outputError("不能把类型 %d 添加到数组中");
+        break;
+      }
+    } else {
+      ExpVType t = TNone;
+      switch (a->array->valuetype) {
+      case TNumberList:
+        t = TNumber;
+        break;
+      case TStringList:
+        t = TString;
+        break;
+      case TPlayerList:
+        t = TPlayer;
+        break;
+      case TCardList:
+        t = TCard;
+        break;
+      case TEmptyList:
+        t = TAny;
+        break;
+      default:
+        outputError("未知的数组类型");
+        break;
+      }
+
+      checktype(a->oprand->valuetype, t);
+    }
+
+    break;
+  case 2:
+    writestr(":removeOne(");
+    analyzeExp(a->oprand);
+    writestr(")");
+    break;
+  case 3:
+    writestr(":at(");
+    analyzeExp(a->oprand);
+    checktype(a->oprand->valuetype, TNumber);
+    writestr(")");
+
+    switch (a->array->valuetype) {
+    case TNumberList:
+      a->parent->valuetype = TNumber;
+      break;
+    case TStringList:
+      a->parent->valuetype = TString;
+      break;
+    case TPlayerList:
+      a->parent->valuetype = TPlayer;
+      break;
+    case TCardList:
+      a->parent->valuetype = TCard;
+      break;
+    default:
+      outputError("试图对空数组根据下标取值");
+      break;
+    }
+
+    break;
+  default:
+    break;
+  }
+}
+
 typedef void(*ActFunc)(Object *);
 static ActFunc act_func_table[] = {
   actDrawcard,
@@ -350,7 +462,11 @@ static ActFunc act_func_table[] = {
   actAskForChoice,
   actAskForPlayerChosen,
   actAskForSkillInvoke,
-  actObtainCard
+  actObtainCard,
+  arrayOperation,
+  arrayOperation,
+  arrayOperation,
+  arrayOperation
 };
 
 void analyzeAction(ActionObj *a) {
