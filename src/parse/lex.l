@@ -90,6 +90,7 @@
 "第" { return DI; }
 "个" { return GE; }
 "元素" { return ELEMENT; }
+"拥有"  { return HAVE; }
 
 "游戏开始时"     { yylval.enum_v = GameStart; return EVENT; }
 "回合即将开始时"   { yylval.enum_v = TurnStart; return EVENT; }

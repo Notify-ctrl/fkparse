@@ -89,6 +89,8 @@ typedef struct {
   int op; /* 0,1,2,3 - prepend,append,remove,at */
 } ArrayOp;
 
+typedef AskForSkillInvokeAct HasSkillAct;
+
 ActionObj *newAction(struct ast *a);
 void analyzeAction(ActionObj *a);
 

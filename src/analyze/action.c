@@ -149,6 +149,17 @@ static ArrayOp *newArrayOp(struct astAction *a) {
   case ArrayAt: ret->op = 3; break;
   default: break;
   }
+
+  return ret;
+}
+
+static HasSkillAct *newHasSkill(struct astAction *a) {
+  checktype(a->actiontype, ActionHasSkill);
+
+  HasSkillAct *ret = malloc(sizeof(HasSkillAct));
+  ret->player = newExpression(a->action->l);
+  ret->skill_name = cast(struct aststr *, a->action->r)->str;
+
   return ret;
 }
 
@@ -213,6 +224,10 @@ ActionObj *newAction(struct ast *a) {
     ret->action = cast(Object *, newArrayOp(as));
     cast(ArrayOp *, ret->action)->parent = ret;
     ret->valuetype = TNone;
+    break;
+  case ActionHasSkill:
+    ret->action = cast(Object *, newHasSkill(as));
+    ret->valuetype = TBool;
     break;
   }
 
@@ -450,6 +465,13 @@ static void arrayOperation(Object *o) {
   }
 }
 
+static void actHasSkill(Object *o) {
+  HasSkillAct *a = cast(HasSkillAct *, o);
+  analyzeExp(a->player); checktype(a->player->valuetype, TPlayer);
+  writestr(":hasSkill(");
+  writestr("\"%s\")", sym_lookup(a->skill_name)->origtext);
+}
+
 typedef void(*ActFunc)(Object *);
 static ActFunc act_func_table[] = {
   actDrawcard,
@@ -466,7 +488,8 @@ static ActFunc act_func_table[] = {
   arrayOperation,
   arrayOperation,
   arrayOperation,
-  arrayOperation
+  arrayOperation,
+  actHasSkill
 };
 
 void analyzeAction(ActionObj *a) {

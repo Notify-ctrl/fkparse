@@ -74,7 +74,8 @@ enum ActionType {
   ArrayPrepend,
   ArrayAppend,
   ArrayRemoveOne,
-  ArrayAt
+  ArrayAt,
+  ActionHasSkill
 };
 
 typedef enum ActionType ActionType;

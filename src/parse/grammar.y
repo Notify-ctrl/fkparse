@@ -36,7 +36,7 @@
 %token TO CAUSE DAMAGE INFLICT RECOVER ACQUIRE SKILL
 %token MEI MARK HIDDEN COUNT
 %token FROM SELECT ANITEM ANPLAYER
-%token INVOKE
+%token INVOKE HAVE
 
 %type <a> extension
 %type <a> funcdefList funcdef defargs defarglist defarg
@@ -53,7 +53,7 @@
 %type <a> acquireSkill detachSkill
 %type <a> addMark loseMark getMark
 %type <a> askForChoice askForChoosePlayer
-%type <a> askForSkillInvoke obtainCard
+%type <a> askForSkillInvoke obtainCard hasSkill
 %type <a> arrayPrepend arrayAppend arrayRemoveOne arrayAt
 
 %type <a> exp prefixexp opexp var
@@ -195,6 +195,7 @@ action      : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | arrayAppend { $$ = newaction(ArrayAppend, $1); }
             | arrayRemoveOne { $$ = newaction(ArrayRemoveOne, $1); }
             | arrayAt { $$ = newaction(ArrayAt, $1); }
+            | hasSkill { $$ = newaction(ActionHasSkill, $1); }
             ;
 
 args : '{' arglist '}' { $$ = $2; }
@@ -280,6 +281,9 @@ arrayRemoveOne : FROM exp DELETE exp
 arrayAt : exp DI exp GE ELEMENT
           { $$ = newast(-1, $1, $3); }
           ;
+hasSkill : exp HAVE SKILL STRING
+        { $$ = newast(-1, $1, newstr($4)); }
+        ;
 
 exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
     | TRUE { $$ = newexp(ExpBool, 1, 0, NULL, NULL); }
