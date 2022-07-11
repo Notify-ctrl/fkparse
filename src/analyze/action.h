@@ -90,6 +90,8 @@ typedef struct {
 } ArrayOp;
 
 typedef AskForSkillInvokeAct HasSkillAct;
+typedef LoseHpAct LoseMaxHpAct;
+typedef LoseHpAct RecoverMaxHpAct;
 
 ActionObj *newAction(struct ast *a);
 void analyzeAction(ActionObj *a);

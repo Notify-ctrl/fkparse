@@ -65,6 +65,7 @@
 "失去"  { return LOSE; }
 "点"    { return DIAN; }
 "体力"  { return HP; }
+"上限"    { return MAX; }
 "对"    { return TO; }
 "中"     { return IN; }
 "每个"    { return EVERY; }

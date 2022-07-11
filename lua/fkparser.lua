@@ -1,5 +1,16 @@
 fkp = {}
 
+function fkp.recoverMaxHp(player, int)
+  local room = player:getRoom()
+  local msg = sgs.LogMessage()
+  local mhp = sgs.QVariant()
+  room:setPlayerProperty(player, "maxhp", sgs.QVariant(player:getMaxHp() + int))
+  msg.type = "#GainMaxHp"
+  msg.from = player
+  msg.arg = int
+  room:sendLog(msg)
+end
+
 function fkp.newlist(t)
   local element_type = swig_type(t[1])
   local ret

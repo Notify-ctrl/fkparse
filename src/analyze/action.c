@@ -19,8 +19,6 @@ static DrawcardAct *newDrawcard(struct astAction *a, struct ast *params) {
 }
 
 static LoseHpAct *newLoseHp(struct astAction *a) {
-  checktype(a->actiontype, ActionLosehp);
-
   LoseHpAct *ret = malloc(sizeof(LoseHpAct));
   ret->objtype = Obj_ActionBody;
   ret->player = newExpression(a->action->l);
@@ -178,6 +176,8 @@ ActionObj *newAction(struct ast *a) {
     ret->valuetype = TNone;
     break;
   case ActionLosehp:
+  case ActionLoseMaxHp:
+  case ActionRecoverMaxHp:
     ret->action = cast(Object *, newLoseHp(as));
     ret->valuetype = TNone;
     break;
@@ -257,6 +257,17 @@ static void actLosehp(Object *o) {
   writestr(")");
 }
 
+static void actLoseMaxHp(Object *o) {
+  LoseMaxHpAct *d = cast(LoseMaxHpAct *, o);
+  writestr("room:loseMaxHp(");
+  analyzeExp(d->player);
+  checktype(d->player->valuetype, TPlayer);
+  writestr(", ");
+  analyzeExp(d->number);
+  checktype(d->number->valuetype, TNumber);
+  writestr(")");
+}
+
 static void actDamage(Object *o) {
   writestr("room:damage(sgs.DamageStruct(self:objectName(), ");
   DamageAct *d = cast(DamageAct *, o);
@@ -277,6 +288,17 @@ static void actRecover(Object *o) {
   writestr(", sgs.RecoverStruct(nil, nil, ");
   analyzeExp(r->recover); checktype(r->recover->valuetype, TNumber);
   writestr("))");
+}
+
+static void actRecoverMaxHp(Object *o) {
+  LoseMaxHpAct *d = cast(LoseMaxHpAct *, o);
+  writestr("fkp.recoverMaxHp(");
+  analyzeExp(d->player);
+  checktype(d->player->valuetype, TPlayer);
+  writestr(", ");
+  analyzeExp(d->number);
+  checktype(d->number->valuetype, TNumber);
+  writestr(")");
 }
 
 static void actAcquireSkill(Object *o) {
@@ -476,8 +498,10 @@ typedef void(*ActFunc)(Object *);
 static ActFunc act_func_table[] = {
   actDrawcard,
   actLosehp,
+  actLoseMaxHp,
   actDamage,
   actRecover,
+  actRecoverMaxHp,
   actAcquireSkill,
   actDetachSkill,
   actMark,

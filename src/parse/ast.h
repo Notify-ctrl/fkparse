@@ -62,8 +62,10 @@ typedef enum NodeType NodeType;
 enum ActionType {
   ActionDrawcard,
   ActionLosehp,
+  ActionLoseMaxHp,
   ActionDamage,
   ActionRecover,
+  ActionRecoverMaxHp,
   ActionAcquireSkill,
   ActionDetachSkill,
   ActionMark,

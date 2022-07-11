@@ -32,7 +32,7 @@
 %nonassoc <enum_v> CMP
 %token FIELD RET
 %token FALSE TRUE BREAK
-%token DRAW ZHANG CARD LOSE DIAN HP 
+%token DRAW ZHANG CARD LOSE DIAN HP MAX
 %token TO CAUSE DAMAGE INFLICT RECOVER ACQUIRE SKILL
 %token MEI MARK HIDDEN COUNT
 %token FROM SELECT ANITEM ANPLAYER
@@ -55,6 +55,7 @@
 %type <a> askForChoice askForChoosePlayer
 %type <a> askForSkillInvoke obtainCard hasSkill
 %type <a> arrayPrepend arrayAppend arrayRemoveOne arrayAt
+%type <a> loseMaxHp recoverMaxHp
 
 %type <a> exp prefixexp opexp var
 %type <a> explist array func_call
@@ -179,9 +180,11 @@ action_stat : action { $$ = newast(N_Stat_Action, $1, NULL); }
 
 action      : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | loseHp { $$ = newaction(ActionLosehp, $1); }
+            | loseMaxHp { $$ = newaction(ActionLoseMaxHp, $1); }
             | causeDamage { $$ = newaction(ActionDamage, $1); }
             | inflictDamage { $$ = newaction(ActionDamage, $1); }
             | recoverHp { $$ = newaction(ActionRecover, $1); }
+            | recoverMaxHp { $$ = newaction(ActionRecoverMaxHp, $1); }
             | acquireSkill { $$ = newaction(ActionAcquireSkill, $1); }
             | detachSkill { $$ = newaction(ActionDetachSkill, $1); }
             | addMark { $$ = newaction(ActionMark, $1); }
@@ -215,6 +218,9 @@ drawCards : exp DRAW exp ZHANG CARD { $$ = newast(-1, $1, $3); }
 loseHp  : exp LOSE exp DIAN HP { $$ = newast(-1, $1, $3); }
         ;
 
+loseMaxHp : exp LOSE exp DIAN HP MAX { $$ = newast(-1, $1, $3); }
+          ;
+
 causeDamage : exp TO exp CAUSE exp DIAN DAMAGE
               { $$ = newdamage($1, $3, $5); }
             ;
@@ -225,6 +231,9 @@ inflictDamage : exp INFLICT exp DIAN DAMAGE
 
 recoverHp : exp RECOVER exp DIAN HP { $$ = newast(-1, $1, $3); }
           ;
+
+recoverMaxHp : exp RECOVER exp DIAN HP MAX { $$ = newast(-1, $1, $3); }
+             ;
 
 acquireSkill  : exp ACQUIRE SKILL exp { $$ = newast(-1, $1, $4); }
               ;
