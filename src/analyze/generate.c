@@ -42,6 +42,7 @@ void outputError(const char *msg, ...) {
 
 static void analyzeVar(VarObj *v);
 static void analyzeBlock(BlockObj *bl);
+static void analyzeFunccall(FunccallObj *f);
 
 void analyzeExp(ExpressionObj *e) {
   if (e->bracketed) writestr("(");
@@ -104,6 +105,7 @@ void analyzeExp(ExpressionObj *e) {
       case TCard: t = TCardList; break;
       case TNumber: t = TNumberList; break;
       case TString: t = TStringList; break;
+      case TNone: t = TEmptyList; break;
       default:
         outputError("未知的数组元素类型%d\n", t);
         break;
@@ -125,6 +127,10 @@ void analyzeExp(ExpressionObj *e) {
       analyzeVar(e->varValue);
       t = e->varValue->type;
       break;
+    case ExpFunc:
+      analyzeFunccall(e->func);
+      t = e->func->rettype;
+      return;
     case ExpAction:
       analyzeAction(e->action);
       t = e->action->valuetype;
@@ -196,6 +202,18 @@ static void analyzeVar(VarObj *v) {
             t = TNone;
           }
           break;
+        case TCardList:
+        case TNumberList:
+        case TStringList:
+        case TPlayerList:
+          if (!strcmp(name, "长度")) {
+            writestr(":length()");
+            t = TNumber;
+          } else {
+            outputError("无法获取 数组 的属性 \"%s\"\n", name);
+            t = TNone;
+          }
+          break;
         default:
           outputError("不能获取类型为%d的对象的属性\n", v->obj->valuetype);
           t = TNone;
@@ -218,6 +236,12 @@ static void analyzeVar(VarObj *v) {
 
 static void analyzeAssign(AssignObj *a) {
   print_indent();
+
+  /* pre-analyze var for symtab */
+  if (!a->var->obj && !sym_lookup(a->var->name)) {
+    sym_new_entry(a->var->name, TNone, NULL, false);
+  }
+
   sym_lookup(a->var->name)->type = TAny;
   analyzeVar(a->var);
   writestr(" = ");
@@ -264,8 +288,97 @@ static void analyzeLoop(LoopObj *l) {
   writestr("\n");
 }
 
+static void analyzeTraverse(TraverseObj *t) {
+  static int iter_index = 0;
+  print_indent();
+  writestr("for _, iter%d in sgs.list(", iter_index);
+  analyzeExp(t->array);
+  ExpVType type = t->array->valuetype;
+  if (type != TCardList && type != TNumberList
+    && type != TPlayerList && type != TStringList && type != TEmptyList
+  ) {
+    outputError("只能对数组进行遍历操作");
+    return;
+  }
+
+  writestr(") do\n");
+
+  char buf[16];
+  sprintf(buf, "iter%d", iter_index);
+  char *s = strdup(buf);
+  ExpVType vtype = TNone;
+  switch (type) {
+    case TCardList: vtype = TCard; break;
+    case TNumberList: vtype = TNumberList; break;
+    case TPlayerList: vtype = TPlayer; break;
+    case TStringList: vtype = TString; break;
+    case TEmptyList: outputError("不允许遍历空数组"); break;
+    default: break;
+  }
+  sym_new_entry(t->expname, vtype, s, false);
+
+  Hash *symtab = hash_new();
+  current_tab = symtab;
+  stack_push(symtab_stack, cast(Object *, current_tab));
+
+  iter_index++;
+  indent_level++;
+  analyzeBlock(t->body);
+  indent_level--;
+  iter_index--;
+
+  stack_pop(symtab_stack);
+  sym_free(symtab);
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
+
+  free(s);
+
+  writeline("end");
+}
+
+static void analyzeFunccall(FunccallObj *f) {
+  symtab_item *i = sym_lookup(f->name);
+  if (!i) {
+    outputError("调用了未定义的函数“%s”", f->name);
+    return;
+  }
+  FuncdefObj *d = cast(FuncdefObj *, i->origtext);
+  writestr("%s(", d->funcname);
+
+  List *node;
+  bool start = true;
+  list_foreach(node, d->params) {
+    if (!start) {
+      writestr(", ");
+    } else {
+      start = false;
+    }
+
+    DefargObj *a = cast(DefargObj *, node->data);
+    const char *name = a->name;
+    ExpressionObj *e = hash_get(f->params, a->name);
+    if (!e) {
+      if (!a->d) {
+        outputError("函数“%s”的参数“%s”没有默认值，调用时必须传入值", f->name, name);
+      } else {
+        analyzeExp(a->d);
+      }
+    } else {
+      analyzeExp(e);
+      checktype(e->valuetype, a->type);
+    }
+  }
+
+  writestr(")");
+  f->rettype = d->rettype;
+}
+
 void analyzeBlock(BlockObj *bl) {
   List *node;
+  Hash *symtab = hash_new();
+  current_tab = symtab;
+  stack_push(symtab_stack, cast(Object *, current_tab));
+
   list_foreach(node, bl->statements) {
     switch (node->data->objtype) {
     case Obj_Assign:
@@ -277,24 +390,41 @@ void analyzeBlock(BlockObj *bl) {
     case Obj_Loop:
       analyzeLoop(cast(LoopObj *, node->data));
       break;
+    case Obj_Traverse:
+      analyzeTraverse(cast(TraverseObj *, node->data));
+      break;
     case Obj_Break:
       writeline("break");
       break;
-    case Obj_Return:
-      break;
     case Obj_Action:
       analyzeAction(cast(ActionObj *, node->data));
+      break;
+    case Obj_Funccall:
+      print_indent();
+      analyzeFunccall(cast(FunccallObj *, node->data));
+      writestr("\n");
       break;
     default:
       break;
     }
   }
+
+  if (bl->ret) {
+    print_indent();
+    writestr("return ");
+    analyzeExp(bl->ret);
+    writestr("\n");
+  }
+
+  stack_pop(symtab_stack);
+  sym_free(symtab);
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
 static void defineLocal(char *k, char *v, int type) {
   writeline("locals[\"%s\"] = %s", k, v);
   if (!sym_lookup(k)) {
-    sym_new_entry(k, TNone, v, true);
+    sym_new_entry(k, TNone, NULL, false);
   }
   sym_lookup(k)->type = type;
 }
@@ -717,7 +847,8 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
   indent_level++;
   if (t->can_trigger) {
     writeline("local room = player:getRoom()");
-    writeline("local locals = {}\n");
+    writeline("local locals = {}");
+    writeline("global_self = self\n");
     initData(t->event);
     analyzeBlock(t->can_trigger);
     clearData(t->event);
@@ -732,7 +863,8 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
   writeline("function (self, target, player, data)");
   indent_level++;
   writeline("local room = player:getRoom()");
-  writeline("local locals = {}\n");
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
   initData(t->event);
   analyzeBlock(t->on_trigger);
   clearData(t->event);
@@ -801,12 +933,68 @@ static void loadTranslations() {
   writeline("}\n");
 }
 
+static void analyzeFuncdef(FuncdefObj *f) {
+  writestr("local function %s(", f->funcname);
+  List *node;
+  int argId = 0;
+  Hash *param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  List *param_gclist = list_new();
+  const char *s;
+  DefargObj *d;
+  char buf[64];
+  list_foreach(node, f->params) {
+    d = cast(DefargObj *, node->data);
+    if (argId != 0) writestr(", ");
+    sprintf(buf, "arg%d", argId);
+    s = strdup(buf);
+    writestr(s);
+    sym_new_entry(d->name, d->type, s, false);
+    list_append(param_gclist, cast(Object *, s));
+    argId++;
+  }
+
+  writestr(")\n");
+  indent_level++;
+
+  argId = 0;
+  list_foreach(node, f->params) {
+    /* type check should done by fkparse */
+    d = cast(DefargObj *, node->data);
+    if (d->d) {
+      print_indent();
+      writestr("if arg%d == nil then arg%d = ", argId, argId);
+      analyzeExp(d->d);
+      writestr(" end\n");
+    }
+    argId++;
+  }
+  writeline("local self = global_self");
+
+  analyzeBlock(f->funcbody);
+  indent_level--;
+  writestr("end\n\n");
+
+  list_foreach(node, param_gclist) {
+    free(node->data);
+  }
+  list_free(param_gclist);
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
+}
+
 void analyzeExtension(ExtensionObj *e) {
-  writeline("require \"fkparser\"\n");
+  writeline("require \"fkparser\"\n\nlocal global_self\n");
 
   loadTranslations();
 
   List *node;
+  list_foreach(node, e->funcdefs) {
+    analyzeFuncdef(cast(FuncdefObj *, node->data));
+  }
+
   list_foreach(node, e->skills) {
     analyzeSkill(cast(SkillObj *, node->data));
   }

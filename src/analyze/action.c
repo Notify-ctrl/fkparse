@@ -19,8 +19,6 @@ static DrawcardAct *newDrawcard(struct astAction *a, struct ast *params) {
 }
 
 static LoseHpAct *newLoseHp(struct astAction *a) {
-  checktype(a->actiontype, ActionLosehp);
-
   LoseHpAct *ret = malloc(sizeof(LoseHpAct));
   ret->objtype = Obj_ActionBody;
   ret->player = newExpression(a->action->l);
@@ -85,7 +83,7 @@ static MarkAct *newMark(struct astAction *a) {
   symtab_item *i = sym_lookup(ret->name);
   if (!i) {
     char buf[64];
-    sprintf(buf, "@%s_mark%d", readfile_name, markId);
+    sprintf(buf, "@%s_mark%d", readfile_name, markId++);
     addTranslation(strdup(buf), ret->name);
     sym_new_entry(ret->name, TMark, strdup(buf), false);
   } else if (i->type != TMark) {
@@ -138,6 +136,31 @@ static ObtainCardAct *newObtainCard(struct astAction *a) {
   return ret;
 }
 
+static ArrayOp *newArrayOp(struct astAction *a) {
+  ArrayOp *ret = malloc(sizeof(ArrayOp));
+  ret->array = newExpression(a->action->l);
+  ret->oprand = newExpression(a->action->r);
+  switch (a->actiontype) {
+  case ArrayPrepend: ret->op = 0; break;
+  case ArrayAppend: ret->op = 1; break;
+  case ArrayRemoveOne: ret->op = 2; break;
+  case ArrayAt: ret->op = 3; break;
+  default: break;
+  }
+
+  return ret;
+}
+
+static HasSkillAct *newHasSkill(struct astAction *a) {
+  checktype(a->actiontype, ActionHasSkill);
+
+  HasSkillAct *ret = malloc(sizeof(HasSkillAct));
+  ret->player = newExpression(a->action->l);
+  ret->skill_name = cast(struct aststr *, a->action->r)->str;
+
+  return ret;
+}
+
 ActionObj *newAction(struct ast *a) {
   checktype(a->nodetype, N_Stat_Action);
 
@@ -153,6 +176,8 @@ ActionObj *newAction(struct ast *a) {
     ret->valuetype = TNone;
     break;
   case ActionLosehp:
+  case ActionLoseMaxHp:
+  case ActionRecoverMaxHp:
     ret->action = cast(Object *, newLoseHp(as));
     ret->valuetype = TNone;
     break;
@@ -192,6 +217,18 @@ ActionObj *newAction(struct ast *a) {
     ret->action = cast(Object *, newObtainCard(as));
     ret->valuetype = TNone;
     break;
+  case ArrayPrepend:
+  case ArrayAppend:
+  case ArrayRemoveOne:
+  case ArrayAt:
+    ret->action = cast(Object *, newArrayOp(as));
+    cast(ArrayOp *, ret->action)->parent = ret;
+    ret->valuetype = TNone;
+    break;
+  case ActionHasSkill:
+    ret->action = cast(Object *, newHasSkill(as));
+    ret->valuetype = TBool;
+    break;
   }
 
   return ret;
@@ -220,6 +257,17 @@ static void actLosehp(Object *o) {
   writestr(")");
 }
 
+static void actLoseMaxHp(Object *o) {
+  LoseMaxHpAct *d = cast(LoseMaxHpAct *, o);
+  writestr("room:loseMaxHp(");
+  analyzeExp(d->player);
+  checktype(d->player->valuetype, TPlayer);
+  writestr(", ");
+  analyzeExp(d->number);
+  checktype(d->number->valuetype, TNumber);
+  writestr(")");
+}
+
 static void actDamage(Object *o) {
   writestr("room:damage(sgs.DamageStruct(self:objectName(), ");
   DamageAct *d = cast(DamageAct *, o);
@@ -240,6 +288,17 @@ static void actRecover(Object *o) {
   writestr(", sgs.RecoverStruct(nil, nil, ");
   analyzeExp(r->recover); checktype(r->recover->valuetype, TNumber);
   writestr("))");
+}
+
+static void actRecoverMaxHp(Object *o) {
+  LoseMaxHpAct *d = cast(LoseMaxHpAct *, o);
+  writestr("fkp.recoverMaxHp(");
+  analyzeExp(d->player);
+  checktype(d->player->valuetype, TPlayer);
+  writestr(", ");
+  analyzeExp(d->number);
+  checktype(d->number->valuetype, TNumber);
+  writestr(")");
 }
 
 static void actAcquireSkill(Object *o) {
@@ -338,19 +397,123 @@ static void actObtainCard(Object *o) {
   writestr(", false)");
 }
 
+static void arrayOperation(Object *o) {
+  ArrayOp *a = cast(ArrayOp *, o);
+  analyzeExp(a->array);
+  switch (a->op) {
+  case 0:
+  case 1:
+    writestr("%s", a->op == 0 ? ":prepend(" : ":append(");
+    analyzeExp(a->oprand);
+    writestr(")");
+
+    if (a->array->valuetype == TEmptyList) {
+      switch (a->oprand->valuetype) {
+      case TNumber:
+        a->array->valuetype = TNumberList;
+        break;
+      case TString:
+        a->array->valuetype = TStringList;
+        break;
+      case TCard:
+        a->array->valuetype = TCardList;
+        break;
+      case TPlayer:
+        a->array->valuetype = TPlayerList;
+        break;
+      default:
+        outputError("不能把类型 %d 添加到数组中");
+        break;
+      }
+    } else {
+      ExpVType t = TNone;
+      switch (a->array->valuetype) {
+      case TNumberList:
+        t = TNumber;
+        break;
+      case TStringList:
+        t = TString;
+        break;
+      case TPlayerList:
+        t = TPlayer;
+        break;
+      case TCardList:
+        t = TCard;
+        break;
+      case TEmptyList:
+        t = TAny;
+        break;
+      default:
+        outputError("未知的数组类型");
+        break;
+      }
+
+      checktype(a->oprand->valuetype, t);
+    }
+
+    break;
+  case 2:
+    writestr(":removeOne(");
+    analyzeExp(a->oprand);
+    writestr(")");
+    break;
+  case 3:
+    writestr(":at(");
+    analyzeExp(a->oprand);
+    checktype(a->oprand->valuetype, TNumber);
+    writestr(")");
+
+    switch (a->array->valuetype) {
+    case TNumberList:
+      a->parent->valuetype = TNumber;
+      break;
+    case TStringList:
+      a->parent->valuetype = TString;
+      break;
+    case TPlayerList:
+      a->parent->valuetype = TPlayer;
+      break;
+    case TCardList:
+      a->parent->valuetype = TCard;
+      break;
+    default:
+      outputError("试图对空数组根据下标取值");
+      break;
+    }
+
+    break;
+  default:
+    break;
+  }
+}
+
+static void actHasSkill(Object *o) {
+  HasSkillAct *a = cast(HasSkillAct *, o);
+  analyzeExp(a->player); checktype(a->player->valuetype, TPlayer);
+  writestr(":hasSkill(");
+  writestr("\"%s\")", sym_lookup(a->skill_name)->origtext);
+}
+
 typedef void(*ActFunc)(Object *);
 static ActFunc act_func_table[] = {
   actDrawcard,
   actLosehp,
+  actLoseMaxHp,
   actDamage,
   actRecover,
+  actRecoverMaxHp,
   actAcquireSkill,
   actDetachSkill,
   actMark,
   actAskForChoice,
   actAskForPlayerChosen,
   actAskForSkillInvoke,
-  actObtainCard
+  actObtainCard,
+  arrayOperation,
+  arrayOperation,
+  arrayOperation,
+  arrayOperation,
+  actHasSkill
 };
 
 void analyzeAction(ActionObj *a) {

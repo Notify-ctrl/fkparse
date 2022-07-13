@@ -1,5 +1,16 @@
 fkp = {}
 
+function fkp.recoverMaxHp(player, int)
+  local room = player:getRoom()
+  local msg = sgs.LogMessage()
+  local mhp = sgs.QVariant()
+  room:setPlayerProperty(player, "maxhp", sgs.QVariant(player:getMaxHp() + int))
+  msg.type = "#GainMaxHp"
+  msg.from = player
+  msg.arg = int
+  room:sendLog(msg)
+end
+
 function fkp.newlist(t)
   local element_type = swig_type(t[1])
   local ret
@@ -12,7 +23,40 @@ function fkp.newlist(t)
   elseif element_type == "number" then
     ret = sgs.IntList()
   elseif element_type == "string" then
-    ret = {}
+    ret = {
+      length = function(self)
+        return #self
+      end,
+
+      prepend = function(self, element)
+        if type(self[1]) ~= type(element) then return end
+        for i = #self, 1, -1 do
+          self[i + 1] = self[i]
+        end
+        self[1] = element
+      end,
+
+      append = function(self, element)
+        if type(self[1]) ~= type(element) then return end
+        table.insert(self, element)
+      end,
+
+      removeOne = function(self, element)
+        if #self == 0 or type(self[1]) ~= type(element) then return false end
+
+        for i = 1, #self do
+          if self[i] == element then
+            table.remove(self, i)
+            return true
+          end
+        end
+        return false
+      end,
+
+      at = function(self, index)
+        return self[index + 1]
+      end,
+    }
   end
 
   for _, t in ipairs(t) do

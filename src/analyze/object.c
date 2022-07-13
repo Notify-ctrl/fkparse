@@ -6,10 +6,24 @@
 #include <stdio.h>
 #include <string.h>
 
-Hash *symtab;
+Hash *global_symtab;
+Hash *current_tab;
+Hash *last_lookup_tab;
+Stack *symtab_stack;
 
 symtab_item *sym_lookup(const char *k) {
-  return (symtab_item *)hash_get(symtab, k);
+  void *v = NULL;
+  Stack *node;
+  last_lookup_tab = NULL;
+  list_foreach(node, symtab_stack) {
+    Hash *h = cast(Hash *, node->data);
+    v = hash_get(h, k);
+    if (v) {
+      last_lookup_tab = h;
+      break;
+    }
+  }
+  return cast(symtab_item *, v);
 }
 
 void sym_set(const char *k, symtab_item *v) {
@@ -17,7 +31,8 @@ void sym_set(const char *k, symtab_item *v) {
   if (i && i->reserved) {
     outputError("不能修改预定义的标识符 %s", k);
   } else {
-    hash_set(symtab, k, (void *)v);
+    if (i) checktype(i->type, v->type);
+    hash_set(last_lookup_tab ? last_lookup_tab : current_tab, k, (void *)v);
   }
 }
 
@@ -25,7 +40,13 @@ void sym_new_entry(const char *k, int type, const char *origtext, bool reserved)
   symtab_item *i = sym_lookup(k);
   symtab_item *v;
   if (i) {
-    outputError("%s 已经存在于表中", k);
+    if (i->type != TNone)
+      outputError("%s 已经存在于表中，类型为 %d", k, i->type);
+    else {
+      i->type = type;
+      i->origtext = origtext;
+      i->reserved = reserved;
+    }
   } else {
     v = malloc(sizeof(symtab_item));
     v->type = type;
@@ -33,6 +54,16 @@ void sym_new_entry(const char *k, int type, const char *origtext, bool reserved)
     v->reserved = reserved;
     sym_set(k, cast(void *, v));
   }
+}
+
+void sym_free(Hash *h) {
+  for (size_t i = 0; i < h->capacity; i++) {
+    free((void*)h->entries[i].key);
+    free((void*)h->entries[i].value);
+  }
+
+  free(h->entries);
+  free(h);
 }
 
 Hash *strtab;
@@ -76,6 +107,25 @@ static StringObj *newString(const char *a) {
   return ret;
 }
 
+static FunccallObj *newFunccall(struct ast *a) {
+  checktype(a->nodetype, N_Stat_Funccall);
+
+  FunccallObj *ret = malloc(sizeof(FunccallObj));
+  ret->objtype = Obj_Funccall;
+
+  ret->name = cast(struct aststr *, a->l)->str;
+  ret->params = hash_new();
+  struct ast *iter = a->r, *arg;
+  while (iter && iter->r) {
+    arg = iter->r;
+    hash_set(ret->params, cast(struct aststr *, arg->l)->str,
+             cast(void *, newExpression(arg->r)));
+    iter = iter->l;
+  }
+
+  return ret;
+}
+
 ExpressionObj *newExpression(struct ast *a) {
   if (!a) return NULL;
   checktype(a->nodetype, N_Exp);
@@ -109,6 +159,7 @@ ExpressionObj *newExpression(struct ast *a) {
     break;
   case ExpArray:
     ret->array = list_new();
+    if (!e->l) break;
     iter = cast(struct ast *, e->l);
     checktype(iter->nodetype, N_Exps);
     while (iter && iter->r) {
@@ -116,6 +167,9 @@ ExpressionObj *newExpression(struct ast *a) {
       if (exp) list_prepend(ret->array, cast(Object *, exp));
       iter = iter->l;
     }
+    break;
+  case ExpFunc:
+    ret->func = newFunccall(cast(struct ast *, e->l));
     break;
   case ExpAction:
     ret->action = newAction(cast(struct ast *, e->l));
@@ -140,7 +194,7 @@ VarObj *newVar(struct ast *a) {
       ret->type = i->type;
     } else {
       ret->type = TNone;
-      sym_new_entry(ret->name, TNone, NULL, false);
+      /* sym_new_entry(ret->name, TNone, NULL, false); */
     }
   } else {
     ret->type = TNone;  /* determine type later */
@@ -186,20 +240,23 @@ static LoopObj *newLoop(struct ast *a) {
   return ret;
 }
 
+static TraverseObj *newTraverse(struct ast *a) {
+  checktype(a->nodetype, N_Stat_Traverse);
+
+  TraverseObj *ret = malloc(sizeof(TraverseObj));
+  ret->objtype = Obj_Traverse;
+  struct astTraverse *t = cast(struct astTraverse *, a);
+  ret->array = newExpression(t->array);
+  ret->expname = cast(struct aststr *, t->expname)->str;
+  ret->body = newBlock(t->body);
+  return ret;
+}
+
 static Object *newBreak(struct ast *a) {
   checktype(a->nodetype, N_Stat_Break);
 
   Object *ret = malloc(sizeof(Object));
   ret->objtype = Obj_Break;
-
-  return ret;
-}
-
-static Object *newReturn(struct ast *a) {
-  checktype(a->nodetype, N_Stat_Ret);
-
-  Object *ret = malloc(sizeof(Object));
-  ret->objtype = Obj_Return;
 
   return ret;
 }
@@ -218,14 +275,17 @@ static Object *newStatement(struct ast *a) {
   case N_Stat_Loop:
     ret = cast(Object *, newLoop(a));
     break;
+  case N_Stat_Traverse:
+    ret = cast(Object *, newTraverse(a));
+    break;
   case N_Stat_Break:
     ret = cast(Object *, newBreak(a));
     break;
+  case N_Stat_Funccall:
+    ret=  cast(Object *, newFunccall(a));
+    break;
   case N_Stat_Action:
     ret = cast(Object *, newAction(a));
-    break;
-  case N_Stat_Ret:
-    ret = cast(Object *, newReturn(a));
     break;
   default:
     break;
@@ -249,7 +309,12 @@ static BlockObj *newBlock(struct ast *a) {
     iter = iter->l;
   }
 
-  /* TODO: retstat in block */
+  if (a->r) {
+    checktype(a->r->nodetype, N_Stat_Ret);
+    ret->ret = newExpression(a->r->l);
+  } else {
+    ret->ret = NULL;
+  }
 
   return ret;
 }
@@ -368,20 +433,80 @@ static PackageObj *newPackage(struct ast *a) {
   return ret;
 }
 
+static DefargObj *newDefarg(struct ast *a) {
+  checktype(a->nodetype, N_Defarg);
+
+  DefargObj *ret = malloc(sizeof(DefargObj));
+  ret->objtype = Obj_Defarg;
+
+  struct astdefarg *d = cast(struct astdefarg *, a);
+  ret->name = d->name->str;
+  ret->type = d->type;
+  ret->d = newExpression(d->d);
+
+  return ret;
+}
+
+static List *analyzeDefParams(struct ast *a) {
+  if (!a)
+    return NULL;
+
+  List *ret = list_new();
+
+  checktype(a->nodetype, N_Defargs);
+  while (a && a->r) {
+    checktype(a->r->nodetype, N_Defarg);
+    list_prepend(ret, cast(Object *, newDefarg(a->r)));
+    a = a->l;
+  }
+
+  return ret;
+}
+
+static FuncdefObj *newFuncdef(struct ast *a) {
+  checktype(a->nodetype, N_Funcdef);
+
+  FuncdefObj *ret = malloc(sizeof(FuncdefObj));
+  ret->objtype = Obj_Funcdef;
+
+  struct astfuncdef *f = cast(struct astfuncdef *, a);
+  static int funcId = 0;
+  char buf[64];
+  sprintf(buf, "%sfunc%d", readfile_name, funcId);
+  funcId++;
+
+  ret->funcname = strdup(buf);
+  sym_new_entry(f->name->str, TFunc, cast(const char *, ret), false);
+  ret->params = analyzeDefParams(f->params);
+  ret->rettype = f->rettype;
+  ret->funcbody = newBlock(f->funcbody);
+
+  return ret;
+}
+
 /* main */
 ExtensionObj *newExtension(struct ast *a) {
   checktype(a->nodetype, N_Extension);
 
   ExtensionObj *ret = malloc(sizeof(ExtensionObj));
   ret->objtype = Obj_Extension;
+  struct astextension *e = cast(struct astextension *, a);
   struct ast *iter;
 
   sym_init();
   strtab = hash_new();
   restrtab = list_new();
 
+  ret->funcdefs = list_new();
+  iter = e->funcList;
+  checktype(iter->nodetype, N_Funcdefs);
+  while (iter && iter->r) {
+    list_prepend(ret->funcdefs, cast(Object *, newFuncdef(iter->r)));
+    iter = iter->l;
+  }
+
   ret->skills = list_new();
-  iter = a->l;
+  iter = e->skillList;
   checktype(iter->nodetype, N_Skills);
   while (iter && iter->r) {
     list_prepend(ret->skills, cast(Object *, newSkill(iter->r)));
@@ -389,7 +514,7 @@ ExtensionObj *newExtension(struct ast *a) {
   }
 
   ret->packages = list_new();
-  iter = a->r;
+  iter = e->pkgList;
   checktype(iter->nodetype, N_Packages);
   while (iter && iter->r) {
     list_prepend(ret->packages, cast(Object *, newPackage(iter->r)));
@@ -397,4 +522,21 @@ ExtensionObj *newExtension(struct ast *a) {
   }
   return ret;
 }
+
+Hash *analyzeParams(struct ast *params) {
+  if (!params)
+    return NULL;
+
+  checktype(params->nodetype, N_Args);
+  Hash *ret = hash_new();
+  while (params && params->r) {
+    checktype(params->r->nodetype, N_Arg);
+    hash_set(ret, cast(struct aststr *, params->r->l)->str,
+             cast(void *, newExpression(params->r->r)));
+    params = params->l;
+  }
+
+  return ret;
+}
+
 

@@ -5,7 +5,7 @@
 #include "main.h"
 
 #define checktype(a, t) do { \
-  if (a != t && a != TAny) { \
+  if (a != t && a != TAny && t != TAny) { \
     fprintf(error_output, "Type error: expect %d, got %d\n", t, a); \
     exit(1); \
   } \
@@ -13,6 +13,10 @@
 
 enum NodeType {
   N_Extension,
+  N_Funcdefs,
+  N_Funcdef,
+  N_Defargs,
+  N_Defarg,
   N_Packages,
   N_Package,
   N_Skills,
@@ -28,7 +32,9 @@ enum NodeType {
   N_Stat_Assign,
   N_Stat_If,
   N_Stat_Loop,
+  N_Stat_Traverse,
   N_Stat_Break,
+  N_Stat_Funccall,
   N_Stat_Ret,
 
   N_Stat_Action,
@@ -56,15 +62,22 @@ typedef enum NodeType NodeType;
 enum ActionType {
   ActionDrawcard,
   ActionLosehp,
+  ActionLoseMaxHp,
   ActionDamage,
   ActionRecover,
+  ActionRecoverMaxHp,
   ActionAcquireSkill,
   ActionDetachSkill,
   ActionMark,
   ActionAskForChoice,
   ActionAskForPlayerChosen,
   ActionAskForSkillInvoke,
-  ActionObtainCard
+  ActionObtainCard,
+  ArrayPrepend,
+  ArrayAppend,
+  ArrayRemoveOne,
+  ArrayAt,
+  ActionHasSkill
 };
 
 typedef enum ActionType ActionType;
@@ -78,6 +91,7 @@ enum ExpType {
   ExpBool,
   ExpVar,
   ExpArray,
+  ExpFunc,
   ExpAction
 };
 
@@ -99,6 +113,7 @@ enum ExpVType {
   TNumberList,
   TStringList,
   TMark,
+  TFunc,
 
   TNotSure = 0xFFFE,
   TAny = 0xFFFF
@@ -116,6 +131,16 @@ typedef int (*Callback)(struct ast *list, struct ast *parent);
 
 struct ast *newast(NodeType nodetype, struct ast *l, struct ast *r);
 
+struct astextension {
+  NodeType nodetype;
+  struct ast *funcList;
+  struct ast *skillList;
+  struct ast *pkgList;
+};
+
+struct ast *newextension(struct ast *funcList, struct ast *skillList,
+                         struct ast *pkgList);
+
 struct numval {
   NodeType nodetype;
   long long n;
@@ -129,6 +154,26 @@ struct aststr {
 };
 
 struct ast *newstr(char *s);
+
+struct astfuncdef {
+  NodeType nodetype;
+  struct aststr *name;
+  struct ast *params;
+  int rettype;
+  struct ast *funcbody;
+};
+
+struct ast *newfuncdef(struct ast *name, struct ast *params,
+                       int rettype, struct ast *funcbody);
+
+struct astdefarg {
+  NodeType nodetype;
+  struct aststr *name;
+  int type;
+  struct ast *d;  /* default value */
+};
+
+struct ast *newdefarg(struct ast *name, int type, struct ast *d);
 
 struct astpackage {
   NodeType nodetype;
@@ -200,6 +245,15 @@ struct astLoop {
   struct ast *body;
   struct ast *cond;
 }; 
+
+struct astTraverse {
+  NodeType nodetype;
+  struct ast *array;
+  struct ast *expname;
+  struct ast *body;
+};
+
+struct ast *newtraverse(struct ast *array, struct ast *expname, struct ast *body);
 
 struct astAction {
   NodeType nodetype;

@@ -14,6 +14,23 @@ struct ast *newast(NodeType nodetype, struct ast *l, struct ast *r) {
   return a;
 }
 
+struct ast *newextension(struct ast *funcList, struct ast *skillList,
+                         struct ast *pkgList)
+{
+  struct astextension *a = malloc(sizeof(struct astextension));
+
+  if(!a) {
+    yyerror("out of space");
+    exit(0);
+  }
+  a->nodetype = N_Extension;
+  a->funcList = funcList;
+  a->skillList = skillList;
+  a->pkgList = pkgList;
+
+  return (struct ast *)a;
+}
+
 struct ast *newnum(long long n) {
   struct numval *a = malloc(sizeof(struct numval));
 
@@ -35,6 +52,41 @@ struct ast *newstr(char *s) {
   }
   a->nodetype = N_Str;
   a->str = strdup(s);
+  return (struct ast *)a;
+}
+
+struct ast *newfuncdef(struct ast *name, struct ast *params,
+                       int rettype, struct ast *funcbody)
+{
+  struct astfuncdef *a = malloc(sizeof(struct astfuncdef));
+
+  if(!a) {
+    yyerror("out of space");
+    exit(0);
+  }
+
+  a->nodetype = N_Funcdef;
+  a->name = (struct aststr *)name;
+  a->params = params;
+  a->rettype = rettype;
+  a->funcbody = funcbody;
+
+  return (struct ast *)a;
+}
+
+struct ast *newdefarg(struct ast *name, int type, struct ast *d) {
+  struct astdefarg *a = malloc(sizeof(struct astdefarg));
+
+  if(!a) {
+    yyerror("out of space");
+    exit(0);
+  }
+
+  a->nodetype = N_Defarg;
+  a->name = (struct aststr *)name;
+  a->type = type;
+  a->d = d;
+
   return (struct ast *)a;
 }
 
@@ -125,6 +177,20 @@ struct ast *newif(struct ast *cond, struct ast *then, struct ast *el) {
   a->cond = cond;
   a->then = then;
   a->el = el;
+  return (struct ast *)a;
+}
+
+struct ast *newtraverse(struct ast *array, struct ast *expname, struct ast *body) {
+  struct astTraverse *a = malloc(sizeof(struct astTraverse));
+
+  if(!a) {
+    yyerror("out of space");
+    exit(0);
+  }
+  a->nodetype = N_Stat_Traverse;
+  a->array = array;
+  a->expname = expname;
+  a->body = body;
   return (struct ast *)a;
 }
 

@@ -3,6 +3,7 @@
 %{
 #include "grammar.h"
 #include "main.h"
+#include "ast.h"
 #include "enums.h"
 %}
 
@@ -51,9 +52,12 @@
 "直到"  { return UNTIL; }
 "的"    { return FIELD; }
 "返回"  { return RET; }
+"->"    { return RETURN; }
 "假"  { return FALSE; }
 "真"  { return TRUE; }
 "中止此流程"    { return BREAK; }
+"定义函数"  { return FUNCDEF; }
+"调用"    { return CALL; }
 
 "摸"    { return DRAW; }
 "张"    { return ZHANG; }
@@ -61,7 +65,10 @@
 "失去"  { return LOSE; }
 "点"    { return DIAN; }
 "体力"  { return HP; }
+"上限"    { return MAX; }
 "对"    { return TO; }
+"中"     { return IN; }
+"每个"    { return EVERY; }
 "造成"  { return CAUSE; }
 "伤害"  { return DAMAGE; }
 "受到"  { return INFLICT; }
@@ -77,6 +84,14 @@
 "一项"  { return ANITEM; }
 "一名角色" { return ANPLAYER; }
 "发动"  { return INVOKE; }
+"向" { return TOWARD; }
+"插入" { return PREPEND; }
+"追加" { return APPEND; }
+"删除" { return DELETE; }
+"第" { return DI; }
+"个" { return GE; }
+"元素" { return ELEMENT; }
+"拥有"  { return HAVE; }
 
 "游戏开始时"     { yylval.enum_v = GameStart; return EVENT; }
 "回合即将开始时"   { yylval.enum_v = TurnStart; return EVENT; }
@@ -166,9 +181,20 @@
 "-" |
 "*" |
 "/" |
+"=" |
 "," |
 "." |
 ":" { return yytext[0]; }
+
+"数字类型"  { yylval.enum_v = TNumber; return TYPE; }
+"布尔类型"  { yylval.enum_v = TBool; return TYPE; }
+"字符串类型" { yylval.enum_v = TString; return TYPE; }
+"玩家类型"  { yylval.enum_v = TPlayer; return TYPE; }
+"卡牌类型"  { yylval.enum_v = TCard; return TYPE; }
+"数字数组"  { yylval.enum_v = TNumberList; return TYPE; }
+"字符串数组" { yylval.enum_v = TStringList; return TYPE; }
+"玩家数组"  { yylval.enum_v = TPlayerList; return TYPE; }
+"卡牌数组"  { yylval.enum_v = TCardList; return TYPE; }
 
 "大于"     { yylval.enum_v = 1; return CMP; }
 "小于"     { yylval.enum_v = 2; return CMP; }
@@ -187,6 +213,6 @@
 "，"
 "。"
 [ \t\r\n]
-. { yyerror("unrecognized char"); }
+. //{ yyerror("unrecognized char"); }
 
 %%

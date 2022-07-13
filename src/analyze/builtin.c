@@ -112,7 +112,12 @@ static struct {
 };
 
 void sym_init() {
-  symtab = hash_new();
+  global_symtab = hash_new();
+  symtab_stack = stack_new();
+  stack_push(symtab_stack, cast(Object *, global_symtab));
+  current_tab = global_symtab;
+  last_lookup_tab = NULL;
+
   symtab_item *v;
   for (int i=0; ; i++) {
     if (reserved[i].dst == NULL) break;

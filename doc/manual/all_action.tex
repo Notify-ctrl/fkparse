@@ -18,6 +18,14 @@
 
 玩家类型；数字类型
 
+\section{失去体力上限}
+
+\begin{verbatim}
+<表达式> 失去 <表达式> 点体力上限
+\end{verbatim}
+
+玩家类型；数字类型
+
 \section{造成伤害}
 
 \begin{verbatim}
@@ -38,6 +46,14 @@
 
 \begin{verbatim}
 <表达式> 回复 <表达式> 点体力
+\end{verbatim}
+
+玩家类型；数字类型
+
+\section{回复体力上限}
+
+\begin{verbatim}
+<表达式> 回复 <表达式> 点体力上限
 \end{verbatim}
 
 玩家类型；数字类型
@@ -127,4 +143,16 @@
 \end{verbatim}
 
 玩家类型；卡牌类型
+
+\section{拥有技能}
+
+\begin{verbatim}
+<表达式> 拥有技能 <字符串>
+\end{verbatim}
+
+玩家类型
+
+<字符串>是技能的中文名字，且只能是本文件中已经定义的技能。定义的先后顺序不重要
+
+返回：布尔类型
 

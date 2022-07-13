@@ -21,20 +21,25 @@
 %token <s> KINGDOM
 %token PKGSTART
 %token TRIGGER EVENTI COND EFFECT
+%token FUNCDEF
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
+%token <enum_v> TYPE
+%token RETURN CALL
+%token IN EVERY TOWARD PREPEND APPEND DELETE DI GE ELEMENT
 %left <enum_v> LOGICOP
 %left '+' '-' '*' '/'
 %nonassoc <enum_v> CMP
 %token FIELD RET
 %token FALSE TRUE BREAK
-%token DRAW ZHANG CARD LOSE DIAN HP 
+%token DRAW ZHANG CARD LOSE DIAN HP MAX
 %token TO CAUSE DAMAGE INFLICT RECOVER ACQUIRE SKILL
 %token MEI MARK HIDDEN COUNT
 %token FROM SELECT ANITEM ANPLAYER
-%token INVOKE
+%token INVOKE HAVE
 
 %type <a> extension
+%type <a> funcdefList funcdef defargs defarglist defarg
 %type <a> skillList skill
 %type <a> packageList package
 %type <a> generalList general
@@ -42,16 +47,18 @@
 %type <a> skillspecs skillspec
 %type <a> triggerSkill triggerspecs triggerspec
 
-%type <a> block statements statement retstat
+%type <a> block statements statement retstat traverse_stat
 %type <a> assign_stat if_stat loop_stat action_stat action args arglist arg
 %type <a> drawCards loseHp causeDamage inflictDamage recoverHp
 %type <a> acquireSkill detachSkill
 %type <a> addMark loseMark getMark
 %type <a> askForChoice askForChoosePlayer
-%type <a> askForSkillInvoke obtainCard
+%type <a> askForSkillInvoke obtainCard hasSkill
+%type <a> arrayPrepend arrayAppend arrayRemoveOne arrayAt
+%type <a> loseMaxHp recoverMaxHp
 
 %type <a> exp prefixexp opexp var
-%type <a> explist array
+%type <a> explist array func_call
 
 %start extension
 %define parse.error detailed
@@ -59,12 +66,36 @@
 
 %%
 
-extension : skillList packageList
+extension : funcdefList skillList packageList
               {
-                $$ = newast(N_Extension, $1, $2);
+                $$ = newextension($1, $2, $3);
                 analyzeExtension(newExtension($$));
               }
           ;
+
+funcdefList : %empty { $$ = newast(N_Funcdefs, NULL, NULL); }
+            | funcdefList funcdef { $$ = newast(N_Funcdefs, $1, $2); }
+            ;
+
+funcdef : FUNCDEF IDENTIFIER defargs block
+          { $$ = newfuncdef(newstr($2), $3, TNone, $4); }
+        | FUNCDEF IDENTIFIER defargs RETURN TYPE block
+          { $$ = newfuncdef(newstr($2), $3, $5, $6); }
+        ;
+
+defargs : '{' defarglist '}' { $$ = $2; }
+        | '{' '}' { $$ = NULL; }
+        ;
+
+defarglist : defarglist ',' defarg { $$ = newast(N_Defargs, $1, $3); }
+           | defarg {$$ = newast(N_Defargs, NULL, $1); }
+           ;
+
+defarg : IDENTIFIER ':' TYPE
+         { $$ = newdefarg(newstr($1), $3, NULL); }
+       | IDENTIFIER ':' TYPE '=' exp
+         { $$ = newdefarg(newstr($1), $3, $5); }
+       ;
 
 skillList : %empty  { $$ = newast(N_Skills, NULL, NULL); }
           | skillList skill { $$ = newast(N_Skills, $1, $2); }
@@ -117,7 +148,9 @@ statement   : ';' { $$ = newast(N_Stat_None, NULL, NULL); }
             | assign_stat { $$ = $1; }
             | if_stat { $$ = $1; }
             | loop_stat { $$ = $1; }
+            | traverse_stat { $$ = $1; }
             | BREAK { $$ = newast(N_Stat_Break, NULL, NULL); }
+            | func_call { $$ = $1; }
             | action_stat { $$ = $1; }
             ;
 
@@ -134,15 +167,24 @@ if_stat : IF exp THEN block END { $$ = newif($2, $4, NULL); }
 loop_stat : REPEAT block UNTIL exp { $$ = newast(N_Stat_Loop, $2, $4); }
           ;
 
+traverse_stat : TO exp IN EVERY IDENTIFIER REPEAT block END
+                { $$ = newtraverse($2, newstr($5), $7); }
+              ;
+
+func_call : CALL IDENTIFIER args  { $$ = newast(N_Stat_Funccall, newstr($2), $3); }
+          ;
+
 action_stat : action { $$ = newast(N_Stat_Action, $1, NULL); }
             | action args { $$ = newast(N_Stat_Action, $1, $2); }
             ;
 
 action      : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | loseHp { $$ = newaction(ActionLosehp, $1); }
+            | loseMaxHp { $$ = newaction(ActionLoseMaxHp, $1); }
             | causeDamage { $$ = newaction(ActionDamage, $1); }
             | inflictDamage { $$ = newaction(ActionDamage, $1); }
             | recoverHp { $$ = newaction(ActionRecover, $1); }
+            | recoverMaxHp { $$ = newaction(ActionRecoverMaxHp, $1); }
             | acquireSkill { $$ = newaction(ActionAcquireSkill, $1); }
             | detachSkill { $$ = newaction(ActionDetachSkill, $1); }
             | addMark { $$ = newaction(ActionMark, $1); }
@@ -152,6 +194,11 @@ action      : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | askForChoosePlayer { $$ = newaction(ActionAskForPlayerChosen, $1); }
             | askForSkillInvoke { $$ = newaction(ActionAskForSkillInvoke, $1); }
             | obtainCard { $$ = newaction(ActionObtainCard, $1); }
+            | arrayPrepend { $$ = newaction(ArrayPrepend, $1); }
+            | arrayAppend { $$ = newaction(ArrayAppend, $1); }
+            | arrayRemoveOne { $$ = newaction(ArrayRemoveOne, $1); }
+            | arrayAt { $$ = newaction(ArrayAt, $1); }
+            | hasSkill { $$ = newaction(ActionHasSkill, $1); }
             ;
 
 args : '{' arglist '}' { $$ = $2; }
@@ -162,13 +209,17 @@ arglist : arglist ',' arg { $$ = newast(N_Args, $1, $3); }
         | arg {$$ = newast(N_Args, NULL, $1); }
         ;
 
-arg : IDENTIFIER ':' exp { $$ = newast(N_Arg, newstr($1), $3); };
+arg : IDENTIFIER ':' exp { $$ = newast(N_Arg, newstr($1), $3); }
+    ;
 
 drawCards : exp DRAW exp ZHANG CARD { $$ = newast(-1, $1, $3); }
           ;
 
 loseHp  : exp LOSE exp DIAN HP { $$ = newast(-1, $1, $3); }
         ;
+
+loseMaxHp : exp LOSE exp DIAN HP MAX { $$ = newast(-1, $1, $3); }
+          ;
 
 causeDamage : exp TO exp CAUSE exp DIAN DAMAGE
               { $$ = newdamage($1, $3, $5); }
@@ -180,6 +231,9 @@ inflictDamage : exp INFLICT exp DIAN DAMAGE
 
 recoverHp : exp RECOVER exp DIAN HP { $$ = newast(-1, $1, $3); }
           ;
+
+recoverMaxHp : exp RECOVER exp DIAN HP MAX { $$ = newast(-1, $1, $3); }
+             ;
 
 acquireSkill  : exp ACQUIRE SKILL exp { $$ = newast(-1, $1, $4); }
               ;
@@ -221,6 +275,25 @@ obtainCard : exp ACQUIRE CARD exp
           { $$ = newast(-1, $1, $4); }
           ;
 
+arrayPrepend : TOWARD exp PREPEND exp
+          { $$ = newast(-1, $2, $4); }
+          ;
+
+arrayAppend : TOWARD exp APPEND exp
+          { $$ = newast(-1, $2, $4); }
+          ;
+
+arrayRemoveOne : FROM exp DELETE exp
+          { $$ = newast(-1, $2, $4); }
+          ;
+
+arrayAt : exp DI exp GE ELEMENT
+          { $$ = newast(-1, $1, $3); }
+          ;
+hasSkill : exp HAVE SKILL STRING
+        { $$ = newast(-1, $1, newstr($4)); }
+        ;
+
 exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
     | TRUE { $$ = newexp(ExpBool, 1, 0, NULL, NULL); }
     | NUMBER { $$ = newexp(ExpNum, $1, 0, NULL, NULL); }
@@ -244,6 +317,8 @@ opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct as
       ;
 
 prefixexp : var { $$ = newexp(ExpVar, 0, 0, (struct astExp *)$1, NULL); }
+          | '(' func_call ')'
+              { $$ = newexp(ExpFunc, 0, 0, (struct astExp *)$2, NULL); }
           | '(' exp ')' { $$ = $2; ((struct astExp *)$2)->bracketed = 1; }
           ;
 
