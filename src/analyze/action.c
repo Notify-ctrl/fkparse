@@ -83,7 +83,7 @@ static MarkAct *newMark(struct astAction *a) {
   symtab_item *i = sym_lookup(ret->name);
   if (!i) {
     char buf[64];
-    sprintf(buf, "@%s_mark%d", readfile_name, markId);
+    sprintf(buf, "@%s_mark%d", readfile_name, markId++);
     addTranslation(strdup(buf), ret->name);
     sym_new_entry(ret->name, TMark, strdup(buf), false);
   } else if (i->type != TMark) {
