@@ -174,33 +174,6 @@ traverse_stat : TO exp IN EVERY IDENTIFIER REPEAT block END
 func_call : CALL IDENTIFIER args  { $$ = newast(N_Stat_Funccall, newstr($2), $3); }
           ;
 
-action_stat : action { $$ = newast(N_Stat_Action, $1, NULL); }
-            | action args { $$ = newast(N_Stat_Action, $1, $2); }
-            ;
-
-action      : drawCards { $$ = newaction(ActionDrawcard, $1); }
-            | loseHp { $$ = newaction(ActionLosehp, $1); }
-            | loseMaxHp { $$ = newaction(ActionLoseMaxHp, $1); }
-            | causeDamage { $$ = newaction(ActionDamage, $1); }
-            | inflictDamage { $$ = newaction(ActionDamage, $1); }
-            | recoverHp { $$ = newaction(ActionRecover, $1); }
-            | recoverMaxHp { $$ = newaction(ActionRecoverMaxHp, $1); }
-            | acquireSkill { $$ = newaction(ActionAcquireSkill, $1); }
-            | detachSkill { $$ = newaction(ActionDetachSkill, $1); }
-            | addMark { $$ = newaction(ActionMark, $1); }
-            | loseMark  { $$ = newaction(ActionMark, $1); }
-            | getMark { $$ = newaction(ActionMark, $1); }
-            | askForChoice { $$ = newaction(ActionAskForChoice, $1); }
-            | askForChoosePlayer { $$ = newaction(ActionAskForPlayerChosen, $1); }
-            | askForSkillInvoke { $$ = newaction(ActionAskForSkillInvoke, $1); }
-            | obtainCard { $$ = newaction(ActionObtainCard, $1); }
-            | arrayPrepend { $$ = newaction(ArrayPrepend, $1); }
-            | arrayAppend { $$ = newaction(ArrayAppend, $1); }
-            | arrayRemoveOne { $$ = newaction(ArrayRemoveOne, $1); }
-            | arrayAt { $$ = newaction(ArrayAt, $1); }
-            | hasSkill { $$ = newaction(ActionHasSkill, $1); }
-            ;
-
 args : '{' arglist '}' { $$ = $2; }
      | '{' '}' { $$ = NULL; }
      ;
@@ -212,95 +185,13 @@ arglist : arglist ',' arg { $$ = newast(N_Args, $1, $3); }
 arg : IDENTIFIER ':' exp { $$ = newast(N_Arg, newstr($1), $3); }
     ;
 
-drawCards : exp DRAW exp ZHANG CARD { $$ = newast(-1, $1, $3); }
-          ;
-
-loseHp  : exp LOSE exp DIAN HP { $$ = newast(-1, $1, $3); }
-        ;
-
-loseMaxHp : exp LOSE exp DIAN HP MAX { $$ = newast(-1, $1, $3); }
-          ;
-
-causeDamage : exp TO exp CAUSE exp DIAN DAMAGE
-              { $$ = newdamage($1, $3, $5); }
-            ;
-
-inflictDamage : exp INFLICT exp DIAN DAMAGE
-                { $$ = newdamage(NULL, $1, $3); }
-              ;
-
-recoverHp : exp RECOVER exp DIAN HP { $$ = newast(-1, $1, $3); }
-          ;
-
-recoverMaxHp : exp RECOVER exp DIAN HP MAX { $$ = newast(-1, $1, $3); }
-             ;
-
-acquireSkill  : exp ACQUIRE SKILL exp { $$ = newast(-1, $1, $4); }
-              ;
-
-detachSkill : exp LOSE SKILL exp { $$ = newast(-1, $1, $4); }
-            ;
-
-addMark : exp ACQUIRE exp MEI STRING MARK
-          { $$ = newmark($1, $5, $3, 0, 1); free($5); } 
-        | exp ACQUIRE exp MEI STRING HIDDEN MARK
-          { $$ = newmark($1, $5, $3, 1, 1); free($5); } 
-        ;
-
-loseMark  : exp LOSE exp MEI STRING MARK
-            { $$ = newmark($1, $5, $3, 0, 2); free($5); } 
-          | exp LOSE exp MEI STRING HIDDEN MARK
-            { $$ = newmark($1, $5, $3, 1, 2); free($5); } 
-          ;
-
-getMark : exp STRING MARK COUNT
-          { $$ = newmark($1, $2, NULL, 0, 3); free($2); }
-        | exp STRING HIDDEN MARK COUNT
-          { $$ = newmark($1, $2, NULL, 1, 3); free($2); }
-        ;
-
-askForChoice : exp FROM exp SELECT ANITEM
-          { $$ = newast(-1, $1, $3); }
-          ;
-
-askForChoosePlayer : exp FROM exp SELECT ANPLAYER
-          { $$ = newast(-1, $1, $3); }
-          ;
-
-askForSkillInvoke : exp SELECT INVOKE STRING
-          { $$ = newast(-1, $1, newstr($4)); }
-          ;
-
-obtainCard : exp ACQUIRE CARD exp
-          { $$ = newast(-1, $1, $4); }
-          ;
-
-arrayPrepend : TOWARD exp PREPEND exp
-          { $$ = newast(-1, $2, $4); }
-          ;
-
-arrayAppend : TOWARD exp APPEND exp
-          { $$ = newast(-1, $2, $4); }
-          ;
-
-arrayRemoveOne : FROM exp DELETE exp
-          { $$ = newast(-1, $2, $4); }
-          ;
-
-arrayAt : exp DI exp GE ELEMENT
-          { $$ = newast(-1, $1, $3); }
-          ;
-hasSkill : exp HAVE SKILL STRING
-        { $$ = newast(-1, $1, newstr($4)); }
-        ;
-
 exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
     | TRUE { $$ = newexp(ExpBool, 1, 0, NULL, NULL); }
     | NUMBER { $$ = newexp(ExpNum, $1, 0, NULL, NULL); }
     | STRING { $$ = newexp(ExpStr, 0, 0, (struct astExp *)newstr($1), NULL); free($1); }
     | prefixexp { $$ = $1; }
     | opexp { $$ = $1; }
-    | '(' action_stat ')' 
+    | '(' action_stat ')'
       {
         $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL);
         ((struct astAction *)($2->l))->standalone = false;
@@ -372,5 +263,117 @@ general     : '#' KINGDOM STRING IDENTIFIER NUMBER GENDER INTERID '[' stringList
 stringList  : %empty  { $$ = newast(N_Strs, NULL, NULL); }
             | stringList STRING { $$ = newast(N_Strs, $1, newstr($2)); free($2); }
             ;
+
+/* special function calls */
+
+action_stat : action { $$ = newast(N_Stat_Action, $1, NULL); }
+            | action args { $$ = newast(N_Stat_Action, $1, $2); }
+            ;
+
+action      : drawCards { $$ = newaction(ActionDrawcard, $1); }
+            | loseHp { $$ = newaction(ActionLosehp, $1); }
+            | loseMaxHp { $$ = newaction(ActionLoseMaxHp, $1); }
+            | causeDamage { $$ = newaction(ActionDamage, $1); }
+            | inflictDamage { $$ = newaction(ActionDamage, $1); }
+            | recoverHp { $$ = newaction(ActionRecover, $1); }
+            | recoverMaxHp { $$ = newaction(ActionRecoverMaxHp, $1); }
+            | acquireSkill { $$ = newaction(ActionAcquireSkill, $1); }
+            | detachSkill { $$ = newaction(ActionDetachSkill, $1); }
+            | addMark { $$ = newaction(ActionMark, $1); }
+            | loseMark  { $$ = newaction(ActionMark, $1); }
+            | getMark { $$ = newaction(ActionMark, $1); }
+            | askForChoice { $$ = newaction(ActionAskForChoice, $1); }
+            | askForChoosePlayer { $$ = newaction(ActionAskForPlayerChosen, $1); }
+            | askForSkillInvoke { $$ = newaction(ActionAskForSkillInvoke, $1); }
+            | obtainCard { $$ = newaction(ActionObtainCard, $1); }
+            | arrayPrepend { $$ = newaction(ArrayPrepend, $1); }
+            | arrayAppend { $$ = newaction(ArrayAppend, $1); }
+            | arrayRemoveOne { $$ = newaction(ArrayRemoveOne, $1); }
+            | arrayAt { $$ = newaction(ArrayAt, $1); }
+            | hasSkill { $$ = newaction(ActionHasSkill, $1); }
+            ;
+
+drawCards : exp DRAW exp ZHANG CARD { $$ = newast(-1, $1, $3); }
+          ;
+
+loseHp  : exp LOSE exp DIAN HP { $$ = newast(-1, $1, $3); }
+        ;
+
+loseMaxHp : exp LOSE exp DIAN HP MAX { $$ = newast(-1, $1, $3); }
+          ;
+
+causeDamage : exp TO exp CAUSE exp DIAN DAMAGE
+              { $$ = newdamage($1, $3, $5); }
+            ;
+
+inflictDamage : exp INFLICT exp DIAN DAMAGE
+                { $$ = newdamage(NULL, $1, $3); }
+              ;
+
+recoverHp : exp RECOVER exp DIAN HP { $$ = newast(-1, $1, $3); }
+          ;
+
+recoverMaxHp : exp RECOVER exp DIAN HP MAX { $$ = newast(-1, $1, $3); }
+             ;
+
+acquireSkill  : exp ACQUIRE SKILL exp { $$ = newast(-1, $1, $4); }
+              ;
+
+detachSkill : exp LOSE SKILL exp { $$ = newast(-1, $1, $4); }
+            ;
+
+addMark : exp ACQUIRE exp MEI STRING MARK
+          { $$ = newmark($1, $5, $3, 0, 1); free($5); }
+        | exp ACQUIRE exp MEI STRING HIDDEN MARK
+          { $$ = newmark($1, $5, $3, 1, 1); free($5); }
+        ;
+
+loseMark  : exp LOSE exp MEI STRING MARK
+            { $$ = newmark($1, $5, $3, 0, 2); free($5); }
+          | exp LOSE exp MEI STRING HIDDEN MARK
+            { $$ = newmark($1, $5, $3, 1, 2); free($5); }
+          ;
+
+getMark : exp STRING MARK COUNT
+          { $$ = newmark($1, $2, NULL, 0, 3); free($2); }
+        | exp STRING HIDDEN MARK COUNT
+          { $$ = newmark($1, $2, NULL, 1, 3); free($2); }
+        ;
+
+askForChoice : exp FROM exp SELECT ANITEM
+          { $$ = newast(-1, $1, $3); }
+          ;
+
+askForChoosePlayer : exp FROM exp SELECT ANPLAYER
+          { $$ = newast(-1, $1, $3); }
+          ;
+
+askForSkillInvoke : exp SELECT INVOKE STRING
+          { $$ = newast(-1, $1, newstr($4)); }
+          ;
+
+obtainCard : exp ACQUIRE CARD exp
+          { $$ = newast(-1, $1, $4); }
+          ;
+
+arrayPrepend : TOWARD exp PREPEND exp
+          { $$ = newast(-1, $2, $4); }
+          ;
+
+arrayAppend : TOWARD exp APPEND exp
+          { $$ = newast(-1, $2, $4); }
+          ;
+
+arrayRemoveOne : FROM exp DELETE exp
+          { $$ = newast(-1, $2, $4); }
+          ;
+
+arrayAt : exp DI exp GE ELEMENT
+          { $$ = newast(-1, $1, $3); }
+          ;
+
+hasSkill : exp HAVE SKILL STRING
+         { $$ = newast(-1, $1, newstr($4)); }
+         ;
 
 %%

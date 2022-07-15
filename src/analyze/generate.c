@@ -993,8 +993,6 @@ static void analyzeFuncdef(FuncdefObj *f) {
 void analyzeExtension(ExtensionObj *e) {
   writeline("require \"fkparser\"\n\nlocal global_self\n");
 
-  loadTranslations();
-
   List *node;
   list_foreach(node, e->funcdefs) {
     analyzeFuncdef(cast(FuncdefObj *, node->data));
@@ -1007,6 +1005,8 @@ void analyzeExtension(ExtensionObj *e) {
   list_foreach(node, e->packages) {
     analyzePackage(cast(PackageObj *, node->data));
   }
+
+  loadTranslations();
 
   writestr("return {");
   list_foreach(node, e->packages) {
