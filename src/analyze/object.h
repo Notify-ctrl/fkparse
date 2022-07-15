@@ -160,6 +160,7 @@ typedef struct ActionObj {
   bool standalone;
 } ActionObj;
 
-Hash *analyzeParams(struct ast *params);
+/* e.g. newParams(2, "xxx", e: exp, "xxx2", e2, ...) */
+Hash *newParams(int param_count, ...);
 
 #endif

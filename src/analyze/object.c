@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 Hash *global_symtab;
 Hash *current_tab;
@@ -522,20 +523,22 @@ ExtensionObj *newExtension(struct ast *a) {
   return ret;
 }
 
-Hash *analyzeParams(struct ast *params) {
-  Hash *ret = hash_new();
-  if (!params)
-    return ret;
+Hash *newParams(int param_count, ...) {
+  va_list ap;
+  va_start(ap, param_count);
 
-  checktype(params->nodetype, N_Args);
-  while (params && params->r) {
-    checktype(params->r->nodetype, N_Arg);
-    hash_set(ret, cast(struct aststr *, params->r->l)->str,
-             cast(void *, newExpression(params->r->r)));
-    params = params->l;
+  const char *s;
+  ExpressionObj *e;
+  int analyzed = 0;
+
+  Hash *ret = hash_new();
+  while (analyzed < param_count) {
+    s = va_arg(ap, const char *);
+    e = va_arg(ap, ExpressionObj *);
+    hash_set(ret, s, cast(void *, e));
+    analyzed++;
   }
 
+  va_end(ap);
   return ret;
 }
-
-
