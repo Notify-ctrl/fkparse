@@ -266,11 +266,11 @@ stringList  : %empty  { $$ = newast(N_Strs, NULL, NULL); }
 
 /* special function calls */
 
-action_stat : action { $$ = newast(N_Stat_Action, $1, NULL); }
+action_stat : action { $$ = $1; } //{ $$ = newast(N_Stat_Action, $1, NULL); }
             | action args { $$ = newast(N_Stat_Action, $1, $2); }
             ;
 
-action      : drawCards { $$ = newaction(ActionDrawcard, $1); }
+action      : drawCards { $$ = $1; } //{ $$ = newaction(ActionDrawcard, $1); }
             | loseHp { $$ = newaction(ActionLosehp, $1); }
             | loseMaxHp { $$ = newaction(ActionLoseMaxHp, $1); }
             | causeDamage { $$ = newaction(ActionDamage, $1); }
@@ -293,7 +293,14 @@ action      : drawCards { $$ = newaction(ActionDrawcard, $1); }
             | hasSkill { $$ = newaction(ActionHasSkill, $1); }
             ;
 
-drawCards : exp DRAW exp ZHANG CARD { $$ = newast(-1, $1, $3); }
+drawCards : exp DRAW exp ZHANG CARD // { $$ = newast(-1, $1, $3); }
+            {
+              $$ = newast(N_Stat_Funccall, newstr("__摸牌"),
+              newast(N_Args,
+                newast(N_Args, NULL,
+                  newast(N_Arg, newstr("玩家"), $1)
+                ), newast(N_Arg, newstr("摸牌数量"), $3)));
+            }
           ;
 
 loseHp  : exp LOSE exp DIAN HP { $$ = newast(-1, $1, $3); }
