@@ -1,6 +1,6 @@
 #include "object.h"
 #include "generate.h"
-#include "action.h"
+// #include "action.h"
 #include "enums.h"
 #include <stdarg.h>
 
@@ -131,10 +131,10 @@ void analyzeExp(ExpressionObj *e) {
       analyzeFunccall(e->func);
       t = e->func->rettype;
       return;
-    case ExpAction:
-      analyzeAction(e->action);
-      t = e->action->valuetype;
-      break;
+//     case ExpAction:
+//       analyzeAction(e->action);
+//       t = e->action->valuetype;
+//       break;
     default:
       outputError("unknown exptype %d\n", e->exptype);
       break;
@@ -396,9 +396,9 @@ void analyzeBlock(BlockObj *bl) {
     case Obj_Break:
       writeline("break");
       break;
-    case Obj_Action:
-      analyzeAction(cast(ActionObj *, node->data));
-      break;
+//     case Obj_Action:
+//       analyzeAction(cast(ActionObj *, node->data));
+//       break;
     case Obj_Funccall:
       print_indent();
       analyzeFunccall(cast(FunccallObj *, node->data));

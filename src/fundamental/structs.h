@@ -90,24 +90,6 @@ typedef struct {
   int capacity_level;
 } Hash;
 
-typedef struct {
-  const char *key;
-  void *value;
-
-  /* private */
-  Hash *_table;       // reference to hash table being iterated
-  unsigned _index;    // current index into Hash.entries
-} hti;
-
-// Return new hash table iterator (for use with ht_next).
-hti hash_iter(Hash *table);
-
-// Move iterator to next item in hash table, update iterator's key
-// and value to current item, and return true. If there are no more
-// items, return false. Don't call ht_set during iteration.
-bool hash_next(hti *it);
-
-
 Hash *hash_new();
 void *hash_get(Hash *h, const char* k);
 void hash_set(Hash *h, const char* k, void *v);

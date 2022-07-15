@@ -6,7 +6,6 @@ set(fkparse_SRCS
   "fundamental/hash.c"
   "fundamental/list.c"
   "analyze/object.c"
-  "analyze/action.c"
   "analyze/builtin.c"
   "analyze/generate.c"
 )

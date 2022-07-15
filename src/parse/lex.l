@@ -1,6 +1,7 @@
 %option noyywrap nodefault yylineno
 
 %{
+#include "object.h"
 #include "grammar.h"
 #include "main.h"
 #include "ast.h"
@@ -176,7 +177,6 @@
 ")" |
 "{" |
 "}" |
-";" |
 "+" |
 "-" |
 "*" |

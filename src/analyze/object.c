@@ -69,7 +69,6 @@ void sym_free(Hash *h) {
 
 Hash *strtab;
 List *restrtab;
-static BlockObj *newBlock(struct ast *a);
 
 const char *translate(const char *orig) {
   // return (const char *)hash_get(strtab, orig);
@@ -87,59 +86,39 @@ void addTranslation(const char *orig, const char *translated) {
   list_append(restrtab, cast(Object *, v));
 }
 
-static IntegerObj *newInteger(long a) {
-  IntegerObj *ret = malloc(sizeof(IntegerObj));
-  ret->objtype = Obj_Integer;
-  ret->value = a;
-  return ret;
-}
-
-static DoubleObj *newDouble(double a) {
-  DoubleObj *ret = malloc(sizeof(DoubleObj));
-  ret->objtype = Obj_Double;
-  ret->value = a;
-  return ret;
-}
-
-static StringObj *newString(const char *a) {
-  StringObj *ret = malloc(sizeof(StringObj));
-  ret->objtype = Obj_String;
-  ret->value = a;
-  return ret;
-}
-
-static FunccallObj *newFunccall(struct ast *a) {
-  checktype(a->nodetype, N_Stat_Funccall);
-
+FunccallObj *newFunccall(const char *name, Hash *params) {
   FunccallObj *ret = malloc(sizeof(FunccallObj));
   ret->objtype = Obj_Funccall;
-
-  ret->name = cast(struct aststr *, a->l)->str;
-  ret->params = hash_new();
-  struct ast *iter = a->r, *arg;
-  while (iter && iter->r) {
-    arg = iter->r;
-    hash_set(ret->params, cast(struct aststr *, arg->l)->str,
-             cast(void *, newExpression(arg->r)));
-    iter = iter->l;
-  }
-
+  ret->name = name;
+  ret->params = params;
   return ret;
 }
 
-ExpressionObj *newExpression(struct ast *a) {
-  if (!a) return NULL;
-  checktype(a->nodetype, N_Exp);
-
+ExpressionObj *newExpression(int exptype, long long value, int optype,
+                             ExpressionObj *l, ExpressionObj *r) {
   ExpressionObj *ret = malloc(sizeof(ExpressionObj));
   ret->objtype = Obj_Expression;
-  struct astExp *e = cast(struct astExp *, a);
-  ret->exptype = e->exptype;
-  ret->valuetype = e->valuetype;
-  ret->value = e->value;
-  ret->optype = e->optype;
-  ret->bracketed = e->bracketed;
 
+  ret->exptype = exptype;
+  switch (exptype) {
+    case ExpCmp:
+    case ExpCalc:
+    case ExpNum:
+      ret->valuetype = TNumber;
+      break;
+    case ExpStr:
+      ret->valuetype = TString;
+      break;
+    default:
+      ret->valuetype = -1;
+      break;
+  }
+  ret->value = value;
+  ret->optype = optype;
+  ret->oprand1 = l;
+  ret->oprand2 = r;
+  ret->bracketed = false;
+/*
   struct ast *iter;
   ExpressionObj *exp = NULL;
   switch (e->exptype) {
@@ -176,18 +155,15 @@ ExpressionObj *newExpression(struct ast *a) {
     ret->action = newAction(cast(struct ast *, e->l));
     break;
   }
-
+*/
   return ret;
 }
 
-VarObj *newVar(struct ast *a) {
-  checktype(a->nodetype, N_Var);
-
+VarObj *newVar(const char *name, ExpressionObj *obj) {
   VarObj *ret = malloc(sizeof(VarObj));
   ret->objtype = Obj_Var;
-  struct astVar *v = cast(struct astVar *, a);
-  ret->name = v->name->str;
-  ret->obj = newExpression(cast(struct ast *, v->obj));
+  ret->name = name;
+  ret->obj = obj;
 
   if (!ret->obj) {
     symtab_item *i = sym_lookup(ret->name);
@@ -204,322 +180,181 @@ VarObj *newVar(struct ast *a) {
   return ret;
 }
 
-static AssignObj *newAssign(struct ast *a) {
-  checktype(a->nodetype, N_Stat_Assign);
-
+AssignObj *newAssign(VarObj *var, ExpressionObj *e) {
   AssignObj *ret = malloc(sizeof(AssignObj));
   ret->objtype = Obj_Assign;
-  struct astAssignStat *as = cast(struct astAssignStat *, a);
-  ret->var = newVar(as->lval);
-  ret->value = newExpression(as->rval);
-
+  ret->var = var;
+  ret->value = e;
   return ret;
 }
 
-static IfObj *newIf(struct ast *a) {
-  checktype(a->nodetype, N_Stat_If);
-
+IfObj *newIf(ExpressionObj *cond, BlockObj *then, BlockObj *el) {
   IfObj *ret = malloc(sizeof(IfObj));
   ret->objtype = Obj_If;
-  struct astIf *i = cast(struct astIf *, a);
-  ret->cond = newExpression(i->cond);
-  ret->then = newBlock(i->then);
-  ret->el = newBlock(i->el);
-
+  ret->cond = cond;
+  ret->then = then;
+  ret->el = el;
   return ret;
 }
 
-static LoopObj *newLoop(struct ast *a) {
-  checktype(a->nodetype, N_Stat_Loop);
-
+LoopObj *newLoop(BlockObj *body, ExpressionObj *cond) {
   LoopObj *ret = malloc(sizeof(LoopObj));
   ret->objtype = Obj_Loop;
-  struct astLoop *l = cast(struct astLoop *, a);
-  ret->cond = newExpression(l->cond);
-  ret->body = newBlock(l->body);
+  ret->cond = cond;
+  ret->body = body;
 
   return ret;
 }
 
-static TraverseObj *newTraverse(struct ast *a) {
-  checktype(a->nodetype, N_Stat_Traverse);
-
+TraverseObj *newTraverse(ExpressionObj *array, const char *expname,
+                         BlockObj *body) {
   TraverseObj *ret = malloc(sizeof(TraverseObj));
   ret->objtype = Obj_Traverse;
-  struct astTraverse *t = cast(struct astTraverse *, a);
-  ret->array = newExpression(t->array);
-  ret->expname = cast(struct aststr *, t->expname)->str;
-  ret->body = newBlock(t->body);
+  ret->array = array;
+  ret->expname = expname;
+  ret->body = body;
   return ret;
 }
 
-static Object *newBreak(struct ast *a) {
-  checktype(a->nodetype, N_Stat_Break);
-
-  Object *ret = malloc(sizeof(Object));
-  ret->objtype = Obj_Break;
-
-  return ret;
-}
-
-static Object *newStatement(struct ast *a) {
-  Object *ret = NULL;
-  switch (a->nodetype) {
-  case N_Stat_None:
-    break;
-  case N_Stat_Assign:
-    ret = cast(Object *, newAssign(a));
-    break;
-  case N_Stat_If:
-    ret = cast(Object *, newIf(a));
-    break;
-  case N_Stat_Loop:
-    ret = cast(Object *, newLoop(a));
-    break;
-  case N_Stat_Traverse:
-    ret = cast(Object *, newTraverse(a));
-    break;
-  case N_Stat_Break:
-    ret = cast(Object *, newBreak(a));
-    break;
-  case N_Stat_Funccall:
-    ret=  cast(Object *, newFunccall(a));
-    break;
-  case N_Stat_Action:
-    ret = cast(Object *, newAction(a));
-    break;
-  default:
-    break;
-  }
-  return ret;
-}
-
-static BlockObj *newBlock(struct ast *a) {
-  if (!a) return NULL;
-  checktype(a->nodetype, N_Block);
-
+BlockObj *newBlock(List *stats, ExpressionObj *e) {
   BlockObj *ret = malloc(sizeof(BlockObj));
   ret->objtype = Obj_Block;
-  ret->statements = list_new();
-  struct ast *iter = a->l;
-  Object *stat;
-  checktype(iter->nodetype, N_Stats);
-  while (iter && iter->r) {
-    stat = newStatement(iter->r);
-    if (stat) list_prepend(ret->statements, stat);
-    iter = iter->l;
-  }
-
-  if (a->r) {
-    checktype(a->r->nodetype, N_Stat_Ret);
-    ret->ret = newExpression(a->r->l);
-  } else {
-    ret->ret = NULL;
-  }
-
+  ret->statements = stats;
+  ret->ret = e;
   return ret;
 }
 
-static TriggerSpecObj *newTriggerSpec(struct ast *a) {
-  checktype(a->nodetype, N_TriggerSpec);
-
+TriggerSpecObj *newTriggerSpec(int event, BlockObj *cond, BlockObj *effect) {
   TriggerSpecObj *ret = malloc(sizeof(TriggerSpecObj));
   ret->objtype = Obj_TriggerSpec;
-  struct astTriggerSpec *t = cast(struct astTriggerSpec *, a);
-
-  ret->event = t->event;
-  ret->can_trigger = newBlock(t->cond);
-  ret->on_trigger = newBlock(t->effect);
+  ret->event = event;
+  ret->can_trigger = cond;
+  ret->on_trigger = effect;
   ret->on_refresh = NULL; /* TODO */
 
   return ret;
 }
 
-static SkillObj *newSkill(struct ast *a) {
-  checktype(a->nodetype, N_Skill);
-
+SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
+                   const char *interid, List *specs) {
   SkillObj *ret = malloc(sizeof(SkillObj));
   ret->objtype = Obj_Skill;
-  struct astskill *s = cast(struct astskill *, a);
+  static int skill_id = 0;
+  ret->internal_id = skill_id++;
 
-  ret->id = s->id->str;
-  ret->description = s->description->str;
-  ret->frequency = s->frequency->str;
-  ret->interid = s->interid->str;
-  ret->internal_id = s->uid;
-  addTranslation(ret->interid, ret->id);
-  sym_new_entry(ret->id, TSkill, ret->interid, false);
   char buf[64];
+  sprintf(buf, "%s_s_%d", readfile_name, ret->internal_id);
+  if (!interid) {
+    interid = strdup(buf);
+  }
+
+  ret->id = id;
+  ret->description = desc;
+  ret->frequency = frequency ? frequency : strdup("普通技");
+  ret->interid = interid;
+  addTranslation(interid, id);
+  sym_new_entry(id, TSkill, interid, false);
+
   sprintf(buf, ":%s", ret->interid);
-  addTranslation(strdup(buf), ret->description);
-  ret->triggerSpecs = list_new();
-  struct ast *iter = s->skillspecs;
-  struct ast *iter2 = NULL, *iter3 = NULL;
-  checktype(iter->nodetype, N_SkillSpecs);
-  while (iter && iter->r) {
-    switch (iter->r->nodetype) {
-      case N_TriggerSkill:
-        if (iter2 != NULL) {
-          outputError("不要在一个技能底下弄许多小触发技");
-        } else {
-          iter2 = iter->r->l;
-          while (iter2 && iter2->r) {
-            list_prepend(ret->triggerSpecs,
-                         cast(Object *, newTriggerSpec(iter2->r)));
-            iter2 = iter2->l;
-          }
-        }
-        break;
-      default:
-        outputError("unexpected skill spec type %d", iter->r->nodetype);
-        break;
+  addTranslation(strdup(buf), desc);
+
+  List *iter;
+  list_foreach(iter, specs) {
+    struct ast *data = cast(struct ast *, iter->data);
+    switch (data->nodetype) {
+    case N_TriggerSkill:
+      ret->triggerSpecs = cast(List *, data->r);
+      break;
+    default:
+      break;
     }
-    iter = iter->l;
   }
 
   return ret;
 }
 
-static GeneralObj *newGeneral(struct ast *a) {
-  checktype(a->nodetype, N_General);
-
+GeneralObj *newGeneral(const char *id, const char *kingdom, long long hp,
+                       const char *nickname, const char *gender,
+                       const char *interid, List *skills) {
   GeneralObj *ret = malloc(sizeof(GeneralObj));
   ret->objtype = Obj_General;
-  struct astgeneral *g = cast(struct astgeneral *, a);
-  ret->id = g->id->str;
-  ret->kingdom = g->kingdom->str;
-  ret->hp = g->hp;
-  ret->nickname = g->nickname->str;
-  ret->gender = g->gender->str;
-  ret->internal_id = g->uid;
-  addTranslation(g->interid->str, g->id->str);
-  sym_new_entry(ret->id, TGeneral, g->interid->str, false);
-  char buf[64];
-  sprintf(buf, "#%s", g->interid->str);
-  addTranslation(strdup(buf), g->nickname->str);
+  static int general_id = 0;
+  ret->internal_id = general_id++;
 
-  ret->skills = list_new();
-  struct ast *iter = g->skills;
-  checktype(iter->nodetype, N_Strs);
-  while (iter && iter->r) {
-    list_prepend(ret->skills, cast(Object *, cast(struct aststr *, iter->r)->str));
-    iter = iter->l;
+  ret->id = id;
+  ret->kingdom = kingdom;
+  ret->hp = hp;
+  ret->nickname = nickname;
+  ret->gender = gender ? gender : strdup("男性");
+
+  char buf[64];
+  sprintf(buf, "%s_g_%d", readfile_name, ret->internal_id);
+  if (!interid) {
+    interid = strdup(buf);
   }
+
+  addTranslation(interid, id);
+  sym_new_entry(ret->id, TGeneral, interid, false);
+
+  sprintf(buf, "#%s", interid);
+  addTranslation(strdup(buf), nickname);
+
+  ret->skills = skills;
 
   return ret;
 }
 
-static PackageObj *newPackage(struct ast *a) {
-  checktype(a->nodetype, N_Package);
-
+PackageObj *newPackage(const char *name, List *generals) {
   PackageObj *ret = malloc(sizeof(PackageObj));
   ret->objtype = Obj_Package;
+  static int package_id = 0;
+  ret->internal_id = package_id++;
 
-  struct astpackage *p = (struct astpackage *)a;
   char buf[64];
-  sprintf(buf, "%sp%d", readfile_name, p->uid);
+  sprintf(buf, "%s_p_%d", readfile_name, ret->internal_id);
   ret->id = strdup(buf);
-  char *dst = cast(struct aststr *, p->id)->str;
-  addTranslation(ret->id, dst);
-  sym_new_entry(dst, TPackage, ret->id, false);
-  ret->internal_id = p->uid;
-  ret->generals = list_new();
-  struct ast *iter = p->generals;
-  checktype(iter->nodetype, N_Generals);
-  while (iter && iter->r) {
-    list_prepend(ret->generals, cast(Object *, newGeneral(iter->r)));
-    iter = iter->l;
-  }
+  addTranslation(ret->id, name);
+  sym_new_entry(name, TPackage, ret->id, false);
+  ret->generals = generals;
 
   return ret;
 }
 
-static DefargObj *newDefarg(struct ast *a) {
-  checktype(a->nodetype, N_Defarg);
-
+DefargObj *newDefarg(const char *name, int type, ExpressionObj *d) {
   DefargObj *ret = malloc(sizeof(DefargObj));
   ret->objtype = Obj_Defarg;
-
-  struct astdefarg *d = cast(struct astdefarg *, a);
-  ret->name = d->name->str;
-  ret->type = d->type;
-  ret->d = newExpression(d->d);
-
+  ret->name = name;
+  ret->type = type;
+  ret->d = d;
   return ret;
 }
 
-static List *analyzeDefParams(struct ast *a) {
-  List *ret = list_new();
-  if (!a)
-    return ret;
-
-  checktype(a->nodetype, N_Defargs);
-  while (a && a->r) {
-    checktype(a->r->nodetype, N_Defarg);
-    list_prepend(ret, cast(Object *, newDefarg(a->r)));
-    a = a->l;
-  }
-
-  return ret;
-}
-
-static FuncdefObj *newFuncdef(struct ast *a) {
-  checktype(a->nodetype, N_Funcdef);
-
+FuncdefObj *newFuncdef(const char *name, List *params, int rettype,
+                       BlockObj *funcbody) {
   FuncdefObj *ret = malloc(sizeof(FuncdefObj));
   ret->objtype = Obj_Funcdef;
 
-  struct astfuncdef *f = cast(struct astfuncdef *, a);
   static int funcId = 0;
   char buf[64];
   sprintf(buf, "%sfunc%d", readfile_name, funcId);
   funcId++;
 
   ret->funcname = strdup(buf);
-  sym_new_entry(f->name->str, TFunc, cast(const char *, ret), false);
-  ret->params = analyzeDefParams(f->params);
-  ret->rettype = f->rettype;
-  ret->funcbody = newBlock(f->funcbody);
+  sym_new_entry(name, TFunc, cast(const char *, ret), false);
+  ret->params = params;
+  ret->rettype = rettype;
+  ret->funcbody = funcbody;
 
   return ret;
 }
 
-/* main */
-ExtensionObj *newExtension(struct ast *a) {
-  checktype(a->nodetype, N_Extension);
-
+ExtensionObj *newExtension(List *funcs, List *skills, List *packs) {
   ExtensionObj *ret = malloc(sizeof(ExtensionObj));
   ret->objtype = Obj_Extension;
-  struct astextension *e = cast(struct astextension *, a);
-  struct ast *iter;
+  ret->funcdefs = funcs;
+  ret->skills = skills;
+  ret->packages = packs;
 
-  sym_init();
-  strtab = hash_new();
-  restrtab = list_new();
-
-  ret->funcdefs = list_new();
-  iter = e->funcList;
-  checktype(iter->nodetype, N_Funcdefs);
-  while (iter && iter->r) {
-    list_prepend(ret->funcdefs, cast(Object *, newFuncdef(iter->r)));
-    iter = iter->l;
-  }
-
-  ret->skills = list_new();
-  iter = e->skillList;
-  checktype(iter->nodetype, N_Skills);
-  while (iter && iter->r) {
-    list_prepend(ret->skills, cast(Object *, newSkill(iter->r)));
-    iter = iter->l;
-  }
-
-  ret->packages = list_new();
-  iter = e->pkgList;
-  checktype(iter->nodetype, N_Packages);
-  while (iter && iter->r) {
-    list_prepend(ret->packages, cast(Object *, newPackage(iter->r)));
-    iter = iter->l;
-  }
   return ret;
 }
 

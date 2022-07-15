@@ -3,6 +3,9 @@
 #include "enums.h"
 #include "ast.h"
 #include "object.h"
+
+/* For travering List in switch-case. */
+static List *iter;
 %}
 
 %union {
@@ -10,6 +13,33 @@
   int enum_v;
   long long i;
   char *s;
+
+  List *list;
+  Hash *hash;
+  Object *any;
+
+  ExtensionObj *extension;
+  PackageObj *package;
+  GeneralObj *general;
+  SkillObj *skill;
+  TriggerSpecObj *trigger_spec;
+
+  BlockObj *block;
+  ExpressionObj *exp;
+  VarObj *var;
+  DefargObj *defarg;
+  FuncdefObj *func_def;
+  IfObj *if_stat;
+  LoopObj *loop;
+  TraverseObj *traverse;
+  AssignObj *assign;
+  FunccallObj *func_call;
+}
+
+%initial-action {
+  sym_init();
+  strtab = hash_new();
+  restrtab = list_new();
 }
 
 %token <i> NUMBER
@@ -38,27 +68,40 @@
 %token FROM SELECT ANITEM ANPLAYER
 %token INVOKE HAVE
 
-%type <a> extension
-%type <a> funcdefList funcdef defargs defarglist defarg
-%type <a> skillList skill
-%type <a> packageList package
-%type <a> generalList general
-%type <a> stringList
-%type <a> skillspecs skillspec
-%type <a> triggerSkill triggerspecs triggerspec
+%type <list> funcdefList defargs defarglist skillList packageList generalList
+%type <list> stringList skillspecs triggerSkill triggerspecs
+%type <list> statements arglist explist array
+%type <hash> args
 
-%type <a> block statements statement retstat traverse_stat
-%type <a> assign_stat if_stat loop_stat action_stat action args arglist arg
-%type <a> drawCards loseHp causeDamage inflictDamage recoverHp
-%type <a> acquireSkill detachSkill
-%type <a> addMark loseMark getMark
-%type <a> askForChoice askForChoosePlayer
-%type <a> askForSkillInvoke obtainCard hasSkill
-%type <a> arrayPrepend arrayAppend arrayRemoveOne arrayAt
-%type <a> loseMaxHp recoverMaxHp
+%type <extension> extension
+%type <defarg> defarg
+%type <func_def> funcdef
+%type <package> package
+%type <general> general
+%type <skill> skill
+%type <a> skillspec
+%type <trigger_spec> triggerspec
 
-%type <a> exp prefixexp opexp var
-%type <a> explist array func_call
+%type <block> block
+%type <any> statement
+%type <exp> retstat
+%type <traverse> traverse_stat
+%type <assign> assign_stat
+%type <if_stat> if_stat
+%type <loop> loop_stat
+%type <a> arg
+/*%type <func_call> action_stat action
+%type <func_call> drawCards loseHp causeDamage inflictDamage recoverHp
+%type <func_call> acquireSkill detachSkill
+%type <func_call> addMark loseMark getMark
+%type <func_call> askForChoice askForChoosePlayer
+%type <func_call> askForSkillInvoke obtainCard hasSkill
+%type <func_call> arrayPrepend arrayAppend arrayRemoveOne arrayAt
+%type <func_call> loseMaxHp recoverMaxHp*/
+
+%type <exp> exp prefixexp opexp
+%type <var> var
+%type <func_call> func_call
 
 %start extension
 %define parse.error detailed
@@ -68,204 +111,224 @@
 
 extension : funcdefList skillList packageList
               {
-                $$ = newextension($1, $2, $3);
-                analyzeExtension(newExtension($$));
+                $$ = newExtension($1, $2, $3);
+                analyzeExtension($$);
               }
           ;
 
-funcdefList : %empty { $$ = newast(N_Funcdefs, NULL, NULL); }
-            | funcdefList funcdef { $$ = newast(N_Funcdefs, $1, $2); }
+funcdefList : %empty { $$ = list_new(); }
+            | funcdefList funcdef {
+                $$ = $1;
+                list_append($1, cast(Object *, $2));
+              }
             ;
 
 funcdef : FUNCDEF IDENTIFIER defargs block
-          { $$ = newfuncdef(newstr($2), $3, TNone, $4); }
+          { $$ = newFuncdef($2, $3, TNone, $4); }
         | FUNCDEF IDENTIFIER defargs RETURN TYPE block
-          { $$ = newfuncdef(newstr($2), $3, $5, $6); }
+          { $$ = newFuncdef($2, $3, $5, $6); }
         ;
 
 defargs : '{' defarglist '}' { $$ = $2; }
-        | '{' '}' { $$ = NULL; }
+        | '{' '}' { $$ = list_new(); }
         ;
 
-defarglist : defarglist ',' defarg { $$ = newast(N_Defargs, $1, $3); }
-           | defarg {$$ = newast(N_Defargs, NULL, $1); }
-           ;
+defarglist  : defarglist ',' defarg {
+                $$ = $1;
+                list_append($$, cast(Object *, $3));
+              }
+            | defarg {
+                $$ = list_new();
+                list_append($$, cast(Object *, $1));
+              }
+            ;
 
 defarg : IDENTIFIER ':' TYPE
-         { $$ = newdefarg(newstr($1), $3, NULL); }
+         { $$ = newDefarg($1, $3, NULL); }
        | IDENTIFIER ':' TYPE '=' exp
-         { $$ = newdefarg(newstr($1), $3, $5); }
+         { $$ = newDefarg($1, $3, $5); }
        ;
 
-skillList : %empty  { $$ = newast(N_Skills, NULL, NULL); }
-          | skillList skill { $$ = newast(N_Skills, $1, $2); }
+skillList : %empty { $$ = list_new(); }
+          | skillList skill {
+              $$ = $1;
+              list_append($$, cast(Object *, $2));
+            }
           ;
 
 skill     : '$' IDENTIFIER STRING FREQUENCY INTERID skillspecs
               {
-                $$ = newskill($2, $3, $4, $5, $6);
-                free($2); free($3); free($4); free($5);
+                $$ = newSkill($2, $3, $4, $5, $6);
               }
           | '$' IDENTIFIER STRING FREQUENCY skillspecs
               {
-                $$ = newskill($2, $3, $4, NULL, $5);
-                free($2); free($3); free($4);
+                $$ = newSkill($2, $3, $4, NULL, $5);
               }
           | '$' IDENTIFIER STRING skillspecs
               {
-                $$ = newskill($2, $3, NULL, NULL, $4);
-                free($2); free($3);
+                $$ = newSkill($2, $3, NULL, NULL, $4);
               }
           ;
 
-skillspecs  : %empty { $$ = newast(N_SkillSpecs, NULL, NULL); }
-            | skillspecs skillspec  { $$ = newast(N_SkillSpecs, $1, $2); }
-            ;
-
-skillspec   : triggerSkill  { $$ = $1; }
-            ;
-
-triggerSkill  : TRIGGER triggerspecs  { $$ = newast(N_TriggerSkill, $2, NULL); }
-              ;
-
-triggerspecs  : triggerspec { $$ = newast(N_TriggerSpecs, NULL, $1); }
-              | triggerspecs triggerspec  { $$ = newast(N_TriggerSpecs, $1, $2); }
-              ;
-
-triggerspec   : EVENTI EVENT EFFECT block { $$ = newtriggerspec($2, NULL, $4); }
-              | EVENTI EVENT COND block EFFECT block  { $$ = newtriggerspec($2, $4, $6); }
-              ;
-
-block   : statements  { $$ = newast(N_Block, $1, NULL); }
-        | statements retstat  { $$ = newast(N_Block, $1, $2); }
-        ;
-
-statements  : %empty  { $$ = newast(N_Stats, NULL, NULL); }
-            | statements statement  { $$ = newast(N_Stats, $1, $2); }
-            ;
-
-statement   : ';' { $$ = newast(N_Stat_None, NULL, NULL); }
-            | assign_stat { $$ = $1; }
-            | if_stat { $$ = $1; }
-            | loop_stat { $$ = $1; }
-            | traverse_stat { $$ = $1; }
-            | BREAK { $$ = newast(N_Stat_Break, NULL, NULL); }
-            | func_call { $$ = $1; }
-            | action_stat { $$ = $1; }
-            ;
-
-assign_stat : LET var EQ exp
-              {
-                $$ = newast(N_Stat_Assign, $2, $4);
+skillspecs  : %empty { $$ = list_new(); }
+            | skillspecs skillspec {
+                $$ = $1;
+                list_append($$, cast(Object *, $2));
               }
             ;
 
-if_stat : IF exp THEN block END { $$ = newif($2, $4, NULL); }
-        | IF exp THEN block ELSE block END  { $$ = newif($2, $4, $6); }
+skillspec   : triggerSkill { $$ = newast(N_TriggerSkill, NULL, cast(struct ast *, $1)); }
+            ;
+
+triggerSkill  : TRIGGER triggerspecs  { $$ = $2; }
+              ;
+
+triggerspecs  : triggerspec { $$ = list_new(); }
+              | triggerspecs triggerspec {
+                  $$ = $1;
+                  list_append($$, cast(Object *, $2));
+                }
+              ;
+
+triggerspec : EVENTI EVENT EFFECT block { $$ = newTriggerSpec($2, NULL, $4); }
+            | EVENTI EVENT COND block EFFECT block { $$ = newTriggerSpec($2, $4, $6); }
+            ;
+
+block   : statements  { $$ = newBlock($1, NULL); }
+        | statements retstat  { $$ = newBlock($1, $2); }
         ;
 
-loop_stat : REPEAT block UNTIL exp { $$ = newast(N_Stat_Loop, $2, $4); }
+statements  : %empty { $$ = list_new(); }
+            | statements statement { $$ = $1; list_append($1, cast(Object *, $2)); }
+            ;
+
+statement   : assign_stat { $$ = cast(Object *, $1); }
+            | if_stat { $$ = cast(Object *, $1); }
+            | loop_stat { $$ = cast(Object *, $1); }
+            | traverse_stat { $$ = cast(Object *, $1); }
+            | BREAK { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Break; }
+            | func_call { $$ = cast(Object *, $1); }
+            //| action_stat { $$ = cast(Object *, $1); }
+            ;
+
+assign_stat : LET var EQ exp { $$ = newAssign($2, $4); }
+            ;
+
+if_stat : IF exp THEN block END { $$ = newIf($2, $4, NULL); }
+        | IF exp THEN block ELSE block END { $$ = newIf($2, $4, $6); }
+        ;
+
+loop_stat : REPEAT block UNTIL exp { $$ = newLoop($2, $4); }
           ;
 
 traverse_stat : TO exp IN EVERY IDENTIFIER REPEAT block END
-                { $$ = newtraverse($2, newstr($5), $7); }
+                { $$ = newTraverse($2, $5, $7); }
               ;
 
-func_call : CALL IDENTIFIER args  { $$ = newast(N_Stat_Funccall, newstr($2), $3); }
+func_call : CALL IDENTIFIER args { $$ = newFunccall($2, $3); }
           ;
 
-args : '{' arglist '}' { $$ = $2; }
-     | '{' '}' { $$ = NULL; }
+args : '{' arglist '}' {
+          $$ = hash_new();
+          list_foreach(iter, $2) {
+            hash_set($$, cast(const char *, cast(struct ast *, iter->data)->l),
+                    cast(void *, cast(struct ast *, iter->data)->r));
+          }
+        }
+     | '{' '}' { $$ = hash_new(); }
      ;
 
-arglist : arglist ',' arg { $$ = newast(N_Args, $1, $3); }
-        | arg {$$ = newast(N_Args, NULL, $1); }
+arglist : arglist ',' arg { $$ = $1; list_append($$, cast(Object *, $3)); }
+        | arg { $$ = list_new(); list_append($$, cast(Object *, $1)); }
         ;
 
-arg : IDENTIFIER ':' exp { $$ = newast(N_Arg, newstr($1), $3); }
+arg : IDENTIFIER ':' exp { $$ = newast(N_Arg, cast(struct ast *, $1),
+                                      cast(struct ast *, $3)); }
     ;
 
-exp : FALSE { $$ = newexp(ExpBool, 0, 0, NULL, NULL); }
-    | TRUE { $$ = newexp(ExpBool, 1, 0, NULL, NULL); }
-    | NUMBER { $$ = newexp(ExpNum, $1, 0, NULL, NULL); }
-    | STRING { $$ = newexp(ExpStr, 0, 0, (struct astExp *)newstr($1), NULL); free($1); }
+exp : FALSE { $$ = newExpression(ExpBool, 0, 0, NULL, NULL); }
+    | TRUE { $$ = newExpression(ExpBool, 1, 0, NULL, NULL); }
+    | NUMBER { $$ = newExpression(ExpNum, $1, 0, NULL, NULL); }
+    | STRING { $$ = newExpression(ExpStr, 0, 0, NULL, NULL); $$->strvalue = $1; }
     | prefixexp { $$ = $1; }
     | opexp { $$ = $1; }
-    | '(' action_stat ')'
+    /*| '(' action_stat ')'
       {
         $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL);
         ((struct astAction *)($2->l))->standalone = false;
-      }
-    | array { $$ = $1; }
+      }*/
+    | array { $$ = newExpression(ExpArray, 0, 0, NULL, NULL); $$->array = $1; }
     ;
 
-opexp : exp CMP exp { $$ = newexp(ExpCmp, 0, $2, (struct astExp *)$1, (struct astExp *)$3); }
-      | exp LOGICOP exp { $$ = newexp(ExpLogic, 0, $2, (struct astExp *)$1, (struct astExp *)$3); }
-      | exp '+' exp { $$ = newexp(ExpCalc, 0, '+', (struct astExp *)$1, (struct astExp *)$3); }
-      | exp '-' exp { $$ = newexp(ExpCalc, 0, '-', (struct astExp *)$1, (struct astExp *)$3); }
-      | exp '*' exp { $$ = newexp(ExpCalc, 0, '*', (struct astExp *)$1, (struct astExp *)$3); }
-      | exp '/' exp { $$ = newexp(ExpCalc, 0, '/', (struct astExp *)$1, (struct astExp *)$3); }
+prefixexp : var { $$ = newExpression(ExpVar, 0, 0, NULL, NULL); $$->varValue = $1; }
+      | '(' func_call ')'
+          { $$ = newExpression(ExpFunc, 0, 0, NULL, NULL); $$->func = $2; }
+      | '(' exp ')' { $$ = $2; $$->bracketed = 1; }
       ;
 
-prefixexp : var { $$ = newexp(ExpVar, 0, 0, (struct astExp *)$1, NULL); }
-          | '(' func_call ')'
-              { $$ = newexp(ExpFunc, 0, 0, (struct astExp *)$2, NULL); }
-          | '(' exp ')' { $$ = $2; ((struct astExp *)$2)->bracketed = 1; }
-          ;
+opexp : exp CMP exp { $$ = newExpression(ExpCmp, 0, $2, $1, $3); }
+      | exp LOGICOP exp { $$ = newExpression(ExpLogic, 0, $2, $1, $3); }
+      | exp '+' exp { $$ = newExpression(ExpCalc, 0, '+', $1, $3); }
+      | exp '-' exp { $$ = newExpression(ExpCalc, 0, '-', $1, $3); }
+      | exp '*' exp { $$ = newExpression(ExpCalc, 0, '*', $1, $3); }
+      | exp '/' exp { $$ = newExpression(ExpCalc, 0, '/', $1, $3); }
+      ;
 
-explist : exp { $$ = newast(N_Exps, NULL, $1); }
-        | explist ',' exp { $$ = newast(N_Exps, $1, $3); }
+explist : exp { $$ = list_new(); list_append($$, cast(Object *, $1)); }
+        | explist ',' exp { $$ = $1; list_append($$, cast(Object *, $3)); }
         ;
 
-array : '[' ']' { $$ = newexp(ExpArray, 0, 0, NULL, NULL); }
-      | '[' explist ']' { $$ = newexp(ExpArray, 0, 0, (struct astExp *)$2, NULL); }
+array : '[' ']' { $$ = list_new(); }
+      | '[' explist ']' { $$ = $2; }
       ;
 
-var : IDENTIFIER { $$ = newast(N_Var, newstr($1), NULL); free($1); }
-    | prefixexp FIELD STRING { $$ = newast(N_Var, newstr($3), $1); free($3); }
+var : IDENTIFIER { $$ = newVar($1, NULL); }
+    | prefixexp FIELD STRING { $$ = newVar($3, $1); }
     ;
 
-retstat : RET exp
-          { $$ = newast(N_Stat_Ret, $2, NULL); }
+retstat : RET exp { $$ = $2; }
         ;
 
-packageList : package { $$ = newast(N_Packages, NULL, $1); }
-            | packageList package { $$ = newast(N_Packages, $1, $2); }
-            ;
-
-package     : PKGSTART IDENTIFIER generalList {
-                $$ = newpackage($2, $3);
-                free($2);
+packageList : package { $$ = list_new(); list_append($$, cast(Object *, $1)); }
+            | packageList package {
+                $$ = $1;
+                list_append($$, cast(Object *, $2));
               }
             ;
 
-generalList : %empty { $$ = newast(N_Generals, NULL, NULL); }
-            | generalList general { $$ = newast(N_Generals, $1, $2); }
+package     : PKGSTART IDENTIFIER generalList { $$ = newPackage($2, $3); }
+            ;
+
+generalList : %empty { $$ = list_new(); }
+            | generalList general {
+                $$ = $1;
+                list_append($$, cast(Object *, $2));
+              }
             ;
 
 general     : '#' KINGDOM STRING IDENTIFIER NUMBER GENDER INTERID '[' stringList ']'
                 {
-                  $$ = newgeneral($4, $2, $5, $3, $6, $7, $9);
-                  free($2); free($3); free($4); free($6); free($7);
+                  $$ = newGeneral($4, $2, $5, $3, $6, $7, $9);
                 }
             | '#' KINGDOM STRING IDENTIFIER NUMBER GENDER '[' stringList ']'
                 {
-                  $$ = newgeneral($4, $2, $5, $3, $6, NULL, $8);
-                  free($2); free($3); free($4); free($6);
+                  $$ = newGeneral($4, $2, $5, $3, $6, NULL, $8);
                 }
             | '#' KINGDOM STRING IDENTIFIER NUMBER '[' stringList ']'
                 {
-                  $$ = newgeneral($4, $2, $5, $3, NULL, NULL, $7);
-                  free($2); free($3); free($4);
+                  $$ = newGeneral($4, $2, $5, $3, NULL, NULL, $7);
                 }
             ;
 
-stringList  : %empty  { $$ = newast(N_Strs, NULL, NULL); }
-            | stringList STRING { $$ = newast(N_Strs, $1, newstr($2)); free($2); }
+stringList  : %empty  { $$ = list_new(); }
+            | stringList STRING {
+                $$ = $1;
+                list_append($$, cast(Object *, $2));
+              }
             ;
 
 /* special function calls */
-
+/*
 action_stat : action { $$ = $1; } //{ $$ = newast(N_Stat_Action, $1, NULL); }
             | action args { $$ = newast(N_Stat_Action, $1, $2); }
             ;
@@ -382,5 +445,5 @@ arrayAt : exp DI exp GE ELEMENT
 hasSkill : exp HAVE SKILL STRING
          { $$ = newast(-1, $1, newstr($4)); }
          ;
-
+*/
 %%
