@@ -959,6 +959,7 @@ static void analyzeFuncdef(FuncdefObj *f) {
   indent_level++;
 
   argId = 0;
+  bool roomDefined = false;
   list_foreach(node, f->params) {
     /* type check should done by fkparse */
     d = cast(DefargObj *, node->data);
@@ -967,6 +968,10 @@ static void analyzeFuncdef(FuncdefObj *f) {
       writestr("if arg%d == nil then arg%d = ", argId, argId);
       analyzeExp(d->d);
       writestr(" end\n");
+    }
+    if (d->type == TPlayer && !roomDefined) {
+      writeline("local room = arg%d:getRoom()", argId);
+      roomDefined = true;
     }
     argId++;
   }

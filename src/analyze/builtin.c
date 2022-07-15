@@ -1,6 +1,43 @@
 #include "structs.h"
 #include "ast.h"
+#include "object.h"
 #include <stdlib.h>
+
+struct ProtoArg {
+  const char *name;
+  ExpVType argtype;
+  bool have_default;
+  union {
+    long long n;
+    const char *s;
+  } d;
+};
+
+typedef struct {
+  const char *dst;
+  const char *src;
+  ExpVType rettype;
+  int argcount;
+  struct ProtoArg args[10];
+} Proto;
+
+static Proto builtin_func[] = {
+  {"生成随机数", "math.random", TNumber, 2, {
+    {"下界", TNumber, true, {.n = 1}},
+    {"上界", TNumber, true, {.n = 10}}
+  }},
+  {"__摸牌", "fkp.drawCards", TNone, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"摸牌数量", TNumber, false, {.n = 0}}
+  }},
+  {"__造成伤害", "room:damage", TNone, 4, {
+    {"伤害来源", TPlayer, false, {.s = NULL}},
+    {"伤害目标", TPlayer, false, {.s = NULL}},
+    {"伤害值", TNumber, true, {.n = 1}},
+    {"伤害属性", TNumber, true, {.n = 0}}, /* 无属性 */
+  }},
+  {NULL, NULL, TNone, 0, {}}
+};
 
 static struct {
   char *dst;
@@ -118,8 +155,68 @@ void sym_init() {
   current_tab = global_symtab;
   last_lookup_tab = NULL;
 
-  symtab_item *v;
-  for (int i=0; ; i++) {
+  for (int i = 0; ; i++) {
+    Proto *p = &builtin_func[i];
+    if (p->dst == NULL) break;
+
+    FuncdefObj *def = malloc(sizeof(FuncdefObj));
+    def->objtype = Obj_Funcdef;
+    def->funcname = strdup(p->src);
+    sym_new_entry(p->dst, TFunc, cast(const char *, def), true);
+    def->rettype = p->rettype;
+
+    List *l = list_new();
+    for (int i = 0; i < p->argcount; i++) {
+      struct ProtoArg *arg = &p->args[i];
+      DefargObj *defarg = malloc(sizeof(DefargObj));
+      defarg->objtype = Obj_Defarg;
+      defarg->name = strdup(arg->name);
+      defarg->type = arg->argtype;
+
+      if (!arg->have_default) {
+        defarg->d = NULL;
+      } else {
+        ExpressionObj *e = malloc(sizeof(ExpressionObj));
+        e->objtype = Obj_Expression;
+
+        VarObj *v;
+        switch (arg->argtype) {
+        case TNumber:
+          e->exptype = ExpNum;
+          e->valuetype = TNumber;
+          e->value = arg->d.n;
+          break;
+        case TString:
+          e->exptype = ExpStr;
+          e->valuetype = TString;
+          e->strvalue = strdup(arg->d.s);
+          break;
+        case TPlayer:
+          e->exptype = ExpVar;
+          e->valuetype = TPlayer;
+          v = malloc(sizeof(VarObj));
+          v->objtype = Obj_Var;
+          v->name = strdup(arg->d.s);
+          e->varValue = v;
+          break;
+        case TBool:
+          e->exptype = ExpBool;
+          e->valuetype = TBool;
+          e->value = arg->d.n;
+          break;
+        default:
+          fprintf(stderr, "Error: unknown builtin function argtype %d\n",
+                  arg->argtype);
+          exit(1);
+        }
+        defarg->d = e;
+      }
+      list_append(l, cast(Object *, defarg));
+    }
+    def->params = l;
+  }
+
+  for (int i = 0; ; i++) {
     if (reserved[i].dst == NULL) break;
     sym_new_entry(reserved[i].dst, reserved[i].type, reserved[i].src, true);
   }

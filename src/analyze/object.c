@@ -448,10 +448,9 @@ static DefargObj *newDefarg(struct ast *a) {
 }
 
 static List *analyzeDefParams(struct ast *a) {
-  if (!a)
-    return NULL;
-
   List *ret = list_new();
+  if (!a)
+    return ret;
 
   checktype(a->nodetype, N_Defargs);
   while (a && a->r) {
@@ -524,11 +523,11 @@ ExtensionObj *newExtension(struct ast *a) {
 }
 
 Hash *analyzeParams(struct ast *params) {
+  Hash *ret = hash_new();
   if (!params)
-    return NULL;
+    return ret;
 
   checktype(params->nodetype, N_Args);
-  Hash *ret = hash_new();
   while (params && params->r) {
     checktype(params->r->nodetype, N_Arg);
     hash_set(ret, cast(struct aststr *, params->r->l)->str,

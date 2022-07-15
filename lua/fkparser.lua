@@ -1,5 +1,9 @@
 fkp = {}
 
+function fkp.drawCards(player, int)
+  player:drawCards(int)
+end
+
 function fkp.recoverMaxHp(player, int)
   local room = player:getRoom()
   local msg = sgs.LogMessage()
