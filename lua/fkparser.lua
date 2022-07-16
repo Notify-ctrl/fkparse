@@ -1,19 +1,126 @@
 fkp = {}
 
-function fkp.drawCards(player, int)
-  player:drawCards(int)
-end
+fkp.functions = {
+  prepend = function(arr, e)
+    arr:prepend(e)
+  end,
 
-function fkp.recoverMaxHp(player, int)
-  local room = player:getRoom()
-  local msg = sgs.LogMessage()
-  local mhp = sgs.QVariant()
-  room:setPlayerProperty(player, "maxhp", sgs.QVariant(player:getMaxHp() + int))
-  msg.type = "#GainMaxHp"
-  msg.from = player
-  msg.arg = int
-  room:sendLog(msg)
-end
+  append = function(arr, e)
+    arr:append(e)
+  end,
+
+  removeOne = function(arr, e)
+    arr:removeOne(e)
+  end,
+
+  at = function(arr, i)
+    return arr:at(i)
+  end,
+---------------------------------
+  drawCards = function(p, n)
+    p:drawCards(n)
+  end,
+
+  loseHp = function(p, n)
+    p:getRoom():loseHp(p, n)
+  end,
+
+  loseMaxHp = function(p, n)
+    p:getRoom():loseMaxHp(p, n)
+  end,
+
+  damage = function(from, to, n, nature, card, reason)
+    local damage = sgs.DamageStruct()
+    damage.from = from
+    damage.to = to
+    damage.damage = n
+    damage.nature = nature
+    damage.card = card
+    damage.reason = reason
+    to:getRoom():damage(damage)
+  end,
+
+  recover = function(player, int, who, card)
+    local recover = sgs.RecoverStruct()
+    recover.recover = int
+    recover.who = who
+    recover.card = card
+    player:getRoom():recover(player, recover)
+  end,
+
+  recoverMaxHp = function(player, int)
+    local room = player:getRoom()
+    local msg = sgs.LogMessage()
+    local mhp = sgs.QVariant()
+    room:setPlayerProperty(player, "maxhp", sgs.QVariant(player:getMaxHp() + int))
+    msg.type = "#GainMaxHp"
+    msg.from = player
+    msg.arg = int
+    room:sendLog(msg)
+  end,
+
+  acquireSkill = function(player, skill)
+    player:getRoom():acquireSkill(player, skill)
+  end,
+
+  loseSkill = function(player, skill)
+    player:getRoom():detachSkillFromPlayer(player, skill)
+  end,
+
+  addMark = function(player, mark, count, hidden)
+    local room = player:getRoom()
+    if hidden then
+      mark = string.gsub(mark, "@", "%")
+    end
+
+    if hidden then
+      room:addPlayerMark(player, mark, count)
+    else
+      player:gainMark(mark, count)
+    end
+  end,
+
+  loseMark = function(player, mark, count, hidden)
+    local room = player:getRoom()
+    if hidden then
+      mark = string.gsub(mark, "@", "%")
+    end
+
+    if hidden then
+      room:removePlayerMark(player, mark, count)
+    else
+      player:loseMark(mark, count)
+    end
+  end,
+
+  getMark = function(player, mark, count, hidden)
+    if hidden then
+      mark = string.gsub(mark, "@", "%")
+    end
+
+    return player:getMark(mark)
+  end,
+
+  askForChoice = function(player, choices, reason)
+    return player:getRoom():askForChoice(player, reason, choices)
+  end,
+
+  askForPlayerChosen = function(player, targets, reason, prompt, optional, notify)
+    return player:getRoom():askForPlayerChosen(player, targets, reason, prompt, optional, notify)
+  end,
+
+  askForSkillInvoke = function(player, skill)
+    return player:askForSkillInvoke(skill)
+  end,
+
+  obtainCard = function(player, card, reason, open)
+    player:getRoom():obtainCard(player, card, reason, open)
+  end,
+
+  hasSkill = function(player, skill)
+    return player:hasSkill(skill)
+  end,
+}
 
 function fkp.newlist(t)
   local element_type = swig_type(t[1])

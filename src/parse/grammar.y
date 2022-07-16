@@ -90,14 +90,14 @@ static List *iter;
 %type <if_stat> if_stat
 %type <loop> loop_stat
 %type <a> arg
-/*%type <func_call> action_stat action
+%type <func_call> action_stat action
 %type <func_call> drawCards loseHp causeDamage inflictDamage recoverHp
 %type <func_call> acquireSkill detachSkill
 %type <func_call> addMark loseMark getMark
 %type <func_call> askForChoice askForChoosePlayer
 %type <func_call> askForSkillInvoke obtainCard hasSkill
 %type <func_call> arrayPrepend arrayAppend arrayRemoveOne arrayAt
-%type <func_call> loseMaxHp recoverMaxHp*/
+%type <func_call> loseMaxHp recoverMaxHp
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -183,7 +183,10 @@ skillspec   : triggerSkill { $$ = newast(N_TriggerSkill, NULL, cast(struct ast *
 triggerSkill  : TRIGGER triggerspecs  { $$ = $2; }
               ;
 
-triggerspecs  : triggerspec { $$ = list_new(); }
+triggerspecs  : triggerspec {
+                  $$ = list_new();
+                  list_append($$, cast(Object *, $1));
+                }
               | triggerspecs triggerspec {
                   $$ = $1;
                   list_append($$, cast(Object *, $2));
@@ -208,7 +211,7 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
             | traverse_stat { $$ = cast(Object *, $1); }
             | BREAK { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Break; }
             | func_call { $$ = cast(Object *, $1); }
-            //| action_stat { $$ = cast(Object *, $1); }
+            | action_stat { $$ = cast(Object *, $1); }
             ;
 
 assign_stat : LET var EQ exp { $$ = newAssign($2, $4); }
@@ -252,11 +255,11 @@ exp : FALSE { $$ = newExpression(ExpBool, 0, 0, NULL, NULL); }
     | STRING { $$ = newExpression(ExpStr, 0, 0, NULL, NULL); $$->strvalue = $1; }
     | prefixexp { $$ = $1; }
     | opexp { $$ = $1; }
-    /*| '(' action_stat ')'
+    | '(' action_stat ')'
       {
-        $$ = newexp(ExpAction, 0, 0, (struct astExp *)$2, NULL);
-        ((struct astAction *)($2->l))->standalone = false;
-      }*/
+        $$ = newExpression(ExpFunc, 0, 0, NULL, NULL);
+        $$->func = $2;
+      }
     | array { $$ = newExpression(ExpArray, 0, 0, NULL, NULL); $$->array = $1; }
     ;
 
@@ -328,122 +331,220 @@ stringList  : %empty  { $$ = list_new(); }
             ;
 
 /* special function calls */
-/*
-action_stat : action { $$ = $1; } //{ $$ = newast(N_Stat_Action, $1, NULL); }
-            | action args { $$ = newast(N_Stat_Action, $1, $2); }
+action_stat : action { $$ = $1; }
+            | action args { $$ = $1; hash_copy($$->params, $2); }
             ;
 
-action      : drawCards { $$ = $1; } //{ $$ = newaction(ActionDrawcard, $1); }
-            | loseHp { $$ = newaction(ActionLosehp, $1); }
-            | loseMaxHp { $$ = newaction(ActionLoseMaxHp, $1); }
-            | causeDamage { $$ = newaction(ActionDamage, $1); }
-            | inflictDamage { $$ = newaction(ActionDamage, $1); }
-            | recoverHp { $$ = newaction(ActionRecover, $1); }
-            | recoverMaxHp { $$ = newaction(ActionRecoverMaxHp, $1); }
-            | acquireSkill { $$ = newaction(ActionAcquireSkill, $1); }
-            | detachSkill { $$ = newaction(ActionDetachSkill, $1); }
-            | addMark { $$ = newaction(ActionMark, $1); }
-            | loseMark  { $$ = newaction(ActionMark, $1); }
-            | getMark { $$ = newaction(ActionMark, $1); }
-            | askForChoice { $$ = newaction(ActionAskForChoice, $1); }
-            | askForChoosePlayer { $$ = newaction(ActionAskForPlayerChosen, $1); }
-            | askForSkillInvoke { $$ = newaction(ActionAskForSkillInvoke, $1); }
-            | obtainCard { $$ = newaction(ActionObtainCard, $1); }
-            | arrayPrepend { $$ = newaction(ArrayPrepend, $1); }
-            | arrayAppend { $$ = newaction(ArrayAppend, $1); }
-            | arrayRemoveOne { $$ = newaction(ArrayRemoveOne, $1); }
-            | arrayAt { $$ = newaction(ArrayAt, $1); }
-            | hasSkill { $$ = newaction(ActionHasSkill, $1); }
+action      : drawCards { $$ = $1; }
+            | loseHp { $$ = $1; }
+            | loseMaxHp { $$ = $1; }
+            | causeDamage { $$ = $1; }
+            | inflictDamage { $$ = $1; }
+            | recoverHp { $$ = $1; }
+            | recoverMaxHp { $$ = $1; }
+            | acquireSkill { $$ = $1; }
+            | detachSkill { $$ = $1; }
+            | addMark { $$ = $1; }
+            | loseMark { $$ = $1; }
+            | getMark { $$ = $1; }
+            | askForChoice { $$ = $1; }
+            | askForChoosePlayer { $$ = $1; }
+            | askForSkillInvoke { $$ = $1; }
+            | obtainCard { $$ = $1; }
+            | arrayPrepend { $$ = $1; }
+            | arrayAppend { $$ = $1; }
+            | arrayRemoveOne { $$ = $1; }
+            | arrayAt { $$ = $1; }
+            | hasSkill { $$ = $1; }
             ;
 
-drawCards : exp DRAW exp ZHANG CARD // { $$ = newast(-1, $1, $3); }
-            {
-              $$ = newast(N_Stat_Funccall, newstr("__摸牌"),
-              newast(N_Args,
-                newast(N_Args, NULL,
-                  newast(N_Arg, newstr("玩家"), $1)
-                ), newast(N_Arg, newstr("摸牌数量"), $3)));
+drawCards : exp DRAW exp ZHANG CARD {
+              $$ = newFunccall(
+                    strdup("__drawCards"),
+                    newParams(2, "玩家", $1, "数量", $3)
+                  );
             }
           ;
 
-loseHp  : exp LOSE exp DIAN HP { $$ = newast(-1, $1, $3); }
+loseHp  : exp LOSE exp DIAN HP {
+            $$ = newFunccall(
+                  strdup("__loseHp"),
+                  newParams(2, "玩家", $1, "数量", $3)
+                );
+          }
         ;
 
-loseMaxHp : exp LOSE exp DIAN HP MAX { $$ = newast(-1, $1, $3); }
+loseMaxHp : exp LOSE exp DIAN HP MAX {
+              $$ = newFunccall(
+                    strdup("__loseMaxHp"),
+                    newParams(2, "玩家", $1, "数量", $3)
+                  );
+            }
           ;
 
-causeDamage : exp TO exp CAUSE exp DIAN DAMAGE
-              { $$ = newdamage($1, $3, $5); }
+causeDamage : exp TO exp CAUSE exp DIAN DAMAGE {
+                $$ = newFunccall(
+                      strdup("__damage"),
+                      newParams(3, "伤害来源", $1, "伤害目标", $3, "伤害值", $5)
+                    );
+              }
             ;
 
-inflictDamage : exp INFLICT exp DIAN DAMAGE
-                { $$ = newdamage(NULL, $1, $3); }
+inflictDamage : exp INFLICT exp DIAN DAMAGE {
+                  $$ = newFunccall(
+                        strdup("__damage"),
+                        newParams(2, "伤害目标", $1, "伤害值", $3)
+                      );
+                }
               ;
 
-recoverHp : exp RECOVER exp DIAN HP { $$ = newast(-1, $1, $3); }
+recoverHp : exp RECOVER exp DIAN HP {
+              $$ = newFunccall(
+                    strdup("__recover"),
+                    newParams(2, "玩家", $1, "数量", $3)
+                  );
+            }
           ;
 
-recoverMaxHp : exp RECOVER exp DIAN HP MAX { $$ = newast(-1, $1, $3); }
+recoverMaxHp : exp RECOVER exp DIAN HP MAX {
+                $$ = newFunccall(
+                      strdup("__recoverMaxHp"),
+                      newParams(2, "玩家", $1, "数量", $3)
+                    );
+              }
              ;
 
-acquireSkill  : exp ACQUIRE SKILL exp { $$ = newast(-1, $1, $4); }
+acquireSkill  : exp ACQUIRE SKILL exp {
+                  $$ = newFunccall(
+                        strdup("__acquireSkill"),
+                        newParams(2, "玩家", $1, "技能", $4)
+                      );
+                }
               ;
 
-detachSkill : exp LOSE SKILL exp { $$ = newast(-1, $1, $4); }
+detachSkill : exp LOSE SKILL exp {
+                $$ = newFunccall(
+                      strdup("__loseSkill"),
+                      newParams(2, "玩家", $1, "技能", $4)
+                    );
+              }
             ;
 
-addMark : exp ACQUIRE exp MEI STRING MARK
-          { $$ = newmark($1, $5, $3, 0, 1); free($5); }
-        | exp ACQUIRE exp MEI STRING HIDDEN MARK
-          { $$ = newmark($1, $5, $3, 1, 1); free($5); }
+addMark : exp ACQUIRE exp MEI exp MARK {
+            $$ = newFunccall(
+                  strdup("__addMark"),
+                  newParams(2, "玩家", $1, "标记", $5, "数量", $3)
+                );
+          }
+        | exp ACQUIRE exp MEI exp HIDDEN MARK {
+            $$ = newFunccall(
+                  strdup("__addMark"),
+                  newParams(3, "玩家", $1, "标记", $5, "数量", $3,
+                            "隐藏", newExpression(ExpBool, 1, 0, NULL, NULL))
+                );
+          }
         ;
 
-loseMark  : exp LOSE exp MEI STRING MARK
-            { $$ = newmark($1, $5, $3, 0, 2); free($5); }
-          | exp LOSE exp MEI STRING HIDDEN MARK
-            { $$ = newmark($1, $5, $3, 1, 2); free($5); }
+loseMark  : exp LOSE exp MEI exp MARK {
+              $$ = newFunccall(
+                  strdup("__loseMark"),
+                  newParams(2, "玩家", $1, "标记", $5, "数量", $3)
+                );
+            }
+          | exp LOSE exp MEI exp HIDDEN MARK {
+              $$ = newFunccall(
+                  strdup("__loseMark"),
+                  newParams(3, "玩家", $1, "标记", $5, "数量", $3,
+                            "隐藏", newExpression(ExpBool, 1, 0, NULL, NULL))
+                );
+            }
           ;
 
-getMark : exp STRING MARK COUNT
-          { $$ = newmark($1, $2, NULL, 0, 3); free($2); }
-        | exp STRING HIDDEN MARK COUNT
-          { $$ = newmark($1, $2, NULL, 1, 3); free($2); }
+getMark : exp exp MARK COUNT {
+            $$ = newFunccall(
+                  strdup("__getMark"),
+                  newParams(2, "玩家", $1, "标记", $2)
+                );
+          }
+        | exp exp HIDDEN MARK COUNT {
+            $$ = newFunccall(
+                  strdup("__getMark"),
+                  newParams(3, "玩家", $1, "标记", $2,
+                            "隐藏", newExpression(ExpBool, 1, 0, NULL, NULL))
+                );
+          }
         ;
 
-askForChoice : exp FROM exp SELECT ANITEM
-          { $$ = newast(-1, $1, $3); }
+askForChoice : exp FROM exp SELECT ANITEM {
+                $$ = newFunccall(
+                      strdup("__askForChoice"),
+                      newParams(2, "玩家", $1, "选项列表", $3)
+                    );
+              }
+            ;
+
+askForChoosePlayer : exp FROM exp SELECT ANPLAYER {
+                      $$ = newFunccall(
+                            strdup("__askForPlayerChosen"),
+                            newParams(2, "玩家", $1, "可选列表", $3)
+                          );
+                    }
+                  ;
+
+askForSkillInvoke : exp SELECT INVOKE exp {
+                      $$ = newFunccall(
+                            strdup("__askForSkillInvoke"),
+                            newParams(2, "玩家", $1, "技能", $4)
+                          );
+                    }
+                  ;
+
+obtainCard : exp ACQUIRE CARD exp {
+                $$ = newFunccall(
+                      strdup("__obtainCard"),
+                      newParams(2, "玩家", $1, "卡牌", $4)
+                    );
+              }
           ;
 
-askForChoosePlayer : exp FROM exp SELECT ANPLAYER
-          { $$ = newast(-1, $1, $3); }
+arrayPrepend : TOWARD exp PREPEND exp {
+                $$ = newFunccall(
+                      strdup("__loseSkill"),
+                      newParams(2, "array", $2, "value", $4)
+                    );
+              }
           ;
 
-askForSkillInvoke : exp SELECT INVOKE STRING
-          { $$ = newast(-1, $1, newstr($4)); }
+arrayAppend : TOWARD exp APPEND exp {
+                $$ = newFunccall(
+                      strdup("__append"),
+                      newParams(2, "array", $2, "value", $4)
+                    );
+              }
           ;
 
-obtainCard : exp ACQUIRE CARD exp
-          { $$ = newast(-1, $1, $4); }
+arrayRemoveOne : FROM exp DELETE exp {
+                  $$ = newFunccall(
+                        strdup("__removeOne"),
+                        newParams(2, "array", $2, "value", $4)
+                      );
+                }
           ;
 
-arrayPrepend : TOWARD exp PREPEND exp
-          { $$ = newast(-1, $2, $4); }
+arrayAt : exp DI exp GE ELEMENT {
+            $$ = newFunccall(
+                  strdup("__at"),
+                  newParams(2, "array", $1, "index", $3)
+                );
+          }
           ;
 
-arrayAppend : TOWARD exp APPEND exp
-          { $$ = newast(-1, $2, $4); }
-          ;
-
-arrayRemoveOne : FROM exp DELETE exp
-          { $$ = newast(-1, $2, $4); }
-          ;
-
-arrayAt : exp DI exp GE ELEMENT
-          { $$ = newast(-1, $1, $3); }
-          ;
-
-hasSkill : exp HAVE SKILL STRING
-         { $$ = newast(-1, $1, newstr($4)); }
+hasSkill : exp HAVE SKILL exp {
+            $$ = newFunccall(
+                  strdup("__hasSkill"),
+                  newParams(2, "玩家", $1, "技能", $4)
+                );
+          }
          ;
-*/
+
 %%

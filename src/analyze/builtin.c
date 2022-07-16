@@ -26,15 +26,107 @@ static Proto builtin_func[] = {
     {"下界", TNumber, true, {.n = 1}},
     {"上界", TNumber, true, {.n = 10}}
   }},
-  {"__摸牌", "fkp.drawCards", TNone, 2, {
-    {"玩家", TPlayer, false, {.s = NULL}},
-    {"摸牌数量", TNumber, false, {.n = 0}}
+
+  /* array operations */
+  {"__prepend", "fkp.functions.prepend", TNone, 2, {
+    {"array", TAny, false, {.s = NULL}},
+    {"value", TAny, false, {.s = NULL}},
   }},
-  {"__造成伤害", "room:damage", TNone, 4, {
-    {"伤害来源", TPlayer, false, {.s = NULL}},
+  {"__append", "fkp.functions.append", TNone, 2, {
+    {"array", TAny, false, {.s = NULL}},
+    {"value", TAny, false, {.s = NULL}},
+  }},
+  {"__removeOne", "fkp.functions.removeOne", TNone, 2, {
+    {"array", TAny, false, {.s = NULL}},
+    {"value", TAny, false, {.s = NULL}},
+  }},
+  {"__at", "fkp.functions.at", TAny, 2, {
+    {"array", TAny, false, {.s = NULL}},
+    {"index", TNumber, false, {.s = NULL}},
+  }},
+
+  /* Built-in functions for actions */
+  {"__drawCards", "fkp.functions.drawCards", TNone, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"数量", TNumber, false, {.s = NULL}}
+  }},
+  {"__loseHp", "fkp.functions.loseHp", TNone, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"数量", TNumber, false, {.s = NULL}}
+  }},
+  {"__loseMaxHp", "fkp.functions.loseMaxHp", TNone, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"数量", TNumber, false, {.s = NULL}}
+  }},
+  {"__damage", "fkp.functions.damage", TNone, 6, {
+    {"伤害来源", TPlayer, true, {.s = "nil"}},
     {"伤害目标", TPlayer, false, {.s = NULL}},
-    {"伤害值", TNumber, true, {.n = 1}},
-    {"伤害属性", TNumber, true, {.n = 0}}, /* 无属性 */
+    {"伤害值", TNumber, false, {.s = NULL}},
+    {"伤害属性", TNumber, true, {.n = 0}},  /* 无属性 */
+    {"造成伤害的牌", TCard, true, {.s = "nil"}},
+    {"造成伤害的原因", TString, true, {.s = ""}}
+  }},
+  {"__recover", "fkp.functions.recover", TNone, 4, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"数量", TNumber, false, {.s = NULL}},
+    {"回复来源", TPlayer, true, {.s = "nil"}},
+    {"回复的牌", TCard, true, {.s = "nil"}},
+  }},
+  {"__recoverMaxHp", "fkp.functions.recoverMaxHp", TNone, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"数量", TNumber, false, {.s = NULL}}
+  }},
+  {"__acquireSkill", "fkp.functions.acquireSkill", TNone, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"技能", TString, false, {.s = NULL}}
+  }},
+  {"__loseSkill", "fkp.functions.loseSkill", TNone, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"技能", TString, false, {.s = NULL}}
+  }},
+  {"__addMark", "fkp.functions.addMark", TNone, 4, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"标记", TString, false, {.s = NULL}},
+    {"数量", TNumber, false, {.s = NULL}},
+    {"隐藏", TBool, true, {.n = false}},
+  }},
+  {"__loseMark", "fkp.functions.loseMark", TNone, 4, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"标记", TString, false, {.s = NULL}},
+    {"数量", TNumber, false, {.s = NULL}},
+    {"隐藏", TBool, true, {.n = false}},
+  }},
+  {"__getMark", "fkp.functions.getMark", TNumber, 3, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"标记", TString, false, {.s = NULL}},
+    {"隐藏", TBool, true, {.n = false}},
+  }},
+  {"__askForChoice", "fkp.functions.askForChoice", TString, 3, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"选项列表", TStringList, false, {.s = NULL}},
+    {"选择的原因", TString, true, {.s = ""}},
+  }},
+  {"__askForPlayerChosen", "fkp.functions.askForPlayerChosen", TPlayer, 6, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"可选列表", TPlayerList, false, {.s = NULL}},
+    {"选择的原因", TString, true, {.s = ""}},
+    {"提示框文本", TString, true, {.s = ""}},
+    {"可以点取消", TBool, true, {.n = true}},
+    {"提示技能发动", TBool, true, {.n = false}},
+  }},
+  {"__askForSkillInvoke", "fkp.functions.askForSkillInvoke", TBool, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"技能", TString, false, {.s = NULL}},
+  }},
+  {"__obtainCard", "fkp.functions.obtainCard", TNone, 4, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"卡牌", TCard, false, {.s = NULL}},
+    {"获得的原因", TString, true, {.s = ""}},
+    {"公开", TBool, true, {.n = true}},
+  }},
+  {"__hasSkill", "fkp.functions.hasSkill", TBool, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"技能", TString, false, {.s = NULL}},
   }},
   {NULL, NULL, TNone, 0, {}}
 };
@@ -45,6 +137,7 @@ static struct {
   int type;
 } reserved[] = {
   {"你", "player", TPlayer},
+  {"nil", "nil", TAny},
 
   {"魏", "\"wei\"", TNumber},
   {"蜀", "\"shu\"", TNumber},
@@ -178,22 +271,21 @@ void sym_init() {
       } else {
         ExpressionObj *e = malloc(sizeof(ExpressionObj));
         e->objtype = Obj_Expression;
+        e->valuetype = arg->argtype;
 
         VarObj *v;
         switch (arg->argtype) {
         case TNumber:
           e->exptype = ExpNum;
-          e->valuetype = TNumber;
           e->value = arg->d.n;
           break;
         case TString:
           e->exptype = ExpStr;
-          e->valuetype = TString;
           e->strvalue = strdup(arg->d.s);
           break;
         case TPlayer:
+        case TCard:
           e->exptype = ExpVar;
-          e->valuetype = TPlayer;
           v = malloc(sizeof(VarObj));
           v->objtype = Obj_Var;
           v->name = strdup(arg->d.s);
@@ -201,7 +293,6 @@ void sym_init() {
           break;
         case TBool:
           e->exptype = ExpBool;
-          e->valuetype = TBool;
           e->value = arg->d.n;
           break;
         default:

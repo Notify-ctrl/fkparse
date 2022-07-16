@@ -131,10 +131,6 @@ void analyzeExp(ExpressionObj *e) {
       analyzeFunccall(e->func);
       t = e->func->rettype;
       return;
-//     case ExpAction:
-//       analyzeAction(e->action);
-//       t = e->action->valuetype;
-//       break;
     default:
       outputError("unknown exptype %d\n", e->exptype);
       break;

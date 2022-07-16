@@ -165,14 +165,6 @@ typedef struct FunccallObj {
 
 FunccallObj *newFunccall(const char *name, Hash *params);
 
-typedef struct ActionObj {
-  ObjType objtype;
-  ActionType actiontype;
-  ExpVType valuetype;
-  Object *action;
-  bool standalone;
-} ActionObj;
-
 /* e.g. newParams(2, "xxx", e: exp, "xxx2", e2, ...) */
 Hash *newParams(int param_count, ...);
 

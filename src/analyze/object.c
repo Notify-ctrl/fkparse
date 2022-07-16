@@ -1,5 +1,4 @@
 #include "object.h"
-#include "action.h"
 #include "main.h"
 #include "generate.h"
 #include <stdlib.h>
@@ -118,44 +117,7 @@ ExpressionObj *newExpression(int exptype, long long value, int optype,
   ret->oprand1 = l;
   ret->oprand2 = r;
   ret->bracketed = false;
-/*
-  struct ast *iter;
-  ExpressionObj *exp = NULL;
-  switch (e->exptype) {
-  case ExpCmp:
-  case ExpLogic:
-  case ExpCalc:
-    ret->oprand1 = newExpression(cast(struct ast *, e->l));
-    ret->oprand2 = newExpression(cast(struct ast *, e->r));
-    break;
-  case ExpStr:
-    ret->strvalue = cast(struct aststr *, e->l)->str;
-    break;
-  case ExpNum:
-  case ExpBool:
-    break;
-  case ExpVar:
-    ret->varValue = newVar(cast(struct ast *, e->l));
-    break;
-  case ExpArray:
-    ret->array = list_new();
-    if (!e->l) break;
-    iter = cast(struct ast *, e->l);
-    checktype(iter->nodetype, N_Exps);
-    while (iter && iter->r) {
-      exp = newExpression(iter->r);
-      if (exp) list_prepend(ret->array, cast(Object *, exp));
-      iter = iter->l;
-    }
-    break;
-  case ExpFunc:
-    ret->func = newFunccall(cast(struct ast *, e->l));
-    break;
-  case ExpAction:
-    ret->action = newAction(cast(struct ast *, e->l));
-    break;
-  }
-*/
+
   return ret;
 }
 
