@@ -21,7 +21,6 @@ enum ExpType {
   ExpVar,
   ExpArray,
   ExpFunc,
-//  ExpAction
 };
 
 typedef enum ExpType ExpType;

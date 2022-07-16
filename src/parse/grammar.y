@@ -433,13 +433,13 @@ detachSkill : exp LOSE SKILL exp {
 addMark : exp ACQUIRE exp MEI exp MARK {
             $$ = newFunccall(
                   strdup("__addMark"),
-                  newParams(2, "玩家", $1, "标记", $5, "数量", $3)
+                  newParams(3, "玩家", $1, "标记", $5, "数量", $3)
                 );
           }
         | exp ACQUIRE exp MEI exp HIDDEN MARK {
             $$ = newFunccall(
                   strdup("__addMark"),
-                  newParams(3, "玩家", $1, "标记", $5, "数量", $3,
+                  newParams(4, "玩家", $1, "标记", $5, "数量", $3,
                             "隐藏", newExpression(ExpBool, 1, 0, NULL, NULL))
                 );
           }
@@ -448,13 +448,13 @@ addMark : exp ACQUIRE exp MEI exp MARK {
 loseMark  : exp LOSE exp MEI exp MARK {
               $$ = newFunccall(
                   strdup("__loseMark"),
-                  newParams(2, "玩家", $1, "标记", $5, "数量", $3)
+                  newParams(3, "玩家", $1, "标记", $5, "数量", $3)
                 );
             }
           | exp LOSE exp MEI exp HIDDEN MARK {
               $$ = newFunccall(
                   strdup("__loseMark"),
-                  newParams(3, "玩家", $1, "标记", $5, "数量", $3,
+                  newParams(4, "玩家", $1, "标记", $5, "数量", $3,
                             "隐藏", newExpression(ExpBool, 1, 0, NULL, NULL))
                 );
             }

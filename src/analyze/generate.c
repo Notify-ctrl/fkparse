@@ -130,7 +130,7 @@ void analyzeExp(ExpressionObj *e) {
     case ExpFunc:
       analyzeFunccall(e->func);
       t = e->func->rettype;
-      return;
+      break;
     default:
       outputError("unknown exptype %d\n", e->exptype);
       break;
@@ -176,7 +176,7 @@ static void analyzeVar(VarObj *v) {
             writestr(":getRoleEnum()");
             t = TNumber;
           } else {
-            outputError("无法获取 玩家 的属性 \"%s\"\n", name);
+            outputError("无法获取 玩家 的属性 '%s'\n", name);
             t = TNone;
           }
           break;
@@ -194,7 +194,7 @@ static void analyzeVar(VarObj *v) {
             writestr(":objectName()");
             t = TNumber;
           } else {
-            outputError("无法获取 卡牌 的属性 \"%s\"\n", name);
+            outputError("无法获取 卡牌 的属性 '%s'\n", name);
             t = TNone;
           }
           break;
@@ -206,7 +206,7 @@ static void analyzeVar(VarObj *v) {
             writestr(":length()");
             t = TNumber;
           } else {
-            outputError("无法获取 数组 的属性 \"%s\"\n", name);
+            outputError("无法获取 数组 的属性 '%s'\n", name);
             t = TNone;
           }
           break;
@@ -219,13 +219,13 @@ static void analyzeVar(VarObj *v) {
   } else {
     symtab_item *i = sym_lookup(name);
     if (!i || i->type == TNone) {
-      outputError("标识符\"%s\"尚未定义", name);
+      outputError("标识符'%s'尚未定义", name);
     } else {
       v->type = i->type;
       if (i->origtext)
         writestr("%s", i->origtext);
       else
-        writestr("locals[\"%s\"]", name);
+        writestr("locals['%s']", name);
     }
   }
 }
@@ -248,7 +248,7 @@ static void analyzeAssign(AssignObj *a) {
     symtab_item *i = sym_lookup(a->var->name);
     if (i) {
       if (i->reserved) {
-        outputError("不允许重定义标识符 \"%s\"", a->var->name);
+        outputError("不允许重定义标识符 '%s'", a->var->name);
       } else {
         i->type = a->value->valuetype;
       }
@@ -418,7 +418,7 @@ void analyzeBlock(BlockObj *bl) {
 }
 
 static void defineLocal(char *k, char *v, int type) {
-  writeline("locals[\"%s\"] = %s", k, v);
+  writeline("locals['%s'] = %s", k, v);
   if (!sym_lookup(k)) {
     sym_new_entry(k, TNone, NULL, false);
   }
@@ -614,7 +614,7 @@ static void initData(int event) {
 static void clearLocal(char *k, char *v, int rewrite) {
   sym_lookup(k)->type = TNone;
   if (rewrite) {
-    writeline("%s = locals[\"%s\"]", v, k);
+    writeline("%s = locals['%s']", v, k);
   }
 }
 
@@ -876,7 +876,7 @@ static void analyzeSkill(SkillObj *s) {
 
   writeline("%s = fkp.CreateTriggerSkill{", s->interid);
   indent_level++;
-  writeline("name = \"%s\",", s->interid);
+  writeline("name = '%s',", s->interid);
   writeline("frequency = %s,", sym_lookup(s->frequency)->origtext);
   writeline("specs = {");
   indent_level++;
@@ -891,7 +891,7 @@ static void analyzeSkill(SkillObj *s) {
 
 static void analyzeGeneral(GeneralObj *g) {
   const char *orig = sym_lookup(g->id)->origtext;
-  writestr("%s = sgs.General(extension%d, \"%s\", %s, %lld)\n",
+  writestr("%s = sgs.General(extension%d, '%s', %s, %lld)\n",
            orig, currentpack->internal_id, orig,
            sym_lookup(g->kingdom)->origtext, g->hp);
   writestr("%s:setGender(%s)\n", orig, sym_lookup(g->gender)->origtext);
@@ -906,8 +906,8 @@ static void analyzeGeneral(GeneralObj *g) {
 
 static void analyzePackage(PackageObj *p) {
   currentpack = p;
-  writestr("local extension%d = sgs.Package(\"%sp%d\")\n",
-           p->internal_id, readfile_name, p->internal_id);
+  writestr("local extension%d = sgs.Package('%s')\n",
+           p->internal_id, p->id);
   writestr("\n");
 
   List *node;
@@ -923,7 +923,7 @@ static void loadTranslations() {
   indent_level++;
   list_foreach(node, restrtab) {
     str_value *v = cast(str_value *, node->data);
-    writeline("[\"%s\"] = \"%s\",", v->origtxt, v->translated);
+    writeline("['%s'] = '%s',", v->origtxt, v->translated);
   }
   indent_level--;
   writeline("}\n");
@@ -972,6 +972,7 @@ static void analyzeFuncdef(FuncdefObj *f) {
     argId++;
   }
   writeline("local self = global_self");
+  writeline("local locals = {}\n");
 
   analyzeBlock(f->funcbody);
   indent_level--;
@@ -987,7 +988,7 @@ static void analyzeFuncdef(FuncdefObj *f) {
 }
 
 void analyzeExtension(ExtensionObj *e) {
-  writeline("require \"fkparser\"\n\nlocal global_self\n");
+  writeline("require 'fkparser'\n\nlocal global_self\n");
 
   List *node;
   list_foreach(node, e->funcdefs) {

@@ -4,7 +4,7 @@
 void checktype(ExpVType a, ExpVType t) {
   if (a != t && a != TAny && t != TAny) {
     fprintf(error_output, "Type error: expect %d, got %d\n", t, a);
-    exit(1);
+    while(1);
   }
 }
 
