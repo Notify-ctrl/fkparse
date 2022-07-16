@@ -14,6 +14,7 @@ void yyerror(const char *msg, ...) {
 
 char *readfile_name;
 FILE *error_output;
+ExtensionObj *extension;
 
 static char *getFileName(char *path) {
   char *retVal = path, *p;
@@ -26,25 +27,58 @@ static char *getFileName(char *path) {
   return retVal;
 }
 
+static void freeTranslation(void *ptr) {
+  str_value *s = ptr;
+  free((void *)s->origtxt);
+  free((void *)s->translated);
+  free(s);
+}
+
+void parse(char *filename) {
+  yyin = fopen(filename, "r");
+  if (!yyin) {
+    fprintf(stderr, "cannot open file %s\n", filename);
+    exit(-1);
+  }
+  char f[0xFFF];
+  readfile_name = getFileName(filename);
+  sprintf(f, "%s.lua%c", readfile_name, 0);
+
+  global_symtab = hash_new();
+  stack_push(symtab_stack, cast(Object *, global_symtab));
+  current_tab = global_symtab;
+  strtab = hash_new();
+  restrtab = list_new();
+  mark_table = hash_new();
+  skill_table = hash_new();
+
+  yyout = fopen(f, "w+");
+  error_output = yyout;
+  yyparse();
+  analyzeExtension(extension);
+
+  stack_pop(symtab_stack);
+  sym_free(global_symtab);
+  hash_free(strtab, NULL);
+  list_free(restrtab, freeTranslation);
+  hash_free(mark_table, free);
+  hash_free(skill_table, free);
+  freeExtension(extension);
+  fclose(yyin);
+  fclose(yyout);
+  yylex_destroy();
+}
+
 int main(int argc, char **argv) {
+  sym_init();
   if (argc > 1) {
-    yyin = fopen(argv[1], "r");
-    if (!yyin) {
-      fprintf(stderr, "cannot open file %s\n", argv[1]);
-      exit(-1);
-    }
+    for (int i = 2; i <= argc; i++)
+      parse(argv[i - 1]);
+    sym_free(builtin_symtab);
+    list_free(symtab_stack, NULL);
+    return 0;
   } else {
     printf("usage: %s <filename>\n", argv[0]);
     exit(0);
   }
-
-  char filename[0xFFF];
-  readfile_name = getFileName(argv[1]);
-  sprintf(filename, "%s.lua%c", readfile_name, 0);
-
-  yyout = fopen(filename, "w+");
-
-  // sprintf(filename, "%s_error.txt%c", readfile_name, 0);
-  error_output = yyout;
-  yyparse();
 }

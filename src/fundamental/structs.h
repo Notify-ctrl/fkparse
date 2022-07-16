@@ -64,7 +64,7 @@ void list_removeOne(List *l, Object *o);
 Object *list_at(List *l, int index);
 int list_length(List *l);
 #define list_empty(l) (list_length(l) == 0)
-void list_free(List *l);
+void list_free(List *l, void (*freefunc)(void *));
 
 /* stack */
 typedef List Stack;
@@ -92,7 +92,7 @@ Hash *hash_new();
 void *hash_get(Hash *h, const char* k);
 void hash_set(Hash *h, const char* k, void *v);
 void hash_copy(Hash *dst, Hash *src);
-void hash_free(Hash *h);
+void hash_free(Hash *h, void (*freefunc)(void *));
 
 /* ------------------------- */
 
@@ -102,6 +102,7 @@ typedef struct {
   bool reserved;
 } symtab_item;
 
+extern Hash *builtin_symtab;
 extern Hash *global_symtab;
 extern Hash *current_tab;
 extern Hash *last_lookup_tab;

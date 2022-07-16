@@ -13,6 +13,7 @@ typedef struct {
 
 ExtensionObj *newExtension(List *funcs, List *skills, List *packs);
 void analyzeExtension(ExtensionObj *e);
+void freeExtension(ExtensionObj *e);
 
 typedef struct {
   ObjType objtype;
@@ -70,7 +71,6 @@ typedef struct ExpressionObj {
   long long value;
   const char *strvalue;
   struct VarObj *varValue;
-  struct ActionObj *action;
   struct FunccallObj *func;
   List *array;
   int optype;
@@ -111,6 +111,7 @@ typedef struct {
 
 FuncdefObj *newFuncdef(const char *name, List *params, int rettype,
                        BlockObj *funcbody);
+void freeFuncdef(void *ptr);
 
 typedef struct {
   ObjType objtype;

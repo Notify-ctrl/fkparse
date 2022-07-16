@@ -36,14 +36,6 @@ static List *iter;
   FunccallObj *func_call;
 }
 
-%initial-action {
-  sym_init();
-  strtab = hash_new();
-  restrtab = list_new();
-  mark_table = hash_new();
-  skill_table = hash_new();
-}
-
 %token <i> NUMBER
 %token <s> IDENTIFIER
 %token <s> STRING
@@ -75,7 +67,6 @@ static List *iter;
 %type <list> statements arglist explist array
 %type <hash> args
 
-%type <extension> extension
 %type <defarg> defarg
 %type <func_def> funcdef
 %type <package> package
@@ -113,8 +104,8 @@ static List *iter;
 
 extension : funcdefList skillList packageList
               {
-                $$ = newExtension($1, $2, $3);
-                analyzeExtension($$);
+                extension = newExtension($1, $2, $3);
+                YYACCEPT;
               }
           ;
 
@@ -238,7 +229,9 @@ args : '{' arglist '}' {
           list_foreach(iter, $2) {
             hash_set($$, cast(const char *, cast(struct ast *, iter->data)->l),
                     cast(void *, cast(struct ast *, iter->data)->r));
+            free(iter->data);
           }
+          list_free($2, NULL);
         }
      | '{' '}' { $$ = hash_new(); }
      ;
@@ -248,7 +241,7 @@ arglist : arglist ',' arg { $$ = $1; list_append($$, cast(Object *, $3)); }
         ;
 
 arg : IDENTIFIER ':' exp {
-        $3->param_name = strdup($1);
+        $3->param_name = $1;
         $$ = newast(N_Arg, cast(struct ast *, $1), cast(struct ast *, $3));
       }
     ;

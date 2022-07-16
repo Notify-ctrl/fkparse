@@ -1,18 +1,18 @@
 #include "object.h"
 #include "generate.h"
-// #include "action.h"
 #include "enums.h"
+#include "main.h"
 #include <stdarg.h>
 
-PackageObj *currentpack;
-int indent_level = 0;
+static PackageObj *currentpack;
+static int indent_level = 0;
 
-void print_indent() {
+static void print_indent() {
   for (int i = 0; i < indent_level; i++)
     fprintf(yyout, "  ");
 }
 
-void writestr(const char *msg, ...) {
+static void writestr(const char *msg, ...) {
   va_list ap;
   va_start(ap, msg);
 
@@ -20,7 +20,7 @@ void writestr(const char *msg, ...) {
   va_end(ap);
 }
 
-void writeline(const char *msg, ...) {
+static void writeline(const char *msg, ...) {
   print_indent();
   va_list ap;
   va_start(ap, msg);
@@ -44,13 +44,11 @@ static void analyzeVar(VarObj *v);
 static void analyzeBlock(BlockObj *bl);
 static void analyzeFunccall(FunccallObj *f);
 
-void analyzeExp(ExpressionObj *e) {
+static void analyzeExp(ExpressionObj *e) {
   if (e->bracketed) writestr("(");
-  ExpVType t = TNone, t2 = TNone;
+  ExpVType t = TNone;
   List *node;
   ExpressionObj *array_item;
-  Hash *temp_sym;
-  symtab_item *item;
   static int markId = 0;
   char buf[64];
   const char *origtext;
@@ -139,7 +137,7 @@ void analyzeExp(ExpressionObj *e) {
             sprintf(buf, "@%s_mark_%d", readfile_name, markId);
             markId++;
             hash_set(mark_table, e->strvalue, strdup(buf));
-            addTranslation(strdup(buf), e->strvalue);
+            addTranslation(buf, e->strvalue);
             origtext = hash_get(mark_table, e->strvalue);
           }
           writestr("'%s'", origtext);
@@ -419,9 +417,6 @@ void analyzeBlock(BlockObj *bl) {
     case Obj_Break:
       writeline("break");
       break;
-//     case Obj_Action:
-//       analyzeAction(cast(ActionObj *, node->data));
-//       break;
     case Obj_Funccall:
       print_indent();
       analyzeFunccall(cast(FunccallObj *, node->data));
@@ -1015,10 +1010,7 @@ static void analyzeFuncdef(FuncdefObj *f) {
   indent_level--;
   writestr("end\n\n");
 
-  list_foreach(node, param_gclist) {
-    free(node->data);
-  }
-  list_free(param_gclist);
+  list_free(param_gclist, free);
   stack_pop(symtab_stack);
   sym_free(param_symtab);
   current_tab = cast(Hash *, stack_gettop(symtab_stack));

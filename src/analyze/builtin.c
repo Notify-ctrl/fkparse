@@ -1,7 +1,7 @@
 #include "structs.h"
 #include "ast.h"
 #include "object.h"
-#include <stdlib.h>
+#include "main.h"
 
 struct ProtoArg {
   const char *name;
@@ -242,10 +242,11 @@ static struct {
 };
 
 void sym_init() {
-  global_symtab = hash_new();
+  if (builtin_symtab != NULL) return;
+  builtin_symtab = hash_new();
   symtab_stack = stack_new();
-  stack_push(symtab_stack, cast(Object *, global_symtab));
-  current_tab = global_symtab;
+  stack_push(symtab_stack, cast(Object *, builtin_symtab));
+  current_tab = builtin_symtab;
   last_lookup_tab = NULL;
 
   for (int i = 0; ; i++) {
@@ -257,6 +258,7 @@ void sym_init() {
     def->funcname = strdup(p->src);
     sym_new_entry(p->dst, TFunc, cast(const char *, def), true);
     def->rettype = p->rettype;
+    def->funcbody = NULL;
 
     List *l = list_new();
     for (int i = 0; i < p->argcount; i++) {
@@ -272,6 +274,15 @@ void sym_init() {
         ExpressionObj *e = malloc(sizeof(ExpressionObj));
         e->objtype = Obj_Expression;
         e->valuetype = arg->argtype;
+        e->optype = 0;
+        e->strvalue = NULL;
+        e->varValue = NULL;
+        e->func = NULL;
+        e->array = NULL;
+        e->oprand1 = NULL;
+        e->oprand2 = NULL;
+        e->bracketed = false;
+        e->param_name = NULL;
 
         VarObj *v;
         switch (arg->argtype) {
@@ -289,6 +300,8 @@ void sym_init() {
           v = malloc(sizeof(VarObj));
           v->objtype = Obj_Var;
           v->name = strdup(arg->d.s);
+          v->type = arg->argtype;
+          v->obj = NULL;
           e->varValue = v;
           break;
         case TBool:

@@ -6,10 +6,11 @@
 #include <string.h>
 #include <stdarg.h>
 
-Hash *global_symtab;
-Hash *current_tab;
-Hash *last_lookup_tab;
-Stack *symtab_stack;
+Hash *builtin_symtab = NULL;
+Hash *global_symtab = NULL;
+Hash *current_tab = NULL;
+Hash *last_lookup_tab = NULL;
+Stack *symtab_stack = NULL;
 
 symtab_item *sym_lookup(const char *k) {
   void *v = NULL;
@@ -50,7 +51,10 @@ void sym_new_entry(const char *k, int type, const char *origtext, bool reserved)
   } else {
     v = malloc(sizeof(symtab_item));
     v->type = type;
-    v->origtext = origtext;
+    if (type != TFunc && origtext)
+      v->origtext = strdup(origtext);
+    else
+      v->origtext = origtext;
     v->reserved = reserved;
     sym_set(k, cast(void *, v));
   }
@@ -58,8 +62,16 @@ void sym_new_entry(const char *k, int type, const char *origtext, bool reserved)
 
 void sym_free(Hash *h) {
   for (size_t i = 0; i < h->capacity; i++) {
-    free((void*)h->entries[i].key);
-    free((void*)h->entries[i].value);
+    if (h->entries[i].key) {
+      free((void*)h->entries[i].key);
+      symtab_item *item = h->entries[i].value;
+      if (item->type != TFunc) {
+        free((void *)item->origtext);
+      } else if (h == builtin_symtab) {
+        freeFuncdef((void *)item->origtext);
+      }
+      free(item);
+    }
   }
 
   free(h->entries);
@@ -80,8 +92,8 @@ void addTranslation(const char *orig, const char *translated) {
   }
   // hash_set(strtab, orig, cast(void *, translated));
   str_value *v = malloc(sizeof(str_value));
-  v->origtxt = orig;
-  v->translated = translated;
+  v->origtxt = strdup(orig);
+  v->translated = strdup(translated);
   list_append(restrtab, cast(Object *, v));
 }
 
@@ -117,6 +129,10 @@ ExpressionObj *newExpression(int exptype, long long value, int optype,
   }
   ret->value = value;
   ret->optype = optype;
+  ret->strvalue = NULL;
+  ret->varValue = NULL;
+  ret->func = NULL;
+  ret->array = NULL;
   ret->oprand1 = l;
   ret->oprand2 = r;
   ret->bracketed = false;
@@ -137,7 +153,6 @@ VarObj *newVar(const char *name, ExpressionObj *obj) {
       ret->type = i->type;
     } else {
       ret->type = TNone;
-      /* sym_new_entry(ret->name, TNone, NULL, false); */
     }
   } else {
     ret->type = TNone;  /* determine type later */
@@ -218,11 +233,11 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
   ret->description = desc;
   ret->frequency = frequency ? frequency : strdup("普通技");
   ret->interid = interid;
-  addTranslation(strdup(interid), id);
+  addTranslation(interid, id);
   hash_set(skill_table, id, strdup(interid));
 
   sprintf(buf, ":%s", ret->interid);
-  addTranslation(strdup(buf), desc);
+  addTranslation(buf, desc);
 
   List *iter;
   list_foreach(iter, specs) {
@@ -230,11 +245,14 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
     switch (data->nodetype) {
     case N_TriggerSkill:
       ret->triggerSpecs = cast(List *, data->r);
+      free(data);
       break;
     default:
       break;
     }
   }
+
+  list_free(specs, NULL);
 
   return ret;
 }
@@ -263,10 +281,11 @@ GeneralObj *newGeneral(const char *id, const char *kingdom, long long hp,
   sym_new_entry(ret->id, TGeneral, interid, false);
 
   sprintf(buf, "#%s", interid);
-  addTranslation(strdup(buf), nickname);
+  addTranslation(buf, nickname);
 
   ret->skills = skills;
 
+  free((void *)interid);
   return ret;
 }
 
@@ -283,6 +302,7 @@ PackageObj *newPackage(const char *name, List *generals) {
   sym_new_entry(name, TPackage, ret->id, false);
   ret->generals = generals;
 
+  free((void *)name);
   return ret;
 }
 
@@ -302,7 +322,7 @@ FuncdefObj *newFuncdef(const char *name, List *params, int rettype,
 
   static int funcId = 0;
   char buf[64];
-  sprintf(buf, "%sfunc%d", readfile_name, funcId);
+  sprintf(buf, "%s_func_%d", readfile_name, funcId);
   funcId++;
 
   ret->funcname = strdup(buf);
@@ -311,6 +331,7 @@ FuncdefObj *newFuncdef(const char *name, List *params, int rettype,
   ret->rettype = rettype;
   ret->funcbody = funcbody;
 
+  free((void *)name);
   return ret;
 }
 
@@ -343,4 +364,154 @@ Hash *newParams(int param_count, ...) {
 
   va_end(ap);
   return ret;
+}
+
+/* free functions */
+
+static void freeBlock(void *ptr);
+static void freeVar(void *ptr);
+static void freeFunccall(void *ptr);
+
+static void freeExp(void *ptr) {
+  if (!ptr) return;
+  ExpressionObj *e = ptr;
+  free((void *)e->strvalue);
+  if (e->varValue) freeVar(e->varValue);
+  if (e->func) freeFunccall(e->func);
+  if (e->array) list_free(e->array, freeExp);
+  if (e->oprand1) freeExp(e->oprand1);
+  if (e->oprand2) freeExp(e->oprand2);
+  free((void *)e->param_name);
+  free(e);
+}
+
+static void freeVar(void *ptr) {
+  VarObj *v = cast(VarObj *, ptr);
+  free((void *)v->name);
+  freeExp(v->obj);
+  free(v);
+}
+
+static void freeFunccall(void *ptr) {
+  FunccallObj *f = ptr;
+  free((void *)f->name);
+  hash_free(f->params, freeExp);
+  free(f);
+}
+
+static void freeAssign(AssignObj *a) {
+  freeVar(a->var);
+  freeExp(a->value);
+  free(a);
+}
+
+static void freeIf(IfObj *i) {
+  freeExp(i->cond);
+  freeBlock(i->then);
+  freeBlock(i->el);
+  free(i);
+}
+
+static void freeLoop(LoopObj *l) {
+  freeBlock(l->body);
+  freeExp(l->cond);
+  free(l);
+}
+
+static void freeTraverse(TraverseObj *t) {
+  freeExp(t->array);
+  free((void *)t->expname);
+  freeBlock(t->body);
+  free(t);
+}
+
+static void freeStat(void *ptr) {
+  Object *o = ptr;
+  switch (o->objtype) {
+  case Obj_Assign:
+    freeAssign(cast(AssignObj *, o));
+    break;
+  case Obj_If:
+    freeIf(cast(IfObj *, o));
+    break;
+  case Obj_Loop:
+    freeLoop(cast(LoopObj *, o));
+    break;
+  case Obj_Traverse:
+    freeTraverse(cast(TraverseObj *, o));
+    break;
+  case Obj_Break:
+    free(o);
+    break;
+  case Obj_Funccall:
+    freeFunccall(cast(IfObj *, o));
+    break;
+  default:
+    break;
+  }
+}
+
+static void freeBlock(void *ptr) {
+  if (!ptr) return;
+  BlockObj *b = ptr;
+  list_free(b->statements, freeStat);
+  freeExp(b->ret);
+  free(b);
+}
+
+static void freeTriggerSpec(void *ptr) {
+  TriggerSpecObj *t = ptr;
+  freeBlock(t->can_trigger);
+  freeBlock(t->on_trigger);
+  freeBlock(t->on_refresh);
+  free(t);
+}
+
+static void freeDefarg(void *ptr) {
+  DefargObj *d = ptr;
+  free((void *)d->name);
+  freeExp(d->d);
+  free(d);
+}
+
+void freeFuncdef(void *ptr) {
+  FuncdefObj *d = ptr;
+  free((void *)d->funcname);
+  list_free(d->params, freeDefarg);
+  freeBlock(d->funcbody);
+  free(d);
+}
+
+static void freeSkill(void *ptr) {
+  SkillObj *s = ptr;
+  free((void *)s->id);
+  free((void *)s->description);
+  free((void *)s->frequency);
+  free((void *)s->interid);
+  list_free(s->triggerSpecs, freeTriggerSpec);
+  free(s);
+}
+
+static void freeGeneral(void *ptr) {
+  GeneralObj *g = ptr;
+  free((void *)g->id);
+  free((void *)g->kingdom);
+  free((void *)g->nickname);
+  free((void *)g->gender);
+  list_free(g->skills, free);
+  free(g);
+}
+
+static void freePackage(void *ptr) {
+  PackageObj *pack = ptr;
+  free((void *)pack->id);
+  list_free(pack->generals, freeGeneral);
+  free(pack);
+}
+
+void freeExtension(ExtensionObj *e) {
+  list_free(e->funcdefs, freeFuncdef);
+  list_free(e->skills, freeSkill);
+  list_free(e->packages, freePackage);
+  free(e);
 }

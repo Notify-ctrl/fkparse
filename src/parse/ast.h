@@ -2,7 +2,6 @@
 #define _AST_H
 
 #include "structs.h"
-#include "main.h"
 
 enum NodeType {
   N_TriggerSkill,

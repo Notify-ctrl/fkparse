@@ -124,9 +124,11 @@ void hash_copy(Hash *dst, Hash *src) {
   }
 }
 
-void hash_free(Hash *h) {
+void hash_free(Hash *h, void (*freefunc)(void *)) {
   for (size_t i = 0; i < h->capacity; i++) {
-    free((void*)h->entries[i].key);
+    free((void *)h->entries[i].key);
+    if (freefunc && h->entries[i].value)
+      freefunc(h->entries[i].value);
   }
 
   free(h->entries);
