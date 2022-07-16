@@ -913,7 +913,9 @@ static void analyzeSkill(SkillObj *s) {
   indent_level--;
   writeline("}");
   indent_level--;
-  writeline("}\n");
+  writeline("}");
+  writeline("if not sgs.Sanguosha:getSkill('%s') then \
+all_skills:append(%s) end\n", s->interid, s->interid);
 }
 
 static void analyzeGeneral(GeneralObj *g) {
@@ -925,12 +927,16 @@ static void analyzeGeneral(GeneralObj *g) {
 
   List *node;
   list_foreach(node, g->skills) {
-    const char *skill = hash_get(skill_table, cast(const char *, node->data));
+    const char *skill_orig = cast(const char *, node->data);
+    const char *skill = hash_get(skill_table, skill_orig);
     if (!skill) {
-      outputError("只能为武将添加文件内的自定义技能！");
-    } else {
-    writestr("%s:addSkill(%s)\n", orig, skill);
+      /* outputError("只能为武将添加文件内的自定义技能！"); */
+      /* 还是允许添加别的技能算了，假设用户知道内部名字 */
+      printf("警告：添加的技能 “%s” 不是文件内定义的。如果你输入的技能名称不是游戏内部已经\
+自带的技能的内部名称的话，游戏将会在开始时崩溃！\n", skill_orig);
+      skill = skill_orig;
     }
+    writestr("%s:addSkill('%s')\n", orig, skill);
   }
   writestr("\n");
 }
@@ -1020,6 +1026,7 @@ static void analyzeFuncdef(FuncdefObj *f) {
 
 void analyzeExtension(ExtensionObj *e) {
   writeline("require 'fkparser'\n\nlocal global_self\n");
+  writeline("local all_skills = sgs.SkillList()\n");
 
   List *node;
   list_foreach(node, e->funcdefs) {
@@ -1035,6 +1042,7 @@ void analyzeExtension(ExtensionObj *e) {
   }
 
   loadTranslations();
+  writeline("sgs.Sanguosha:addSkills(all_skills)");
 
   writestr("return {");
   list_foreach(node, e->packages) {
