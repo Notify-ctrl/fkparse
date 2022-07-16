@@ -102,7 +102,7 @@ fkp.functions = {
   end,
 
   askForChoice = function(player, choices, reason)
-    return player:getRoom():askForChoice(player, reason, choices)
+    return player:getRoom():askForChoice(player, reason, table.concat(choices, "+"))
   end,
 
   askForPlayerChosen = function(player, targets, reason, prompt, optional, notify)
