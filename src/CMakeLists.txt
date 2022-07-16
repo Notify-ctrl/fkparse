@@ -5,6 +5,7 @@ set(fkparse_SRCS
   "parse/grammar.c"
   "fundamental/hash.c"
   "fundamental/list.c"
+  "fundamental/symtab.c"
   "analyze/object.c"
   "analyze/builtin.c"
   "analyze/generate.c"
