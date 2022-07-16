@@ -49,6 +49,11 @@ void analyzeExp(ExpressionObj *e) {
   ExpVType t = TNone, t2 = TNone;
   List *node;
   ExpressionObj *array_item;
+  Hash *temp_sym;
+  symtab_item *item;
+  static int markId = 0;
+  char buf[64];
+  const char *origtext;
 
   if ((e->exptype == ExpCalc || e->exptype == ExpCmp) && e->optype != 0) {
     if (e->optype == 3 || e->optype == 4) {
@@ -120,6 +125,28 @@ void analyzeExp(ExpressionObj *e) {
       t = TBool;
       break;
     case ExpStr:
+      if (e->param_name != NULL) {
+        if (strstr(e->param_name, "原因") || strstr(e->param_name, "技能")) {
+          origtext = hash_get(skill_table, e->strvalue);
+          if (origtext) {
+            writestr("'%s'", origtext);
+            t = TString;
+            break;
+          }
+        } else if (!strcmp(e->param_name, "标记")) {
+          origtext = hash_get(mark_table, e->strvalue);
+          if (!origtext) {
+            sprintf(buf, "@%s_mark_%d", readfile_name, markId);
+            markId++;
+            hash_set(mark_table, e->strvalue, strdup(buf));
+            addTranslation(strdup(buf), e->strvalue);
+            origtext = hash_get(mark_table, e->strvalue);
+          }
+          writestr("'%s'", origtext);
+          t = TString;
+          break;
+        }
+      }
       writestr("'%s'", e->strvalue);
       t = TString;
       break;
@@ -898,8 +925,12 @@ static void analyzeGeneral(GeneralObj *g) {
 
   List *node;
   list_foreach(node, g->skills) {
-    writestr("%s:addSkill(%s)\n",
-             orig, sym_lookup(cast(const char *, node->data))->origtext);
+    const char *skill = hash_get(skill_table, cast(const char *, node->data));
+    if (!skill) {
+      outputError("只能为武将添加文件内的自定义技能！");
+    } else {
+    writestr("%s:addSkill(%s)\n", orig, skill);
+    }
   }
   writestr("\n");
 }

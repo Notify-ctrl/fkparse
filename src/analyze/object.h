@@ -77,6 +77,7 @@ typedef struct ExpressionObj {
   struct ExpressionObj *oprand1; /* maybe NULL */
   struct ExpressionObj *oprand2; /* maybe NULL */
   bool bracketed;
+  const char *param_name;
 } ExpressionObj;
 
 ExpressionObj *newExpression(int exptype, long long value, int optype,

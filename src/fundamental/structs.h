@@ -33,8 +33,6 @@ enum ObjType {
   Obj_Break,
   Obj_Funccall,
   Obj_Assign,
-  Obj_Action,
-  Obj_ActionBody,
 
   Obj_Expression,
   Obj_Var
@@ -114,14 +112,6 @@ void sym_new_entry(const char *k, int type, const char *origtext, bool reserved)
 void sym_set(const char *k, symtab_item *v);
 void sym_free(Hash *h);
 
-enum StrType {
-  Str_Package,
-  Str_General,
-  Str_Skill,
-  Str_Mark,
-  Str_Pile
-};
-
 typedef struct {
   int type;
   const char *origtxt;
@@ -131,6 +121,9 @@ extern Hash *strtab;
 extern List *restrtab;
 const char *translate(const char *orig);
 void addTranslation(const char *orig, const char *translated);
+
+extern Hash *mark_table;
+extern Hash *skill_table;
 
 extern char *event_table[];
 

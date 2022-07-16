@@ -40,6 +40,8 @@ static List *iter;
   sym_init();
   strtab = hash_new();
   restrtab = list_new();
+  mark_table = hash_new();
+  skill_table = hash_new();
 }
 
 %token <i> NUMBER
@@ -245,8 +247,10 @@ arglist : arglist ',' arg { $$ = $1; list_append($$, cast(Object *, $3)); }
         | arg { $$ = list_new(); list_append($$, cast(Object *, $1)); }
         ;
 
-arg : IDENTIFIER ':' exp { $$ = newast(N_Arg, cast(struct ast *, $1),
-                                      cast(struct ast *, $3)); }
+arg : IDENTIFIER ':' exp {
+        $3->param_name = strdup($1);
+        $$ = newast(N_Arg, cast(struct ast *, $1), cast(struct ast *, $3));
+      }
     ;
 
 exp : FALSE { $$ = newExpression(ExpBool, 0, 0, NULL, NULL); }

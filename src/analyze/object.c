@@ -93,6 +93,9 @@ FunccallObj *newFunccall(const char *name, Hash *params) {
   return ret;
 }
 
+Hash *mark_table;
+Hash *skill_table;
+
 ExpressionObj *newExpression(int exptype, long long value, int optype,
                              ExpressionObj *l, ExpressionObj *r) {
   ExpressionObj *ret = malloc(sizeof(ExpressionObj));
@@ -117,6 +120,7 @@ ExpressionObj *newExpression(int exptype, long long value, int optype,
   ret->oprand1 = l;
   ret->oprand2 = r;
   ret->bracketed = false;
+  ret->param_name = NULL;
 
   return ret;
 }
@@ -214,8 +218,8 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
   ret->description = desc;
   ret->frequency = frequency ? frequency : strdup("普通技");
   ret->interid = interid;
-  addTranslation(interid, id);
-  sym_new_entry(id, TSkill, interid, false);
+  addTranslation(strdup(interid), id);
+  hash_set(skill_table, id, strdup(interid));
 
   sprintf(buf, ":%s", ret->interid);
   addTranslation(strdup(buf), desc);
@@ -332,6 +336,7 @@ Hash *newParams(int param_count, ...) {
   while (analyzed < param_count) {
     s = va_arg(ap, const char *);
     e = va_arg(ap, ExpressionObj *);
+    e->param_name = strdup(s);
     hash_set(ret, s, cast(void *, e));
     analyzed++;
   }
