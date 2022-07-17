@@ -1,7 +1,7 @@
 #include "main.h"
 #include "ast.h"
 #include <stdarg.h>
-
+/*
 void yyerror(const char *msg, ...) {
   va_list ap;
   va_start(ap, msg);
@@ -11,7 +11,7 @@ void yyerror(const char *msg, ...) {
   fprintf(error_output, "\n");
   va_end(ap);
 }
-
+*/
 char *readfile_name;
 FILE *error_output;
 ExtensionObj *extension;
@@ -54,8 +54,10 @@ void parse(char *filename) {
 
   yyout = fopen(f, "w+");
   error_output = yyout;
-  yyparse();
-  analyzeExtension(extension);
+  if (yyparse() == 0) {
+    analyzeExtension(extension);
+    freeExtension(extension);
+  }
 
   stack_pop(symtab_stack);
   sym_free(global_symtab);
@@ -63,7 +65,7 @@ void parse(char *filename) {
   list_free(restrtab, freeTranslation);
   hash_free(mark_table, free);
   hash_free(skill_table, free);
-  freeExtension(extension);
+
   fclose(yyin);
   fclose(yyout);
   yylex_destroy();

@@ -6,6 +6,18 @@
 
 /* For travering List in switch-case. */
 static List *iter;
+#define YYDEBUG 1
+int yydebug = 0;
+
+#define YYPARSE_PARAM scanner
+#define YYLEX_PARAM scanner
+
+int yylex(YYSTYPE *yylval_param, YYLTYPE *yylloc_param);
+void yyerror(YYLTYPE *loc, const char *msg) {
+  fprintf(stderr, "%d:%d-%d:%d : %s\n",
+          loc->first_line, loc->first_column,
+          loc->last_line, loc->last_column, msg);
+}
 %}
 
 %union {
@@ -98,7 +110,10 @@ static List *iter;
 
 %start extension
 %define parse.error detailed
+// %verbose
 %define parse.trace
+%define api.pure full
+%locations
 
 %%
 
@@ -112,7 +127,7 @@ extension : funcdefList skillList packageList
 funcdefList : %empty { $$ = list_new(); }
             | funcdefList funcdef {
                 $$ = $1;
-                list_append($1, cast(Object *, $2));
+                list_append($$, cast(Object *, $2));
               }
             ;
 
@@ -129,6 +144,7 @@ defargs : '{' defarglist '}' { $$ = $2; }
 defarglist  : defarglist ',' defarg {
                 $$ = $1;
                 list_append($$, cast(Object *, $3));
+                yyerror(&@3, "Test");
               }
             | defarg {
                 $$ = list_new();
@@ -195,7 +211,7 @@ block   : statements  { $$ = newBlock($1, NULL); }
         ;
 
 statements  : %empty { $$ = list_new(); }
-            | statements statement { $$ = $1; list_append($1, cast(Object *, $2)); }
+            | statements statement { $$ = $1; list_append($$, cast(Object *, $2)); }
             ;
 
 statement   : assign_stat { $$ = cast(Object *, $1); }
@@ -249,7 +265,7 @@ arg : IDENTIFIER ':' exp {
 exp : FALSE { $$ = newExpression(ExpBool, 0, 0, NULL, NULL); }
     | TRUE { $$ = newExpression(ExpBool, 1, 0, NULL, NULL); }
     | NUMBER { $$ = newExpression(ExpNum, $1, 0, NULL, NULL); }
-    | STRING { $$ = newExpression(ExpStr, 0, 0, NULL, NULL); $$->strvalue = $1; }
+    | STRING { $$ = newExpression(ExpStr, 0, 0, NULL, NULL); $$->strvalue = $1;}
     | prefixexp { $$ = $1; }
     | opexp { $$ = $1; }
     | '(' action_stat ')'
