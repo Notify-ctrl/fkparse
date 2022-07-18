@@ -40,8 +40,14 @@ enum ObjType {
 
 typedef enum ObjType ObjType;
 
+#define ObjectHeader int first_line; \
+  int first_column; \
+  int last_line; \
+  int last_column; \
+  ObjType objtype
+
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
 } Object;
 
 /* ------------------------- */

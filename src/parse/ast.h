@@ -48,7 +48,7 @@ enum ExpVType {
 
 typedef enum ExpVType ExpVType;
 
-void checktype(ExpVType a, ExpVType t);
+void checktype(void *o, ExpVType a, ExpVType t);
 
 typedef struct ast {
   NodeType nodetype;

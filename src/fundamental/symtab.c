@@ -2,6 +2,7 @@
 #include "generate.h"
 #include "object.h"
 #include <stdlib.h>
+#include "error.h"
 
 Hash *builtin_symtab = NULL;
 Hash *global_symtab = NULL;
@@ -27,9 +28,9 @@ symtab_item *sym_lookup(const char *k) {
 void sym_set(const char *k, symtab_item *v) {
   symtab_item *i = sym_lookup(k);
   if (i && i->reserved) {
-    outputError("不能修改预定义的标识符 %s", k);
+    fprintf(error_output, "错误：不能修改预定义的标识符 %s", k);
   } else {
-    if (i) checktype(i->type, v->type);
+    if (i) checktype(NULL, i->type, v->type);
     hash_set(last_lookup_tab ? last_lookup_tab : current_tab, k, (void *)v);
   }
 }
@@ -39,7 +40,7 @@ void sym_new_entry(const char *k, int type, const char *origtext, bool reserved)
   symtab_item *v;
   if (i) {
     if (i->type != TNone)
-      outputError("%s 已经存在于表中，类型为 %d", k, i->type);
+      fprintf(error_output, "错误：%s 已经存在于表中，类型为 %d", k, i->type);
     else {
       i->type = type;
       i->origtext = origtext;
