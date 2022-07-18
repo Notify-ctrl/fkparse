@@ -65,7 +65,7 @@ void parse(char *filename) {
 
   if (yyparse() == 0) {
     analyzeExtension(extension);
-    freeExtension(extension);
+    freeObject(extension);
   } else {
     fprintf(error_output, "发生不可恢复的语法错误，编译中断。\n");
   }

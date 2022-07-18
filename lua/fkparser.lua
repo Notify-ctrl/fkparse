@@ -195,6 +195,7 @@ function fkp.CreateTriggerSkill(spec)
     name = spec.name,
     frequency = freq,
     limit_mark = limit,
+    view_as_skill = spec.view_as_skill,
     events = eve,
     on_trigger = function(self, event, player, data)
       local room = player:getRoom()
@@ -220,13 +221,14 @@ function fkp.CreateActiveSkill(spec)
     target_fixed = false,
     will_throw = false,
     on_use = spec.on_use,
-    on_effect = spec.on_effect,
+    on_effect = spec.on_effect or function()end,
     feasible = spec.feasible,
     filter = spec.target_filter,
   }
 
   local vs_skill = sgs.CreateViewAsSkill{
     name = spec.name,
+    n = 996,
     view_filter = spec.card_filter,
     view_as = function(self, cards)
       local card = skill_card:clone()
@@ -240,4 +242,6 @@ function fkp.CreateActiveSkill(spec)
       return pattern == "@@" .. spec.name
     end,
   }
+
+  return vs_skill
 end

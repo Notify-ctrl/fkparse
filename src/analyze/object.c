@@ -1,6 +1,7 @@
 #include "object.h"
 #include "main.h"
 #include "generate.h"
+#include "error.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -190,6 +191,9 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
   sprintf(buf, ":%s", ret->interid);
   addTranslation(buf, desc);
 
+  ret->triggerSpecs = NULL;
+  ret->activeSpec = NULL;
+
   List *iter;
   list_foreach(iter, specs) {
     SkillSpecObj *data = cast(SkillSpecObj *, iter->data);
@@ -198,7 +202,13 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
       ret->triggerSpecs = cast(List *, data->obj);
       free(data);
       break;
-    default:
+    case Spec_ActiveSkill:
+      if (ret->activeSpec != NULL) {
+        yyerror(cast(YYLTYPE *, data->obj), "不允许一个技能下同时存在多个主动技");
+        freeObject(ret->activeSpec);
+      }
+      ret->activeSpec = cast(ActiveSpecObj *, data->obj);
+      free(data);
       break;
     }
   }
@@ -335,11 +345,11 @@ static void freeExp(void *ptr) {
   if (!ptr) return;
   ExpressionObj *e = ptr;
   free((void *)e->strvalue);
-  if (e->varValue) freeVar(e->varValue);
-  if (e->func) freeFunccall(e->func);
-  if (e->array) list_free(e->array, freeExp);
-  if (e->oprand1) freeExp(e->oprand1);
-  if (e->oprand2) freeExp(e->oprand2);
+  if (e->varValue) freeObject(e->varValue);
+  if (e->func) freeObject(e->func);
+  if (e->array) list_free(e->array, freeObject);
+  if (e->oprand1) freeObject(e->oprand1);
+  if (e->oprand2) freeObject(e->oprand2);
   free((void *)e->param_name);
   free(e);
 }
@@ -347,107 +357,81 @@ static void freeExp(void *ptr) {
 static void freeVar(void *ptr) {
   VarObj *v = cast(VarObj *, ptr);
   free((void *)v->name);
-  freeExp(v->obj);
+  freeObject(v->obj);
   free(v);
 }
 
 static void freeArg(void *ptr) {
   ArgObj *a = ptr;
   free((void *)a->name);
-  freeExp(a->exp);
+  freeObject(a->exp);
   free(a);
 }
 
 static void freeFunccall(void *ptr) {
   FunccallObj *f = ptr;
   free((void *)f->name);
-  hash_free(f->params, freeExp);
+  hash_free(f->params, freeObject);
   free(f);
 }
 
 static void freeAssign(AssignObj *a) {
-  freeVar(a->var);
-  freeExp(a->value);
+  freeObject(a->var);
+  freeObject(a->value);
   free(a);
 }
 
 static void freeIf(IfObj *i) {
-  freeExp(i->cond);
-  freeBlock(i->then);
-  freeBlock(i->el);
+  freeObject(i->cond);
+  freeObject(i->then);
+  freeObject(i->el);
   free(i);
 }
 
 static void freeLoop(LoopObj *l) {
-  freeBlock(l->body);
-  freeExp(l->cond);
+  freeObject(l->body);
+  freeObject(l->cond);
   free(l);
 }
 
 static void freeTraverse(TraverseObj *t) {
-  freeExp(t->array);
+  freeObject(t->array);
   free((void *)t->expname);
-  freeBlock(t->body);
+  freeObject(t->body);
   free(t);
-}
-
-static void freeStat(void *ptr) {
-  Object *o = ptr;
-  switch (o->objtype) {
-  case Obj_Assign:
-    freeAssign(cast(AssignObj *, o));
-    break;
-  case Obj_If:
-    freeIf(cast(IfObj *, o));
-    break;
-  case Obj_Loop:
-    freeLoop(cast(LoopObj *, o));
-    break;
-  case Obj_Traverse:
-    freeTraverse(cast(TraverseObj *, o));
-    break;
-  case Obj_Break:
-    free(o);
-    break;
-  case Obj_Funccall:
-    freeFunccall(cast(IfObj *, o));
-    break;
-  default:
-    break;
-  }
 }
 
 static void freeBlock(void *ptr) {
   if (!ptr) return;
   BlockObj *b = ptr;
-  list_free(b->statements, freeStat);
-  freeExp(b->ret);
+  list_free(b->statements, freeObject);
+  freeObject(b->ret);
   free(b);
 }
 
 static void freeTriggerSpec(void *ptr) {
   TriggerSpecObj *t = ptr;
-  freeBlock(t->can_trigger);
-  freeBlock(t->on_trigger);
-  freeBlock(t->on_refresh);
+  freeObject(t->can_trigger);
+  freeObject(t->on_trigger);
+  freeObject(t->on_refresh);
   free(t);
 }
 
 static void freeActiveSpec(void *p) {
   ActiveSpecObj *a = p;
-  freeBlock(a->cond);
-  freeBlock(a->card_filter);
-  freeBlock(a->target_filter);
-  freeBlock(a->feasible);
-  freeBlock(a->on_use);
-  freeBlock(a->on_effect);
+  freeObject(a->cond);
+  freeObject(a->card_filter);
+  freeObject(a->target_filter);
+  freeObject(a->feasible);
+  freeObject(a->on_use);
+  freeObject(a->on_effect);
   free(a);
 }
 
 static void freeDefarg(void *ptr) {
   DefargObj *d = ptr;
   free((void *)d->name);
-  freeExp(d->d);
+  freeObject(d->d);
   free(d);
 }
 
@@ -455,7 +439,7 @@ void freeFuncdef(void *ptr) {
   FuncdefObj *d = ptr;
   free((void *)d->funcname);
   list_free(d->params, freeDefarg);
-  freeBlock(d->funcbody);
+  freeObject(d->funcbody);
   free(d);
 }
 
@@ -476,6 +460,7 @@ static void freeSkill(void *ptr) {
   free((void *)s->frequency);
   free((void *)s->interid);
   list_free(s->triggerSpecs, freeTriggerSpec);
+  freeObject(s->activeSpec);
   free(s);
 }
 
@@ -496,7 +481,7 @@ static void freePackage(void *ptr) {
   free(pack);
 }
 
-void freeExtension(ExtensionObj *e) {
+static void freeExtension(ExtensionObj *e) {
   list_free(e->funcdefs, freeFuncdef);
   list_free(e->skills, freeSkill);
   list_free(e->packages, freePackage);

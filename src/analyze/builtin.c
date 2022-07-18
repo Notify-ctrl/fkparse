@@ -136,7 +136,6 @@ static struct {
   char *src;
   int type;
 } reserved[] = {
-  {"你", "player", TPlayer},
   {"nil", "nil", TAny},
 
   {"魏", "'wei'", TNumber},
