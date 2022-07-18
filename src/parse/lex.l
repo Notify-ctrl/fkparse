@@ -108,6 +108,9 @@ static int yycolumn = 1;
 "可以点确定:"    { return FEASIBLE; }
 "使用后:"    { return ON_USE; }
 
+"因" { return BECAUSE; }
+"弃置"    { return THROW; }
+
 "游戏开始时"     { yylval->enum_v = GameStart; return EVENT; }
 "回合即将开始时"   { yylval->enum_v = TurnStart; return EVENT; }
 "阶段开始时"     { yylval->enum_v = EventPhaseStart; return EVENT; }

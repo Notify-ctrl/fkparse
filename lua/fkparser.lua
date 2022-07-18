@@ -120,6 +120,17 @@ fkp.functions = {
   hasSkill = function(player, skill)
     return player:hasSkill(skill)
   end,
+
+  throwCardsBySkill = function(player, cards, skill_name)
+    local room = player:getRoom()
+    local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_THROW, player:objectName(), "", skill_name, "")
+    local moves = sgs.CardsMoveList()
+    for _, cd in sgs.list(cards) do
+      local move = sgs.CardsMoveStruct(cd:getId(), nil, sgs.Player_DiscardPile, reason)
+      moves:append(move)
+    end
+    room:moveCardsAtomic(moves, true)
+  end,
 }
 
 function fkp.newlist(t)

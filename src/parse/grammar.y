@@ -80,6 +80,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token MEI MARK HIDDEN COUNT
 %token FROM SELECT ANITEM ANPLAYER
 %token INVOKE HAVE
+%token BECAUSE THROW
 
 %type <list> funcdefList defargs defarglist skillList packageList generalList
 %type <list> stringList skillspecs triggerSkill triggerspecs
@@ -111,6 +112,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <func_call> askForSkillInvoke obtainCard hasSkill
 %type <func_call> arrayPrepend arrayAppend arrayRemoveOne arrayAt
 %type <func_call> loseMaxHp recoverMaxHp
+%type <func_call> throwCardsBySkill
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -404,6 +406,7 @@ action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
             | arrayRemoveOne { $$ = $1; yycopyloc($$, &@$); }
             | arrayAt { $$ = $1; yycopyloc($$, &@$); }
             | hasSkill { $$ = $1; yycopyloc($$, &@$); }
+            | throwCardsBySkill { $$ = $1; yycopyloc($$, &@$); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD {
@@ -594,6 +597,13 @@ hasSkill : exp HAVE SKILL exp {
                 );
           }
          ;
+
+throwCardsBySkill : exp BECAUSE SKILL exp THROW CARD exp {
+                      $$ = newFunccall(
+                        strdup("__throwCardsBySkill"),
+                        newParams(3, "玩家", $1, "卡牌列表", $7, "技能名", $4)
+                      );
+                    }
 
 %%
 
