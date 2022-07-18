@@ -133,6 +133,10 @@ static Proto builtin_func[] = {
     {"卡牌列表", TCardList, false, {.s = NULL}},
     {"技能名", TString, false, {.s = NULL}},
   }},
+  {"__getUsedTimes", "fkp.functions.getUsedTimes", TNumber, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"技能名", TString, false, {.s = NULL}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 

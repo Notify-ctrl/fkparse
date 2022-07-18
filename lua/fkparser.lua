@@ -14,7 +14,7 @@ fkp.functions = {
   end,
 
   at = function(arr, i)
-    return arr:at(i)
+    return arr:at(i - 1)
   end,
 ---------------------------------
   drawCards = function(p, n)
@@ -131,6 +131,10 @@ fkp.functions = {
     end
     room:moveCardsAtomic(moves, true)
   end,
+
+  getUsedTimes = function(player, skill)
+    return player:usedTimes('#' .. skill)
+  end
 }
 
 function fkp.newlist(t)
@@ -244,7 +248,7 @@ function fkp.CreateActiveSkill(spec)
     end,
     on_effect = spec.on_effect or function()end,  -- TODO
     feasible = function(self, targets)
-      local plist = sgs.SPlayerList()
+      local plist = sgs.PlayerList()
       for _, p in ipairs(targets) do
         plist:append(p)
       end
@@ -255,11 +259,15 @@ function fkp.CreateActiveSkill(spec)
       return spec.feasible(self, plist, clist)
     end,
     filter = function(self, targets, to_select)
-      local plist = sgs.SPlayerList()
+      local plist = sgs.PlayerList()
       for _, p in ipairs(targets) do
         plist:append(p)
       end
-      return spec.target_filter(self, plist, to_select)
+      local clist = sgs.CardList()
+      for _, id in sgs.list(self:getSubcards()) do
+        clist:append(sgs.Sanguosha:getCard(id))
+      end
+      return spec.target_filter(self, plist, to_select, clist)
     end,
   }
 

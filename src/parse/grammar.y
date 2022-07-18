@@ -8,6 +8,9 @@
 
 /* For travering List in switch-case. */
 static List *iter;
+
+static ExpressionObj *tempExp;
+
 #define YYDEBUG 1
 int yydebug = 0;
 
@@ -80,7 +83,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token MEI MARK HIDDEN COUNT
 %token FROM SELECT ANITEM ANPLAYER
 %token INVOKE HAVE
-%token BECAUSE THROW
+%token BECAUSE THROW TIMES
 
 %type <list> funcdefList defargs defarglist skillList packageList generalList
 %type <list> stringList skillspecs triggerSkill triggerspecs
@@ -112,7 +115,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <func_call> askForSkillInvoke obtainCard hasSkill
 %type <func_call> arrayPrepend arrayAppend arrayRemoveOne arrayAt
 %type <func_call> loseMaxHp recoverMaxHp
-%type <func_call> throwCardsBySkill
+%type <func_call> throwCardsBySkill getUsedTimes
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -407,6 +410,7 @@ action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
             | arrayAt { $$ = $1; yycopyloc($$, &@$); }
             | hasSkill { $$ = $1; yycopyloc($$, &@$); }
             | throwCardsBySkill { $$ = $1; yycopyloc($$, &@$); }
+            | getUsedTimes { $$ = $1; yycopyloc($$, &@$); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD {
@@ -604,6 +608,17 @@ throwCardsBySkill : exp BECAUSE SKILL exp THROW CARD exp {
                         newParams(3, "玩家", $1, "卡牌列表", $7, "技能名", $4)
                       );
                     }
+                  ;
+
+getUsedTimes  : exp INVOKE ACTIVE STRING FIELD TIMES {
+                  tempExp = newExpression(ExpStr, 0, 0, NULL, NULL);
+                  tempExp->strvalue = $4;
+                  $$ = newFunccall(
+                        strdup("__getUsedTimes"),
+                        newParams(2, "玩家", $1, "技能名", tempExp)
+                      );
+                }
+              ;
 
 %%
 

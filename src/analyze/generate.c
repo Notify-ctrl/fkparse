@@ -936,9 +936,10 @@ static void analyzeActiveSpec(ActiveSpecObj *a) {
   stack_push(symtab_stack, cast(Object *, param_symtab));
   sym_new_entry("你", TPlayer, "sgs.Self", true);
   sym_new_entry("已选目标", TPlayerList, "targets", true);
-  sym_new_entry("备选目标", TCard, "to_select", true);
+  sym_new_entry("备选目标", TPlayer, "to_select", true);
+  sym_new_entry("已选卡牌", TCardList, "selected", true);
 
-  writeline("target_filter = function(self, targets, to_select)");
+  writeline("target_filter = function(self, targets, to_select, selected)");
   indent_level++;
   analyzeBlock(a->target_filter);
   indent_level--;

@@ -110,6 +110,7 @@ static int yycolumn = 1;
 
 "因" { return BECAUSE; }
 "弃置"    { return THROW; }
+"次数"    { return TIMES; }
 
 "游戏开始时"     { yylval->enum_v = GameStart; return EVENT; }
 "回合即将开始时"   { yylval->enum_v = TurnStart; return EVENT; }
