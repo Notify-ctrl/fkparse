@@ -125,6 +125,7 @@ static void printPosAnnonation(YYLTYPE *loc, Bound *bound) {
 }
 
 void yyerror(YYLTYPE *loc, const char *msg, ...) {
+  error_occured = 1;
   size_t source_line_length;
   char *source_line = getLineOfSource(loc->first_line, &source_line_length);
   if (!source_line)

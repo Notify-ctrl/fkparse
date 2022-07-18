@@ -217,6 +217,7 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
             | BREAK { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Break; }
             | func_call { $$ = cast(Object *, $1); }
             | action_stat { $$ = cast(Object *, $1); }
+            | error { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Break; }
             ;
 
 assign_stat : LET var EQ exp { $$ = newAssign($2, $4); }

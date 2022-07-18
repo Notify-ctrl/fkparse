@@ -9,6 +9,7 @@
 extern FILE *in_file;
 extern FILE *yyin;
 extern FILE *yyout;
+extern int error_occured;
 int yylex_destroy();
 int yyparse();
 
