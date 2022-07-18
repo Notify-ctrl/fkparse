@@ -21,6 +21,11 @@ static struct {
   {"EVENTI",        "‘时机:’"},
   {"COND",          "‘条件:’"},
   {"EFFECT",        "‘效果:’"},
+  {"ACTIVE",        "‘主动技’"},
+  {"CARD_FILTER",   "‘选牌规则:’"},
+  {"TARGET_FILTER", "‘选目标规则:’"},
+  {"FEASIBLE",      "‘可以点确定:’"},
+  {"ON_USE",        "‘使用后:’"},
   {"FUNCDEF",       "‘定义函数’"},
   {"EVENT",         "<触发时机>"},
   {"LET",           "‘令’"},
@@ -78,6 +83,9 @@ static struct {
   {"ANPLAYER",      "‘一名角色’"},
   {"INVOKE",        "‘发动’"},
   {"HAVE",          "‘拥有’"},
+  {"BECAUSE",       "‘因’"},
+  {"THROW",         "‘弃置’"},
+  {"TIMES",         "‘次数’"},
   {"'{'",           "'{'"},
   {"'}'",           "'}'"},
   {"','",           "','"},
@@ -130,25 +138,27 @@ static struct {
   {"action",        "<动作>"},
   {"drawCards",     "摸牌"},
   {"loseHp",        "失去体力"},
-  {"loseMaxHp", ""},
-  {"causeDamage", ""},
-  {"inflictDamage", ""},
-  {"recoverHp", ""},
-  {"recoverMaxHp", ""},
-  {"acquireSkill", ""},
-  {"detachSkill", ""},
-  {"addMark", ""},
-  {"loseMark", ""},
-  {"getMark", ""},
-  {"askForChoice", ""},
-  {"askForChoosePlayer", ""},
-  {"askForSkillInvoke", ""},
-  {"obtainCard", ""},
-  {"arrayPrepend", ""},
-  {"arrayAppend", ""},
-  {"arrayRemoveOne", ""},
-  {"arrayAt", ""},
-  {"hasSkill", ""},
+  {"loseMaxHp",     "失去体力上限"},
+  {"causeDamage",   "造成伤害"},
+  {"inflictDamage", "受到伤害"},
+  {"recoverHp",     "回复体力"},
+  {"recoverMaxHp",  "回复体力上限"},
+  {"acquireSkill",  "获得技能"},
+  {"detachSkill",   "失去技能"},
+  {"addMark",       "获得标记"},
+  {"loseMark",      "失去标记"},
+  {"getMark",       "统计标记数量"},
+  {"askForChoice",  "询问选择选项"},
+  {"askForChoosePlayer",  "询问选择玩家"},
+  {"askForSkillInvoke",   "询问发动技能"},
+  {"obtainCard",    "获得卡牌"},
+  {"arrayPrepend",  "插入元素"},
+  {"arrayAppend",   "追加元素"},
+  {"arrayRemoveOne",      "删除元素"},
+  {"arrayAt",       "获得数组的信息"},
+  {"hasSkill",      "拥有技能"},
+  {"throwCardsBySkill",   "因发动技能而弃牌"},
+  {"getUsedTimes",        "主动技的发动次数"},
 
   {NULL, NULL},
 };
@@ -178,19 +188,34 @@ typedef struct {
   int end_display_column;
 } Bound;
 
-static char *getLineOfSource(int lineno, size_t *length) {
-  char *ret = NULL;
+/* 辣鸡Windows不给用getline函数 */
+static char *getLineOfSource(int lineno) {
+  char ch;
+  int startpos = 1, length = 0;
   int i = 1;
-  while (getline(&ret, length, in_file) != -1) {
-    if (i++ == lineno) {
-      fseek(in_file, 0, 0);
-      return ret;
+  while ((ch = fgetc(in_file)) != EOF) {
+    if (ch == '\n') {
+      if (i == lineno) {
+        break;
+      } else {
+        i++;
+        length = 0;
+      }
     }
+    if (i != lineno) startpos++;
+    length++;
   }
 
-  free(ret);
-  fseek(in_file, 0, 0);
-  return NULL;
+  if (i != lineno) {
+    fseek(in_file, 0, 0);
+    return NULL;
+  } else {
+    fseek(in_file, startpos, 0);
+    char *ret = malloc(length + 1);
+    fgets(ret, length + 1, in_file);
+    fseek(in_file, 0, 0);
+    return ret;
+  }
 }
 
 static char *getPrintPos(char *src, YYLTYPE *pos, YYLTYPE *newPos) {
@@ -290,8 +315,7 @@ static void printPosAnnonation(YYLTYPE *loc, Bound *bound) {
 
 void yyerror(YYLTYPE *loc, const char *msg, ...) {
   error_occured = 1;
-  size_t source_line_length;
-  char *source_line = getLineOfSource(loc->first_line, &source_line_length);
+  char *source_line = getLineOfSource(loc->first_line);
   if (!source_line)
     return;
 

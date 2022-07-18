@@ -8,8 +8,11 @@
 
 /* For travering List in switch-case. */
 static List *iter;
+
+static ExpressionObj *tempExp;
+
 #define YYDEBUG 1
-int yydebug = 1;
+int yydebug = 0;
 
 #define YYPARSE_PARAM scanner
 #define YYLEX_PARAM scanner
@@ -39,6 +42,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
   SkillObj *skill;
   SkillSpecObj *skillspec;
   TriggerSpecObj *trigger_spec;
+  ActiveSpecObj *active_spec;
 
   BlockObj *block;
   ExpressionObj *exp;
@@ -62,6 +66,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token <s> KINGDOM
 %token PKGSTART
 %token TRIGGER EVENTI COND EFFECT
+%token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
 %token FUNCDEF
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
@@ -78,6 +83,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token MEI MARK HIDDEN COUNT
 %token FROM SELECT ANITEM ANPLAYER
 %token INVOKE HAVE
+%token BECAUSE THROW TIMES
 
 %type <list> funcdefList defargs defarglist skillList packageList generalList
 %type <list> stringList skillspecs triggerSkill triggerspecs
@@ -91,6 +97,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <skill> skill
 %type <skillspec> skillspec
 %type <trigger_spec> triggerspec
+%type <active_spec> activespec
 
 %type <block> block
 %type <any> statement
@@ -108,6 +115,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <func_call> askForSkillInvoke obtainCard hasSkill
 %type <func_call> arrayPrepend arrayAppend arrayRemoveOne arrayAt
 %type <func_call> loseMaxHp recoverMaxHp
+%type <func_call> throwCardsBySkill getUsedTimes
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -202,6 +210,7 @@ skillspecs  : %empty { $$ = list_new(); }
             ;
 
 skillspec   : triggerSkill { $$ = newSkillSpec(Spec_TriggerSkill, $1); }
+            | activespec { $$ = newSkillSpec(Spec_ActiveSkill, $1); }
             ;
 
 triggerSkill  : TRIGGER triggerspecs  { $$ = $2; }
@@ -225,6 +234,12 @@ triggerspec : EVENTI EVENT EFFECT block {
                 $$ = newTriggerSpec($2, $4, $6);
                 yycopyloc($$, &@$);
               }
+            ;
+
+activespec  : ACTIVE COND block CARD_FILTER block TARGET_FILTER block FEASIBLE block ON_USE block EFFECT block
+              { $$ = newActiveSpec($3, $5, $7, $9, $11, $13); yycopyloc($$, &@$); }
+            | ACTIVE COND block CARD_FILTER block TARGET_FILTER block FEASIBLE block ON_USE block
+              { $$ = newActiveSpec($3, $5, $7, $9, $11, NULL); yycopyloc($$, &@$); }
             ;
 
 block   : statements  { $$ = newBlock($1, NULL); yycopyloc($$, &@$); }
@@ -394,6 +409,8 @@ action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
             | arrayRemoveOne { $$ = $1; yycopyloc($$, &@$); }
             | arrayAt { $$ = $1; yycopyloc($$, &@$); }
             | hasSkill { $$ = $1; yycopyloc($$, &@$); }
+            | throwCardsBySkill { $$ = $1; yycopyloc($$, &@$); }
+            | getUsedTimes { $$ = $1; yycopyloc($$, &@$); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD {
@@ -584,6 +601,24 @@ hasSkill : exp HAVE SKILL exp {
                 );
           }
          ;
+
+throwCardsBySkill : exp BECAUSE SKILL exp THROW CARD exp {
+                      $$ = newFunccall(
+                        strdup("__throwCardsBySkill"),
+                        newParams(3, "玩家", $1, "卡牌列表", $7, "技能名", $4)
+                      );
+                    }
+                  ;
+
+getUsedTimes  : exp INVOKE ACTIVE STRING FIELD TIMES {
+                  tempExp = newExpression(ExpStr, 0, 0, NULL, NULL);
+                  tempExp->strvalue = $4;
+                  $$ = newFunccall(
+                        strdup("__getUsedTimes"),
+                        newParams(2, "玩家", $1, "技能名", tempExp)
+                      );
+                }
+              ;
 
 %%
 

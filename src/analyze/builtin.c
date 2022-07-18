@@ -128,6 +128,15 @@ static Proto builtin_func[] = {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"技能", TString, false, {.s = NULL}},
   }},
+  {"__throwCardsBySkill", "fkp.functions.throwCardsBySkill", TNone, 3, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"卡牌列表", TCardList, false, {.s = NULL}},
+    {"技能名", TString, false, {.s = NULL}},
+  }},
+  {"__getUsedTimes", "fkp.functions.getUsedTimes", TNumber, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"技能名", TString, false, {.s = NULL}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 
@@ -136,7 +145,6 @@ static struct {
   char *src;
   int type;
 } reserved[] = {
-  {"你", "player", TPlayer},
   {"nil", "nil", TAny},
 
   {"魏", "'wei'", TNumber},

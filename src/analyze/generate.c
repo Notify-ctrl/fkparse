@@ -853,6 +853,12 @@ static void clearData(int event) {
 }
 
 static void analyzeTriggerSpec(TriggerSpecObj *t) {
+  Hash *param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "player", true);
+  sym_new_entry("当前目标", TPlayer, "target", true);
+
   writeline("[%s] = {", event_table[t->event]);
   indent_level++;
   writeline("-- can_trigger");
@@ -886,26 +892,155 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
 
   indent_level--;
   writeline("},");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
+}
+
+static void analyzeActiveSpec(ActiveSpecObj *a) {
+  Hash *param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "player", true);
+
+  writeline("can_use = function(self, player)");
+  indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
+  analyzeBlock(a->cond);
+  indent_level--;
+  writeline("end,\n");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+
+  param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "sgs.Self", true);
+  sym_new_entry("已选卡牌", TCardList, "selected", true);
+  sym_new_entry("备选卡牌", TCard, "to_select", true);
+
+  writeline("card_filter = function(self, selected, to_select)");
+  indent_level++;
+  analyzeBlock(a->card_filter);
+  indent_level--;
+  writeline("end,\n");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+
+  param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "sgs.Self", true);
+  sym_new_entry("已选目标", TPlayerList, "targets", true);
+  sym_new_entry("备选目标", TPlayer, "to_select", true);
+  sym_new_entry("已选卡牌", TCardList, "selected", true);
+
+  writeline("target_filter = function(self, targets, to_select, selected)");
+  indent_level++;
+  analyzeBlock(a->target_filter);
+  indent_level--;
+  writeline("end,\n");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+
+  param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "sgs.Self", true);
+  sym_new_entry("已选目标", TPlayerList, "targets", true);
+  sym_new_entry("已选卡牌", TCardList, "cards", true);
+
+  writeline("feasible = function(self, targets, cards)");
+  indent_level++;
+  analyzeBlock(a->feasible);
+  indent_level--;
+  writeline("end,\n");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+
+  param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "player", true);
+  sym_new_entry("选择的目标", TPlayerList, "targets", true);
+  sym_new_entry("选择的卡牌", TCardList, "cards", true);
+
+  writeline("on_use = function(self, player, targets, cards)");
+  indent_level++;
+  writeline("local room = player:getRoom()");
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
+  analyzeBlock(a->on_use);
+  indent_level--;
+  writeline("end,\n");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+
+  if (a->on_effect) {
+    param_symtab = hash_new();
+    current_tab = param_symtab;
+    stack_push(symtab_stack, cast(Object *, param_symtab));
+    sym_new_entry("你", TPlayer, "effect.from", true);
+    sym_new_entry("目标", TPlayer, "effect.to", true);
+    sym_new_entry("卡牌列表", TCardList, "self:getSubCards()", true);
+
+    writeline("on_effect = function(self, effect)");
+    indent_level++;
+    writeline("local room = effect.from:getRoom()");
+    writeline("local locals = {}");
+    writeline("global_self = self\n");
+    analyzeBlock(a->on_effect);
+    indent_level--;
+    writeline("end,");
+
+    stack_pop(symtab_stack);
+    sym_free(param_symtab);
+  }
+
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
 static void analyzeSkill(SkillObj *s) {
   List *node;
 
-  writeline("%s = fkp.CreateTriggerSkill{", s->interid);
-  indent_level++;
-  writeline("name = '%s',", s->interid);
-  writeline("frequency = %s,", sym_lookup(s->frequency)->origtext);
-  writeline("specs = {");
-  indent_level++;
-  list_foreach(node, s->triggerSpecs) {
-    analyzeTriggerSpec(cast(TriggerSpecObj *, node->data));
+  if (s->activeSpec) {
+    writeline("%s_ac = fkp.CreateActiveSkill{", s->interid);
+    indent_level++;
+    writeline("name = '%s',", s->interid);
+    analyzeActiveSpec(s->activeSpec);
+    indent_level--;
+    writeline("}");
+    if (!s->triggerSpecs)
+      writeline("if not sgs.Sanguosha:getSkill('%s') then \
+all_skills:append(%s_ac) end\n", s->interid, s->interid);
   }
-  indent_level--;
-  writeline("}");
-  indent_level--;
-  writeline("}");
-  writeline("if not sgs.Sanguosha:getSkill('%s') then \
+
+  if (s->triggerSpecs) {
+    writeline("%s = fkp.CreateTriggerSkill{", s->interid);
+    indent_level++;
+    writeline("name = '%s',", s->interid);
+    writeline("frequency = %s,", sym_lookup(s->frequency)->origtext);
+    if (s->activeSpec)
+      writeline("view_as_skill = %s_ac,", s->interid);
+    writeline("specs = {");
+    indent_level++;
+    list_foreach(node, s->triggerSpecs) {
+      analyzeTriggerSpec(cast(TriggerSpecObj *, node->data));
+    }
+    indent_level--;
+    writeline("}");
+    indent_level--;
+    writeline("}");
+    writeline("if not sgs.Sanguosha:getSkill('%s') then \
 all_skills:append(%s) end\n", s->interid, s->interid);
+  }
 }
 
 static void analyzeGeneral(GeneralObj *g) {

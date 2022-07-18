@@ -13,7 +13,6 @@ typedef struct {
 
 ExtensionObj *newExtension(List *funcs, List *skills, List *packs);
 void analyzeExtension(ExtensionObj *e);
-void freeExtension(ExtensionObj *e);
 
 typedef struct {
   ObjectHeader;
@@ -48,6 +47,7 @@ typedef struct {
   int internal_id;
 
   List *triggerSpecs;
+  struct ActiveSpecObj *activeSpec;
   /* TODO: other skill specs */
 } SkillObj;
 
@@ -115,6 +115,7 @@ void freeFuncdef(void *ptr);
 
 typedef enum {
   Spec_TriggerSkill,
+  Spec_ActiveSkill,
 } SpecType;
 
 typedef struct {
@@ -134,6 +135,20 @@ typedef struct {
 } TriggerSpecObj;
 
 TriggerSpecObj *newTriggerSpec(int event, BlockObj *cond, BlockObj *effect);
+
+typedef struct ActiveSpecObj {
+  ObjectHeader;
+  BlockObj *cond;
+  BlockObj *card_filter;
+  BlockObj *target_filter;
+  BlockObj *feasible;
+  BlockObj *on_use;
+  BlockObj *on_effect;
+} ActiveSpecObj;
+
+ActiveSpecObj *newActiveSpec(BlockObj *cond, BlockObj *card_filter,
+                             BlockObj *target_filter, BlockObj *feasible,
+                             BlockObj *on_use, BlockObj *on_effect);
 
 typedef struct {
   ObjectHeader;

@@ -14,7 +14,7 @@ fkp.functions = {
   end,
 
   at = function(arr, i)
-    return arr:at(i)
+    return arr:at(i - 1)
   end,
 ---------------------------------
   drawCards = function(p, n)
@@ -70,7 +70,7 @@ fkp.functions = {
   addMark = function(player, mark, count, hidden)
     local room = player:getRoom()
     if hidden then
-      mark = string.gsub(mark, "@", "%")
+      mark = string.gsub(mark, "@", "_")
     end
 
     if hidden then
@@ -83,7 +83,7 @@ fkp.functions = {
   loseMark = function(player, mark, count, hidden)
     local room = player:getRoom()
     if hidden then
-      mark = string.gsub(mark, "@", "%")
+      mark = string.gsub(mark, "@", "_")
     end
 
     if hidden then
@@ -93,9 +93,9 @@ fkp.functions = {
     end
   end,
 
-  getMark = function(player, mark, count, hidden)
+  getMark = function(player, mark, hidden)
     if hidden then
-      mark = string.gsub(mark, "@", "%")
+      mark = string.gsub(mark, "@", "_")
     end
 
     return player:getMark(mark)
@@ -120,6 +120,21 @@ fkp.functions = {
   hasSkill = function(player, skill)
     return player:hasSkill(skill)
   end,
+
+  throwCardsBySkill = function(player, cards, skill_name)
+    local room = player:getRoom()
+    local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_THROW, player:objectName(), "", skill_name, "")
+    local moves = sgs.CardsMoveList()
+    for _, cd in sgs.list(cards) do
+      local move = sgs.CardsMoveStruct(cd:getId(), nil, sgs.Player_DiscardPile, reason)
+      moves:append(move)
+    end
+    room:moveCardsAtomic(moves, true)
+  end,
+
+  getUsedTimes = function(player, skill)
+    return player:usedTimes('#' .. skill)
+  end
 }
 
 function fkp.newlist(t)
@@ -195,6 +210,7 @@ function fkp.CreateTriggerSkill(spec)
     name = spec.name,
     frequency = freq,
     limit_mark = limit,
+    view_as_skill = spec.view_as_skill,
     events = eve,
     on_trigger = function(self, event, player, data)
       local room = player:getRoom()
@@ -210,4 +226,73 @@ function fkp.CreateTriggerSkill(spec)
     end
   }
 
+end
+
+function fkp.CreateActiveSkill(spec)
+  assert(type(spec.name) == "string")
+
+  local skill_card = sgs.CreateSkillCard{
+    name = spec.name,
+    target_fixed = false,
+    will_throw = false,
+    on_use = function(self, room, source, targets)
+      local plist = sgs.SPlayerList()
+      for _, p in ipairs(targets) do
+        plist:append(p)
+      end
+      local clist = sgs.CardList()
+      for _, id in sgs.list(self:getSubcards()) do
+        clist:append(sgs.Sanguosha:getCard(id))
+      end
+      return spec.on_use(self, source, plist, clist)
+    end,
+    on_effect = spec.on_effect or function()end,  -- TODO
+    feasible = function(self, targets)
+      local plist = sgs.PlayerList()
+      for _, p in ipairs(targets) do
+        plist:append(p)
+      end
+      local clist = sgs.CardList()
+      for _, id in sgs.list(self:getSubcards()) do
+        clist:append(sgs.Sanguosha:getCard(id))
+      end
+      return spec.feasible(self, plist, clist)
+    end,
+    filter = function(self, targets, to_select)
+      local plist = sgs.PlayerList()
+      for _, p in ipairs(targets) do
+        plist:append(p)
+      end
+      local clist = sgs.CardList()
+      for _, id in sgs.list(self:getSubcards()) do
+        clist:append(sgs.Sanguosha:getCard(id))
+      end
+      return spec.target_filter(self, plist, to_select, clist)
+    end,
+  }
+
+  local vs_skill = sgs.CreateViewAsSkill{
+    name = spec.name,
+    n = 996,
+    view_filter = function(self, selected, to_select)
+      local clist = sgs.CardList()
+      for _, c in ipairs(selected) do
+        clist:append(c)
+      end
+      return spec.card_filter(self, clist, to_select)
+    end,
+    view_as = function(self, cards)
+      local card = skill_card:clone()
+      for _, c in ipairs(cards) do
+        card:addSubcard(c)
+      end
+      return card
+    end,
+    enabled_at_play = spec.can_use,
+    enabled_at_response = function(self, player, pattern)
+      return pattern == "@@" .. spec.name
+    end,
+  }
+
+  return vs_skill
 end
