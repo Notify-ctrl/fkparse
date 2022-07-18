@@ -3,13 +3,28 @@
 #include "enums.h"
 #include "ast.h"
 #include "object.h"
+#include "grammar.h"
+#include "error.h"
 
 /* For travering List in switch-case. */
 static List *iter;
+#define YYDEBUG 1
+int yydebug = 1;
+
+#define YYPARSE_PARAM scanner
+#define YYLEX_PARAM scanner
+
+int yylex(YYSTYPE *yylval_param, YYLTYPE *yylloc_param);
+static void yycopyloc(void *p, YYLTYPE *loc) {
+  Object *dst = p;
+  dst->first_line = loc->first_line;
+  dst->first_column = loc->first_column;
+  dst->last_line = loc->last_line;
+  dst->last_column = loc->last_column;
+}
 %}
 
 %union {
-  struct ast *a;
   int enum_v;
   long long i;
   char *s;
@@ -22,6 +37,7 @@ static List *iter;
   PackageObj *package;
   GeneralObj *general;
   SkillObj *skill;
+  SkillSpecObj *skillspec;
   TriggerSpecObj *trigger_spec;
 
   BlockObj *block;
@@ -34,6 +50,7 @@ static List *iter;
   TraverseObj *traverse;
   AssignObj *assign;
   FunccallObj *func_call;
+  ArgObj *arg;
 }
 
 %token <i> NUMBER
@@ -72,7 +89,7 @@ static List *iter;
 %type <package> package
 %type <general> general
 %type <skill> skill
-%type <a> skillspec
+%type <skillspec> skillspec
 %type <trigger_spec> triggerspec
 
 %type <block> block
@@ -82,7 +99,7 @@ static List *iter;
 %type <assign> assign_stat
 %type <if_stat> if_stat
 %type <loop> loop_stat
-%type <a> arg
+%type <arg> arg
 %type <func_call> action_stat action
 %type <func_call> drawCards loseHp causeDamage inflictDamage recoverHp
 %type <func_call> acquireSkill detachSkill
@@ -96,15 +113,26 @@ static List *iter;
 %type <var> var
 %type <func_call> func_call
 
+%destructor {} <enum_v>
+%destructor {} <i>
+%destructor { free($$); } <s>
+%destructor { list_free($$, freeObject); } <list>
+%destructor { hash_free($$, freeObject); } <hash>
+%destructor { freeObject($$); } <*>
+
 %start extension
-%define parse.error detailed
+%define parse.error custom
+// %verbose
 %define parse.trace
+%define api.pure full
+%locations
 
 %%
 
 extension : funcdefList skillList packageList
               {
                 extension = newExtension($1, $2, $3);
+                yycopyloc(extension, &@$);
                 YYACCEPT;
               }
           ;
@@ -112,14 +140,14 @@ extension : funcdefList skillList packageList
 funcdefList : %empty { $$ = list_new(); }
             | funcdefList funcdef {
                 $$ = $1;
-                list_append($1, cast(Object *, $2));
+                list_append($$, cast(Object *, $2));
               }
             ;
 
 funcdef : FUNCDEF IDENTIFIER defargs block
-          { $$ = newFuncdef($2, $3, TNone, $4); }
+          { $$ = newFuncdef($2, $3, TNone, $4); yycopyloc($$, &@$); }
         | FUNCDEF IDENTIFIER defargs RETURN TYPE block
-          { $$ = newFuncdef($2, $3, $5, $6); }
+          { $$ = newFuncdef($2, $3, $5, $6); yycopyloc($$, &@$); }
         ;
 
 defargs : '{' defarglist '}' { $$ = $2; }
@@ -137,9 +165,9 @@ defarglist  : defarglist ',' defarg {
             ;
 
 defarg : IDENTIFIER ':' TYPE
-         { $$ = newDefarg($1, $3, NULL); }
+         { $$ = newDefarg($1, $3, NULL); yycopyloc($$, &@$); }
        | IDENTIFIER ':' TYPE '=' exp
-         { $$ = newDefarg($1, $3, $5); }
+         { $$ = newDefarg($1, $3, $5); yycopyloc($$, &@$); }
        ;
 
 skillList : %empty { $$ = list_new(); }
@@ -152,14 +180,17 @@ skillList : %empty { $$ = list_new(); }
 skill     : '$' IDENTIFIER STRING FREQUENCY INTERID skillspecs
               {
                 $$ = newSkill($2, $3, $4, $5, $6);
+                yycopyloc($$, &@$);
               }
           | '$' IDENTIFIER STRING FREQUENCY skillspecs
               {
                 $$ = newSkill($2, $3, $4, NULL, $5);
+                yycopyloc($$, &@$);
               }
           | '$' IDENTIFIER STRING skillspecs
               {
                 $$ = newSkill($2, $3, NULL, NULL, $4);
+                yycopyloc($$, &@$);
               }
           ;
 
@@ -170,7 +201,7 @@ skillspecs  : %empty { $$ = list_new(); }
               }
             ;
 
-skillspec   : triggerSkill { $$ = newast(N_TriggerSkill, NULL, cast(struct ast *, $1)); }
+skillspec   : triggerSkill { $$ = newSkillSpec(Spec_TriggerSkill, $1); }
             ;
 
 triggerSkill  : TRIGGER triggerspecs  { $$ = $2; }
@@ -186,16 +217,22 @@ triggerspecs  : triggerspec {
                 }
               ;
 
-triggerspec : EVENTI EVENT EFFECT block { $$ = newTriggerSpec($2, NULL, $4); }
-            | EVENTI EVENT COND block EFFECT block { $$ = newTriggerSpec($2, $4, $6); }
+triggerspec : EVENTI EVENT EFFECT block {
+                $$ = newTriggerSpec($2, NULL, $4);
+                yycopyloc($$, &@$);
+              }
+            | EVENTI EVENT COND block EFFECT block {
+                $$ = newTriggerSpec($2, $4, $6);
+                yycopyloc($$, &@$);
+              }
             ;
 
-block   : statements  { $$ = newBlock($1, NULL); }
-        | statements retstat  { $$ = newBlock($1, $2); }
+block   : statements  { $$ = newBlock($1, NULL); yycopyloc($$, &@$); }
+        | statements retstat  { $$ = newBlock($1, $2); yycopyloc($$, &@$); }
         ;
 
 statements  : %empty { $$ = list_new(); }
-            | statements statement { $$ = $1; list_append($1, cast(Object *, $2)); }
+            | statements statement { $$ = $1; list_append($$, cast(Object *, $2)); }
             ;
 
 statement   : assign_stat { $$ = cast(Object *, $1); }
@@ -205,30 +242,30 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
             | BREAK { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Break; }
             | func_call { $$ = cast(Object *, $1); }
             | action_stat { $$ = cast(Object *, $1); }
+            | error { $$ = NULL; }
             ;
 
-assign_stat : LET var EQ exp { $$ = newAssign($2, $4); }
+assign_stat : LET var EQ exp { $$ = newAssign($2, $4); yycopyloc($$, &@$); }
             ;
 
-if_stat : IF exp THEN block END { $$ = newIf($2, $4, NULL); }
-        | IF exp THEN block ELSE block END { $$ = newIf($2, $4, $6); }
+if_stat : IF exp THEN block END { $$ = newIf($2, $4, NULL); yycopyloc($$, &@$); }
+        | IF exp THEN block ELSE block END { $$ = newIf($2, $4, $6); yycopyloc($$, &@$); }
         ;
 
-loop_stat : REPEAT block UNTIL exp { $$ = newLoop($2, $4); }
+loop_stat : REPEAT block UNTIL exp { $$ = newLoop($2, $4); yycopyloc($$, &@$); }
           ;
 
 traverse_stat : TO exp IN EVERY IDENTIFIER REPEAT block END
-                { $$ = newTraverse($2, $5, $7); }
+                { $$ = newTraverse($2, $5, $7); yycopyloc($$, &@$); }
               ;
 
-func_call : CALL IDENTIFIER args { $$ = newFunccall($2, $3); }
+func_call : CALL IDENTIFIER args { $$ = newFunccall($2, $3); yycopyloc($$, &@$); }
           ;
 
 args : '{' arglist '}' {
           $$ = hash_new();
           list_foreach(iter, $2) {
-            hash_set($$, cast(const char *, cast(struct ast *, iter->data)->l),
-                    cast(void *, cast(struct ast *, iter->data)->r));
+            hash_set($$, cast(ArgObj *, iter->data)->name, cast(ArgObj *, iter->data)->exp);
             free(iter->data);
           }
           list_free($2, NULL);
@@ -242,36 +279,37 @@ arglist : arglist ',' arg { $$ = $1; list_append($$, cast(Object *, $3)); }
 
 arg : IDENTIFIER ':' exp {
         $3->param_name = $1;
-        $$ = newast(N_Arg, cast(struct ast *, $1), cast(struct ast *, $3));
+        $$ = newArg($1, $3);
       }
     ;
 
-exp : FALSE { $$ = newExpression(ExpBool, 0, 0, NULL, NULL); }
-    | TRUE { $$ = newExpression(ExpBool, 1, 0, NULL, NULL); }
-    | NUMBER { $$ = newExpression(ExpNum, $1, 0, NULL, NULL); }
-    | STRING { $$ = newExpression(ExpStr, 0, 0, NULL, NULL); $$->strvalue = $1; }
+exp : FALSE { $$ = newExpression(ExpBool, 0, 0, NULL, NULL); yycopyloc($$, &@$); }
+    | TRUE { $$ = newExpression(ExpBool, 1, 0, NULL, NULL); yycopyloc($$, &@$); }
+    | NUMBER { $$ = newExpression(ExpNum, $1, 0, NULL, NULL); yycopyloc($$, &@$); }
+    | STRING { $$ = newExpression(ExpStr, 0, 0, NULL, NULL); $$->strvalue = $1; yycopyloc($$, &@$); }
     | prefixexp { $$ = $1; }
     | opexp { $$ = $1; }
     | '(' action_stat ')'
       {
         $$ = newExpression(ExpFunc, 0, 0, NULL, NULL);
         $$->func = $2;
+        yycopyloc($$, &@$);
       }
-    | array { $$ = newExpression(ExpArray, 0, 0, NULL, NULL); $$->array = $1; }
+    | array { $$ = newExpression(ExpArray, 0, 0, NULL, NULL); $$->array = $1; yycopyloc($$, &@$); }
     ;
 
-prefixexp : var { $$ = newExpression(ExpVar, 0, 0, NULL, NULL); $$->varValue = $1; }
+prefixexp : var { $$ = newExpression(ExpVar, 0, 0, NULL, NULL); $$->varValue = $1; yycopyloc($$, &@$); }
       | '(' func_call ')'
-          { $$ = newExpression(ExpFunc, 0, 0, NULL, NULL); $$->func = $2; }
-      | '(' exp ')' { $$ = $2; $$->bracketed = 1; }
+          { $$ = newExpression(ExpFunc, 0, 0, NULL, NULL); $$->func = $2; yycopyloc($$, &@$); }
+      | '(' exp ')' { $$ = $2; $$->bracketed = 1; yycopyloc($$, &@$); }
       ;
 
-opexp : exp CMP exp { $$ = newExpression(ExpCmp, 0, $2, $1, $3); }
-      | exp LOGICOP exp { $$ = newExpression(ExpLogic, 0, $2, $1, $3); }
-      | exp '+' exp { $$ = newExpression(ExpCalc, 0, '+', $1, $3); }
-      | exp '-' exp { $$ = newExpression(ExpCalc, 0, '-', $1, $3); }
-      | exp '*' exp { $$ = newExpression(ExpCalc, 0, '*', $1, $3); }
-      | exp '/' exp { $$ = newExpression(ExpCalc, 0, '/', $1, $3); }
+opexp : exp CMP exp { $$ = newExpression(ExpCmp, 0, $2, $1, $3); yycopyloc($$, &@$); }
+      | exp LOGICOP exp { $$ = newExpression(ExpLogic, 0, $2, $1, $3); yycopyloc($$, &@$); }
+      | exp '+' exp { $$ = newExpression(ExpCalc, 0, '+', $1, $3); yycopyloc($$, &@$); }
+      | exp '-' exp { $$ = newExpression(ExpCalc, 0, '-', $1, $3); yycopyloc($$, &@$); }
+      | exp '*' exp { $$ = newExpression(ExpCalc, 0, '*', $1, $3); yycopyloc($$, &@$); }
+      | exp '/' exp { $$ = newExpression(ExpCalc, 0, '/', $1, $3); yycopyloc($$, &@$); }
       ;
 
 explist : exp { $$ = list_new(); list_append($$, cast(Object *, $1)); }
@@ -282,8 +320,8 @@ array : '[' ']' { $$ = list_new(); }
       | '[' explist ']' { $$ = $2; }
       ;
 
-var : IDENTIFIER { $$ = newVar($1, NULL); }
-    | prefixexp FIELD STRING { $$ = newVar($3, $1); }
+var : IDENTIFIER { $$ = newVar($1, NULL); yycopyloc($$, &@$); }
+    | prefixexp FIELD STRING { $$ = newVar($3, $1); yycopyloc($$, &@$); }
     ;
 
 retstat : RET exp { $$ = $2; }
@@ -296,7 +334,7 @@ packageList : package { $$ = list_new(); list_append($$, cast(Object *, $1)); }
               }
             ;
 
-package     : PKGSTART IDENTIFIER generalList { $$ = newPackage($2, $3); }
+package     : PKGSTART IDENTIFIER generalList { $$ = newPackage($2, $3); yycopyloc($$, &@$); }
             ;
 
 generalList : %empty { $$ = list_new(); }
@@ -309,14 +347,17 @@ generalList : %empty { $$ = list_new(); }
 general     : '#' KINGDOM STRING IDENTIFIER NUMBER GENDER INTERID '[' stringList ']'
                 {
                   $$ = newGeneral($4, $2, $5, $3, $6, $7, $9);
+                  yycopyloc($$, &@$);
                 }
             | '#' KINGDOM STRING IDENTIFIER NUMBER GENDER '[' stringList ']'
                 {
                   $$ = newGeneral($4, $2, $5, $3, $6, NULL, $8);
+                  yycopyloc($$, &@$);
                 }
             | '#' KINGDOM STRING IDENTIFIER NUMBER '[' stringList ']'
                 {
                   $$ = newGeneral($4, $2, $5, $3, NULL, NULL, $7);
+                  yycopyloc($$, &@$);
                 }
             ;
 
@@ -332,27 +373,27 @@ action_stat : action { $$ = $1; }
             | action args { $$ = $1; hash_copy($$->params, $2); }
             ;
 
-action      : drawCards { $$ = $1; }
-            | loseHp { $$ = $1; }
-            | loseMaxHp { $$ = $1; }
-            | causeDamage { $$ = $1; }
-            | inflictDamage { $$ = $1; }
-            | recoverHp { $$ = $1; }
-            | recoverMaxHp { $$ = $1; }
-            | acquireSkill { $$ = $1; }
-            | detachSkill { $$ = $1; }
-            | addMark { $$ = $1; }
-            | loseMark { $$ = $1; }
-            | getMark { $$ = $1; }
-            | askForChoice { $$ = $1; }
-            | askForChoosePlayer { $$ = $1; }
-            | askForSkillInvoke { $$ = $1; }
-            | obtainCard { $$ = $1; }
-            | arrayPrepend { $$ = $1; }
-            | arrayAppend { $$ = $1; }
-            | arrayRemoveOne { $$ = $1; }
-            | arrayAt { $$ = $1; }
-            | hasSkill { $$ = $1; }
+action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
+            | loseHp { $$ = $1; yycopyloc($$, &@$); }
+            | loseMaxHp { $$ = $1; yycopyloc($$, &@$); }
+            | causeDamage { $$ = $1; yycopyloc($$, &@$); }
+            | inflictDamage { $$ = $1; yycopyloc($$, &@$); }
+            | recoverHp { $$ = $1; yycopyloc($$, &@$); }
+            | recoverMaxHp { $$ = $1; yycopyloc($$, &@$); }
+            | acquireSkill { $$ = $1; yycopyloc($$, &@$); }
+            | detachSkill { $$ = $1; yycopyloc($$, &@$); }
+            | addMark { $$ = $1; yycopyloc($$, &@$); }
+            | loseMark { $$ = $1; yycopyloc($$, &@$); }
+            | getMark { $$ = $1; yycopyloc($$, &@$); }
+            | askForChoice { $$ = $1; yycopyloc($$, &@$); }
+            | askForChoosePlayer { $$ = $1; yycopyloc($$, &@$); }
+            | askForSkillInvoke { $$ = $1; yycopyloc($$, &@$); }
+            | obtainCard { $$ = $1; yycopyloc($$, &@$); }
+            | arrayPrepend { $$ = $1; yycopyloc($$, &@$); }
+            | arrayAppend { $$ = $1; yycopyloc($$, &@$); }
+            | arrayRemoveOne { $$ = $1; yycopyloc($$, &@$); }
+            | arrayAt { $$ = $1; yycopyloc($$, &@$); }
+            | hasSkill { $$ = $1; yycopyloc($$, &@$); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD {
@@ -545,3 +586,37 @@ hasSkill : exp HAVE SKILL exp {
          ;
 
 %%
+
+static int yyreport_syntax_error(const yypcontext_t *ctx) {
+  int res = 0;
+  char buf[2048];
+  char buf2[1024];
+  YYLTYPE *loc = yypcontext_location(ctx);
+  sprintf(buf, "语法错误");
+  // Report the unexpected token.
+  {
+    yysymbol_kind_t lookahead = yypcontext_token(ctx);
+    if (lookahead != YYSYMBOL_YYEMPTY) {
+      sprintf(buf2, ": 未预料到的符号 %s", yytr(yysymbol_name(lookahead)));
+      strcat(buf, buf2);
+    }
+  }
+  // Report the tokens expected at this point.
+  {
+    enum { TOKENMAX = 5 };
+    yysymbol_kind_t expected[TOKENMAX];
+    int n = yypcontext_expected_tokens(ctx, expected, TOKENMAX);
+    if (n < 0)
+      // Forward errors to yyparse.
+      res = n;
+    else
+      for (int i = 0; i < n; ++i) {
+        sprintf(buf2, "%s %s", i == 0 ? "， 需要" : " 或者",
+                yytr(yysymbol_name(expected[i])));
+        strcat(buf, buf2);
+      }
+  }
+  yyerror(loc, "%s", buf);
+  return res;
+}
+

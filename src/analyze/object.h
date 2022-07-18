@@ -5,7 +5,7 @@
 #include "ast.h"
 
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
   List *funcdefs;
   List *skills;
   List *packages;
@@ -16,7 +16,7 @@ void analyzeExtension(ExtensionObj *e);
 void freeExtension(ExtensionObj *e);
 
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
   const char *id;
   int internal_id;
   List *generals;
@@ -25,7 +25,7 @@ typedef struct {
 PackageObj *newPackage(const char *name, List *generals);
 
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
   const char *id;
   const char *kingdom;
   long long hp;
@@ -40,7 +40,7 @@ GeneralObj *newGeneral(const char *id, const char *kingdom, long long hp,
                        const char *interid, List *skills);
 
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
   const char *id;
   const char *description;
   const char *frequency;
@@ -57,7 +57,7 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
 /* ------------------------ */
 
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
   List *statements; /* maybe empty */
   struct ExpressionObj *ret;
 } BlockObj;
@@ -65,7 +65,7 @@ typedef struct {
 BlockObj *newBlock(List *stats, struct ExpressionObj *e);
 
 typedef struct ExpressionObj {
-  ObjType objtype;
+  ObjectHeader;
   ExpType exptype;
   ExpVType valuetype;
   long long value;
@@ -84,7 +84,7 @@ ExpressionObj *newExpression(int exptype, long long value, int optype,
                              ExpressionObj *l, ExpressionObj *r);
 
 typedef struct VarObj {
-  ObjType objtype;
+  ObjectHeader;
   const char *name; /* or field */
   ExpressionObj *obj; /* maybe NULL */
   ExpVType type;
@@ -93,7 +93,7 @@ typedef struct VarObj {
 VarObj *newVar(const char *name, ExpressionObj *obj);
 
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
   const char *name;
   ExpVType type;
   ExpressionObj *d;
@@ -102,7 +102,7 @@ typedef struct {
 DefargObj *newDefarg(const char *name, int type, ExpressionObj *d);
 
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
   const char *funcname;
   List *params;
   int rettype;
@@ -113,8 +113,20 @@ FuncdefObj *newFuncdef(const char *name, List *params, int rettype,
                        BlockObj *funcbody);
 void freeFuncdef(void *ptr);
 
+typedef enum {
+  Spec_TriggerSkill,
+} SpecType;
+
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
+  SpecType type;
+  void *obj;
+} SkillSpecObj;
+
+SkillSpecObj *newSkillSpec(SpecType type, void *obj);
+
+typedef struct {
+  ObjectHeader;
   int event;
   BlockObj *can_trigger;
   BlockObj *on_trigger;
@@ -124,7 +136,7 @@ typedef struct {
 TriggerSpecObj *newTriggerSpec(int event, BlockObj *cond, BlockObj *effect);
 
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
   ExpressionObj *cond;
   BlockObj *then;
   BlockObj *el; /* maybe NULL */
@@ -133,7 +145,7 @@ typedef struct {
 IfObj *newIf(ExpressionObj *cond, BlockObj *then, BlockObj *el);
 
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
   BlockObj *body;
   ExpressionObj *cond;
 } LoopObj;
@@ -141,7 +153,7 @@ typedef struct {
 LoopObj *newLoop(BlockObj *body, ExpressionObj *cond);
 
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
   ExpressionObj *array;
   const char *expname;
   BlockObj *body;
@@ -151,7 +163,7 @@ TraverseObj *newTraverse(ExpressionObj *array, const char *expname,
                          BlockObj *body);
 
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
   VarObj *var;
   ExpressionObj *value;
 } AssignObj;
@@ -159,7 +171,7 @@ typedef struct {
 AssignObj *newAssign(VarObj *var, ExpressionObj *e);
 
 typedef struct FunccallObj {
-  ObjType objtype;
+  ObjectHeader;
   ExpVType rettype;
   const char *name;
   Hash *params;
@@ -167,7 +179,17 @@ typedef struct FunccallObj {
 
 FunccallObj *newFunccall(const char *name, Hash *params);
 
+typedef struct {
+  ObjectHeader;
+  const char *name;
+  ExpressionObj *exp;
+} ArgObj;
+
+ArgObj *newArg(const char *name, ExpressionObj *exp);
+
 /* e.g. newParams(2, "xxx", e: exp, "xxx2", e2, ...) */
 Hash *newParams(int param_count, ...);
+
+void freeObject(void *p);
 
 #endif

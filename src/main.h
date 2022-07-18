@@ -6,12 +6,11 @@
 #include <string.h>
 #include "object.h"
 
-extern int yylineno;
+extern FILE *in_file;
 extern FILE *yyin;
 extern FILE *yyout;
-int yylex();
+extern int error_occured;
 int yylex_destroy();
-void yyerror(const char *msg, ...);
 int yyparse();
 
 extern char *readfile_name;

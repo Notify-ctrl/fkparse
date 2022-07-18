@@ -33,6 +33,14 @@ FunccallObj *newFunccall(const char *name, Hash *params) {
   return ret;
 }
 
+ArgObj *newArg(const char *name, ExpressionObj *exp) {
+  ArgObj *ret = malloc(sizeof(ArgObj));
+  ret->objtype = Obj_Arg;
+  ret->name = name;
+  ret->exp = exp;
+  return ret;
+}
+
 Hash *mark_table;
 Hash *skill_table;
 
@@ -169,10 +177,10 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
 
   List *iter;
   list_foreach(iter, specs) {
-    struct ast *data = cast(struct ast *, iter->data);
-    switch (data->nodetype) {
-    case N_TriggerSkill:
-      ret->triggerSpecs = cast(List *, data->r);
+    SkillSpecObj *data = cast(SkillSpecObj *, iter->data);
+    switch (data->type) {
+    case Spec_TriggerSkill:
+      ret->triggerSpecs = cast(List *, data->obj);
       free(data);
       break;
     default:
@@ -263,6 +271,14 @@ FuncdefObj *newFuncdef(const char *name, List *params, int rettype,
   return ret;
 }
 
+SkillSpecObj *newSkillSpec(SpecType type, void *obj) {
+  SkillSpecObj *ret = malloc(sizeof(SkillSpecObj));
+  ret->objtype = Obj_SkillSpec;
+  ret->type = type;
+  ret->obj = obj;
+  return ret;
+}
+
 ExtensionObj *newExtension(List *funcs, List *skills, List *packs) {
   ExtensionObj *ret = malloc(sizeof(ExtensionObj));
   ret->objtype = Obj_Extension;
@@ -318,6 +334,13 @@ static void freeVar(void *ptr) {
   free((void *)v->name);
   freeExp(v->obj);
   free(v);
+}
+
+static void freeArg(void *ptr) {
+  ArgObj *a = ptr;
+  free((void *)a->name);
+  freeExp(a->exp);
+  free(a);
 }
 
 static void freeFunccall(void *ptr) {
@@ -410,6 +433,16 @@ void freeFuncdef(void *ptr) {
   free(d);
 }
 
+static void freeSkillSpec(void *ptr) {
+  SkillSpecObj *s = ptr;
+  if (s->type == Spec_TriggerSkill) {
+    list_free(s->obj, freeTriggerSpec);
+  } else {
+    freeObject(s->obj);
+  }
+  free(s);
+}
+
 static void freeSkill(void *ptr) {
   SkillObj *s = ptr;
   free((void *)s->id);
@@ -442,4 +475,30 @@ void freeExtension(ExtensionObj *e) {
   list_free(e->skills, freeSkill);
   list_free(e->packages, freePackage);
   free(e);
+}
+
+void freeObject(void *p) {
+  if (!p) return;
+  Object *obj = p;
+  switch (obj->objtype) {
+  case Obj_Extension: freeExtension(p); break;;
+  case Obj_Defarg: freeDefarg(p); break;
+  case Obj_Funcdef: freeFuncdef(p); break;
+  case Obj_Package: freePackage(p); break;
+  case Obj_General: freeGeneral(p); break;
+  case Obj_Skill: freeSkill(p); break;
+  case Obj_SkillSpec: freeSkillSpec(p); break;
+  case Obj_Card: break;
+  case Obj_Block: freeBlock(p); break;
+  case Obj_TriggerSpec: freeTriggerSpec(p); break;
+  case Obj_If: freeIf(p); break;
+  case Obj_Loop: freeLoop(p); break;
+  case Obj_Traverse: freeTraverse(p); break;
+  case Obj_Break: free(p); break;
+  case Obj_Funccall: freeFunccall(p); break;
+  case Obj_Arg: freeArg(p); break;
+  case Obj_Assign: freeAssign(p); break;
+  case Obj_Expression: freeExp(p); break;
+  case Obj_Var: freeVar(p); break;
+  }
 }

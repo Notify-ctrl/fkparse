@@ -3,6 +3,7 @@ set(fkparse_SRCS
   "parse/ast.c"
   "parse/lex.c"
   "parse/grammar.c"
+  "parse/error.c"
   "fundamental/hash.c"
   "fundamental/list.c"
   "fundamental/symtab.c"

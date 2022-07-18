@@ -3,13 +3,6 @@
 
 #include "structs.h"
 
-enum NodeType {
-  N_TriggerSkill,
-  N_Arg,
-};
-
-typedef enum NodeType NodeType;
-
 enum ExpType {
   ExpCmp,
   ExpLogic,
@@ -48,14 +41,6 @@ enum ExpVType {
 
 typedef enum ExpVType ExpVType;
 
-void checktype(ExpVType a, ExpVType t);
-
-typedef struct ast {
-  NodeType nodetype;
-  struct ast *l;
-  struct ast *r;
-} ast;
-
-struct ast *newast(NodeType nodetype, struct ast *l, struct ast *r);
+void checktype(void *o, ExpVType a, ExpVType t);
 
 #endif  // _AST_H

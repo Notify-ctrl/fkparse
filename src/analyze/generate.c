@@ -3,6 +3,7 @@
 #include "enums.h"
 #include "main.h"
 #include <stdarg.h>
+#include "error.h"
 
 static PackageObj *currentpack;
 static int indent_level = 0;
@@ -27,16 +28,6 @@ static void writeline(const char *msg, ...) {
 
   vfprintf(yyout, msg, ap);
   fprintf(yyout, "\n");
-  va_end(ap);
-}
-
-void outputError(const char *msg, ...) {
-  va_list ap;
-  va_start(ap, msg);
-
-  fprintf(error_output, "错误: ");
-  vfprintf(error_output, msg, ap);
-  fprintf(error_output, "\n");
   va_end(ap);
 }
 
@@ -70,7 +61,7 @@ static void analyzeExp(ExpressionObj *e) {
       t = TBool;
     } else {
       analyzeExp(e->oprand1);
-      checktype(e->oprand1->valuetype, TNumber);
+      checktype(e->oprand1, e->oprand1->valuetype, TNumber);
       switch (e->optype) {
         case 1: writestr(" > "); t = TBool; break;
         case 2: writestr(" < "); t = TBool; break;
@@ -79,7 +70,7 @@ static void analyzeExp(ExpressionObj *e) {
         default: writestr(" %c ", e->optype); t = TNumber; break;
       }
       analyzeExp(e->oprand2);
-      checktype(e->oprand2->valuetype, TNumber);
+      checktype(e->oprand2, e->oprand2->valuetype, TNumber);
     }
   } else if (e->exptype == ExpLogic) {
     analyzeExp(e->oprand1);
@@ -96,7 +87,7 @@ static void analyzeExp(ExpressionObj *e) {
       analyzeExp(array_item);
       writestr(", ");
       if (t != TNone && t != array_item->valuetype) {
-        outputError("数组中不能有类别不同的元素(预期类型%d，实际得到%d)", t, array_item->valuetype);
+        yyerror(cast(YYLTYPE *, e), "数组中不能有类别不同的元素(预期类型%d，实际得到%d)", t, array_item->valuetype);
         t = TNone;
         break;
       }
@@ -110,7 +101,7 @@ static void analyzeExp(ExpressionObj *e) {
       case TString: t = TStringList; break;
       case TNone: t = TEmptyList; break;
       default:
-        outputError("未知的数组元素类型%d\n", t);
+        yyerror(cast(YYLTYPE *, e), "未知的数组元素类型%d\n", t);
         break;
     }
   } else switch (e->exptype) {
@@ -157,7 +148,7 @@ static void analyzeExp(ExpressionObj *e) {
       t = e->func->rettype;
       break;
     default:
-      outputError("unknown exptype %d\n", e->exptype);
+      yyerror(cast(YYLTYPE *, e), "unknown exptype %d\n", e->exptype);
       break;
   }
 
@@ -174,12 +165,12 @@ static void analyzeVar(VarObj *v) {
       /* 在客户端用这个属性的人还是后果自负罢 */
       writestr("room:getCardPlace(");
       analyzeExp(v->obj);
-      checktype(v->obj->valuetype, TCard);
+      checktype(v->obj, v->obj->valuetype, TCard);
       writestr(":getId())");
     } else if (!strcmp(name, "持有者")) {
       writestr("room:getCardOwner(");
       analyzeExp(v->obj);
-      checktype(v->obj->valuetype, TCard);
+      checktype(v->obj, v->obj->valuetype, TCard);
       writestr(":getId())");
     } else {
       analyzeExp(v->obj);
@@ -201,7 +192,7 @@ static void analyzeVar(VarObj *v) {
             writestr(":getRoleEnum()");
             t = TNumber;
           } else {
-            outputError("无法获取 玩家 的属性 '%s'\n", name);
+            yyerror(cast(YYLTYPE *, v), "无法获取 玩家 的属性 '%s'\n", name);
             t = TNone;
           }
           break;
@@ -219,7 +210,7 @@ static void analyzeVar(VarObj *v) {
             writestr(":objectName()");
             t = TNumber;
           } else {
-            outputError("无法获取 卡牌 的属性 '%s'\n", name);
+            yyerror(cast(YYLTYPE *, v), "无法获取 卡牌 的属性 '%s'\n", name);
             t = TNone;
           }
           break;
@@ -231,12 +222,12 @@ static void analyzeVar(VarObj *v) {
             writestr(":length()");
             t = TNumber;
           } else {
-            outputError("无法获取 数组 的属性 '%s'\n", name);
+            yyerror(cast(YYLTYPE *, v), "无法获取 数组 的属性 '%s'\n", name);
             t = TNone;
           }
           break;
         default:
-          outputError("不能获取类型为%d的对象的属性\n", v->obj->valuetype);
+          yyerror(cast(YYLTYPE *, v), "不能获取类型为%d的对象的属性\n", v->obj->valuetype);
           t = TNone;
       }
     }
@@ -244,7 +235,7 @@ static void analyzeVar(VarObj *v) {
   } else {
     symtab_item *i = sym_lookup(name);
     if (!i || i->type == TNone) {
-      outputError("标识符'%s'尚未定义", name);
+      yyerror(cast(YYLTYPE *, v), "标识符'%s'尚未定义", name);
     } else {
       v->type = i->type;
       if (i->origtext)
@@ -273,7 +264,7 @@ static void analyzeAssign(AssignObj *a) {
     symtab_item *i = sym_lookup(a->var->name);
     if (i) {
       if (i->reserved) {
-        outputError("不允许重定义标识符 '%s'", a->var->name);
+        yyerror(cast(YYLTYPE *, a->var), "不允许重定义标识符 '%s'", a->var->name);
       } else {
         i->type = a->value->valuetype;
       }
@@ -318,7 +309,7 @@ static void analyzeTraverse(TraverseObj *t) {
   if (type != TCardList && type != TNumberList
     && type != TPlayerList && type != TStringList && type != TEmptyList
   ) {
-    outputError("只能对数组进行遍历操作");
+    yyerror(cast(YYLTYPE *, t->array), "只能对数组进行遍历操作");
     return;
   }
 
@@ -333,7 +324,7 @@ static void analyzeTraverse(TraverseObj *t) {
     case TNumberList: vtype = TNumberList; break;
     case TPlayerList: vtype = TPlayer; break;
     case TStringList: vtype = TString; break;
-    case TEmptyList: outputError("不允许遍历空数组"); break;
+    case TEmptyList: yyerror(cast(YYLTYPE *, t->array), "不允许遍历空数组"); break;
     default: break;
   }
   sym_new_entry(t->expname, vtype, s, false);
@@ -360,7 +351,7 @@ static void analyzeTraverse(TraverseObj *t) {
 static void analyzeFunccall(FunccallObj *f) {
   symtab_item *i = sym_lookup(f->name);
   if (!i) {
-    outputError("调用了未定义的函数“%s”", f->name);
+    yyerror(cast(YYLTYPE *, f), "调用了未定义的函数“%s”", f->name);
     return;
   }
   FuncdefObj *d = cast(FuncdefObj *, i->origtext);
@@ -380,13 +371,14 @@ static void analyzeFunccall(FunccallObj *f) {
     ExpressionObj *e = hash_get(f->params, a->name);
     if (!e) {
       if (!a->d) {
-        outputError("函数“%s”的参数“%s”没有默认值，调用时必须传入值", f->name, name);
+        yyerror(cast(YYLTYPE *, f), "调用函数“%s”时：", f->name);
+        yyerror(cast(YYLTYPE *, a), "函数“%s”的参数“%s”没有默认值，调用时必须传入值", f->name, name);
       } else {
         analyzeExp(a->d);
       }
     } else {
       analyzeExp(e);
-      checktype(e->valuetype, a->type);
+      checktype(e, e->valuetype, a->type);
     }
   }
 
@@ -401,6 +393,9 @@ void analyzeBlock(BlockObj *bl) {
   stack_push(symtab_stack, cast(Object *, current_tab));
 
   list_foreach(node, bl->statements) {
+    if (!node->data)  /* maybe error token */
+      continue;
+
     switch (node->data->objtype) {
     case Obj_Assign:
       analyzeAssign(cast(AssignObj *, node->data));
@@ -925,10 +920,11 @@ static void analyzeGeneral(GeneralObj *g) {
     const char *skill_orig = cast(const char *, node->data);
     const char *skill = hash_get(skill_table, skill_orig);
     if (!skill) {
-      /* outputError("只能为武将添加文件内的自定义技能！"); */
+      /* yyerror(cast(YYLTYPE *, g), "只能为武将添加文件内的自定义技能！"); */
       /* 还是允许添加别的技能算了，假设用户知道内部名字 */
-      printf("警告：添加的技能 “%s” 不是文件内定义的。如果你输入的技能名称不是游戏内部已经\
-自带的技能的内部名称的话，游戏将会在开始时崩溃！\n", skill_orig);
+      fprintf(error_output, "警告：为武将“%s”添加的技能 “%s” 不是文件内定义的。如果你\
+输入的技能名称不是游戏内部已经自带的技能的内部名称的话，\
+游戏将会在开始时崩溃！\n\n", g->id, skill_orig);
       skill = skill_orig;
     }
     writestr("%s:addSkill('%s')\n", orig, skill);
