@@ -211,3 +211,33 @@ function fkp.CreateTriggerSkill(spec)
   }
 
 end
+
+function fkp.CreateActiveSkill(spec)
+  assert(type(spec.name) == "string")
+
+  local skill_card = sgs.CreateSkillCard{
+    name = spec.name,
+    target_fixed = false,
+    will_throw = false,
+    on_use = spec.on_use,
+    on_effect = spec.on_effect,
+    feasible = spec.feasible,
+    filter = spec.target_filter,
+  }
+
+  local vs_skill = sgs.CreateViewAsSkill{
+    name = spec.name,
+    view_filter = spec.card_filter,
+    view_as = function(self, cards)
+      local card = skill_card:clone()
+      for _, c in ipairs(cards) do
+        card:addSubcard(c)
+      end
+      return card
+    end,
+    enabled_at_play = spec.can_use,
+    enabled_at_response = function(self, player, pattern)
+      return pattern == "@@" .. spec.name
+    end,
+  }
+end

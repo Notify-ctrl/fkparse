@@ -9,7 +9,7 @@
 /* For travering List in switch-case. */
 static List *iter;
 #define YYDEBUG 1
-int yydebug = 1;
+int yydebug = 0;
 
 #define YYPARSE_PARAM scanner
 #define YYLEX_PARAM scanner
@@ -39,6 +39,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
   SkillObj *skill;
   SkillSpecObj *skillspec;
   TriggerSpecObj *trigger_spec;
+  ActiveSpecObj *active_spec;
 
   BlockObj *block;
   ExpressionObj *exp;
@@ -62,6 +63,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token <s> KINGDOM
 %token PKGSTART
 %token TRIGGER EVENTI COND EFFECT
+%token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
 %token FUNCDEF
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
@@ -91,6 +93,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <skill> skill
 %type <skillspec> skillspec
 %type <trigger_spec> triggerspec
+%type <active_spec> activespec
 
 %type <block> block
 %type <any> statement
@@ -202,6 +205,7 @@ skillspecs  : %empty { $$ = list_new(); }
             ;
 
 skillspec   : triggerSkill { $$ = newSkillSpec(Spec_TriggerSkill, $1); }
+            | activespec { $$ = newSkillSpec(Spec_ActiveSkill, $1); }
             ;
 
 triggerSkill  : TRIGGER triggerspecs  { $$ = $2; }
@@ -225,6 +229,12 @@ triggerspec : EVENTI EVENT EFFECT block {
                 $$ = newTriggerSpec($2, $4, $6);
                 yycopyloc($$, &@$);
               }
+            ;
+
+activespec  : ACTIVE COND block CARD_FILTER block TARGET_FILTER block FEASIBLE block ON_USE block EFFECT block
+              { $$ = newActiveSpec($3, $5, $7, $9, $11, $13); yycopyloc($$, &@$); }
+            | ACTIVE COND block CARD_FILTER block TARGET_FILTER block FEASIBLE block ON_USE block
+              { $$ = newActiveSpec($3, $5, $7, $9, $11, NULL); yycopyloc($$, &@$); }
             ;
 
 block   : statements  { $$ = newBlock($1, NULL); yycopyloc($$, &@$); }

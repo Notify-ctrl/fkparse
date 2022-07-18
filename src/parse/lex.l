@@ -102,6 +102,12 @@ static int yycolumn = 1;
 "元素" { return ELEMENT; }
 "拥有"  { return HAVE; }
 
+"主动技"   { return ACTIVE; }
+"选牌规则:" { return CARD_FILTER; }
+"选目标规则:" { return TARGET_FILTER; }
+"可以点确定:"    { return FEASIBLE; }
+"使用后:"    { return ON_USE; }
+
 "游戏开始时"     { yylval->enum_v = GameStart; return EVENT; }
 "回合即将开始时"   { yylval->enum_v = TurnStart; return EVENT; }
 "阶段开始时"     { yylval->enum_v = EventPhaseStart; return EVENT; }

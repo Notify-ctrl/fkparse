@@ -115,6 +115,7 @@ void freeFuncdef(void *ptr);
 
 typedef enum {
   Spec_TriggerSkill,
+  Spec_ActiveSkill,
 } SpecType;
 
 typedef struct {
@@ -134,6 +135,20 @@ typedef struct {
 } TriggerSpecObj;
 
 TriggerSpecObj *newTriggerSpec(int event, BlockObj *cond, BlockObj *effect);
+
+typedef struct {
+  ObjectHeader;
+  BlockObj *cond;
+  BlockObj *card_filter;
+  BlockObj *target_filter;
+  BlockObj *feasible;
+  BlockObj *on_use;
+  BlockObj *on_effect;
+} ActiveSpecObj;
+
+ActiveSpecObj *newActiveSpec(BlockObj *cond, BlockObj *card_filter,
+                             BlockObj *target_filter, BlockObj *feasible,
+                             BlockObj *on_use, BlockObj *on_effect);
 
 typedef struct {
   ObjectHeader;

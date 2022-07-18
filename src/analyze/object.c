@@ -152,6 +152,21 @@ TriggerSpecObj *newTriggerSpec(int event, BlockObj *cond, BlockObj *effect) {
   return ret;
 }
 
+ActiveSpecObj *newActiveSpec(BlockObj *cond, BlockObj *card_filter,
+                             BlockObj *target_filter, BlockObj *feasible,
+                             BlockObj *on_use, BlockObj *on_effect)
+{
+  ActiveSpecObj *ret = malloc(sizeof(ActiveSpecObj));
+  ret->objtype = Obj_ActiveSpec;
+  ret->cond = cond;
+  ret->card_filter = card_filter;
+  ret->target_filter = target_filter;
+  ret->feasible = feasible;
+  ret->on_use = on_use;
+  ret->on_effect = on_effect;
+  return ret;
+}
+
 SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
                    const char *interid, List *specs) {
   SkillObj *ret = malloc(sizeof(SkillObj));
@@ -418,6 +433,17 @@ static void freeTriggerSpec(void *ptr) {
   free(t);
 }
 
+static void freeActiveSpec(void *p) {
+  ActiveSpecObj *a = p;
+  freeBlock(a->cond);
+  freeBlock(a->card_filter);
+  freeBlock(a->target_filter);
+  freeBlock(a->feasible);
+  freeBlock(a->on_use);
+  freeBlock(a->on_effect);
+  free(a);
+}
+
 static void freeDefarg(void *ptr) {
   DefargObj *d = ptr;
   free((void *)d->name);
@@ -491,6 +517,7 @@ void freeObject(void *p) {
   case Obj_Card: break;
   case Obj_Block: freeBlock(p); break;
   case Obj_TriggerSpec: freeTriggerSpec(p); break;
+  case Obj_ActiveSpec: freeActiveSpec(p); break;
   case Obj_If: freeIf(p); break;
   case Obj_Loop: freeLoop(p); break;
   case Obj_Traverse: freeTraverse(p); break;
