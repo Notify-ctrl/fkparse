@@ -1,18 +1,9 @@
 #include "main.h"
 #include "ast.h"
 #include <stdarg.h>
-/*
-void yyerror(const char *msg, ...) {
-  va_list ap;
-  va_start(ap, msg);
 
-  fprintf(error_output, "%d: error: ", yylineno);
-  vfprintf(error_output, msg, ap);
-  fprintf(error_output, "\n");
-  va_end(ap);
-}
-*/
 char *readfile_name;
+FILE *in_file;
 FILE *error_output;
 ExtensionObj *extension;
 
@@ -35,14 +26,20 @@ static void freeTranslation(void *ptr) {
 }
 
 void parse(char *filename) {
+  if (strlen(filename) > 40) {
+    fprintf(stderr, "filename %s is too long, max length 40\n", filename);
+    return;
+  }
   yyin = fopen(filename, "r");
   if (!yyin) {
     fprintf(stderr, "cannot open file %s\n", filename);
-    exit(-1);
+    return;
   }
-  char f[0xFFF];
+  in_file = fopen(filename, "r");
+  char f[64];
+  memset(f, 0, sizeof(f));
   readfile_name = getFileName(filename);
-  sprintf(f, "%s.lua%c", readfile_name, 0);
+  sprintf(f, "%s.lua", readfile_name);
 
   global_symtab = hash_new();
   stack_push(symtab_stack, cast(Object *, global_symtab));
@@ -53,10 +50,12 @@ void parse(char *filename) {
   skill_table = hash_new();
 
   yyout = fopen(f, "w+");
-  error_output = yyout;
+  error_output = stderr;
   if (yyparse() == 0) {
     analyzeExtension(extension);
     freeExtension(extension);
+  } else {
+    fprintf(error_output, "发生语法错误，编译未能继续。\n");
   }
 
   stack_pop(symtab_stack);

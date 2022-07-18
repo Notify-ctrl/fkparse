@@ -3,6 +3,8 @@
 #include "enums.h"
 #include "ast.h"
 #include "object.h"
+#include "grammar.h"
+#include "error.h"
 
 /* For travering List in switch-case. */
 static List *iter;
@@ -13,11 +15,6 @@ int yydebug = 0;
 #define YYLEX_PARAM scanner
 
 int yylex(YYSTYPE *yylval_param, YYLTYPE *yylloc_param);
-void yyerror(YYLTYPE *loc, const char *msg) {
-  fprintf(stderr, "%d:%d-%d:%d : %s\n",
-          loc->first_line, loc->first_column,
-          loc->last_line, loc->last_column, msg);
-}
 %}
 
 %union {
@@ -144,7 +141,6 @@ defargs : '{' defarglist '}' { $$ = $2; }
 defarglist  : defarglist ',' defarg {
                 $$ = $1;
                 list_append($$, cast(Object *, $3));
-                yyerror(&@3, "Test");
               }
             | defarg {
                 $$ = list_new();

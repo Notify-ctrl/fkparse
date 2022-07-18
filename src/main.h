@@ -5,9 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "object.h"
-#include "grammar.h"
 
-extern int yylineno;
+extern FILE *in_file;
 extern FILE *yyin;
 extern FILE *yyout;
 int yylex_destroy();
