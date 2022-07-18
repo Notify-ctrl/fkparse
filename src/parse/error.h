@@ -5,6 +5,8 @@
 #include "grammar.h"
 #include "main.h"
 
+const char *yytr(const char *orig);
+
 void yyerror(YYLTYPE *loc, const char *msg, ...);
 
 #endif

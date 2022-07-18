@@ -113,7 +113,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <func_call> func_call
 
 %start extension
-%define parse.error detailed
+%define parse.error custom
 // %verbose
 %define parse.trace
 %define api.pure full
@@ -579,3 +579,37 @@ hasSkill : exp HAVE SKILL exp {
          ;
 
 %%
+
+static int yyreport_syntax_error(const yypcontext_t *ctx) {
+  int res = 0;
+  char buf[2048];
+  char buf2[1024];
+  YYLTYPE *loc = yypcontext_location(ctx);
+  sprintf(buf, "语法错误");
+  // Report the unexpected token.
+  {
+    yysymbol_kind_t lookahead = yypcontext_token(ctx);
+    if (lookahead != YYSYMBOL_YYEMPTY) {
+      sprintf(buf2, ": 未预料到的符号 %s", yytr(yysymbol_name(lookahead)));
+      strcat(buf, buf2);
+    }
+  }
+  // Report the tokens expected at this point.
+  {
+    enum { TOKENMAX = 5 };
+    yysymbol_kind_t expected[TOKENMAX];
+    int n = yypcontext_expected_tokens(ctx, expected, TOKENMAX);
+    if (n < 0)
+      // Forward errors to yyparse.
+      res = n;
+    else
+      for (int i = 0; i < n; ++i) {
+        sprintf(buf2, "%s %s", i == 0 ? "， 需要" : " 或者",
+                yytr(yysymbol_name(expected[i])));
+        strcat(buf, buf2);
+      }
+  }
+  yyerror(loc, "%s", buf);
+  return res;
+}
+
