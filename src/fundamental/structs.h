@@ -12,18 +12,14 @@ extern char *strdup(const char *s);
  **/
 
 enum ObjType {
-  Obj_Integer,
-  Obj_Double,
-  Obj_String,
-
   Obj_Extension,
   Obj_Defarg,
   Obj_Funcdef,
   Obj_Package,
   Obj_General,
   Obj_Skill,
+  Obj_SkillSpec,
   Obj_Card,
-  Obj_Player,
 
   Obj_Block,
   Obj_TriggerSpec,
@@ -32,6 +28,7 @@ enum ObjType {
   Obj_Traverse,
   Obj_Break,
   Obj_Funccall,
+  Obj_Arg,
   Obj_Assign,
 
   Obj_Expression,

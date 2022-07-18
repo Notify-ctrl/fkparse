@@ -393,6 +393,9 @@ void analyzeBlock(BlockObj *bl) {
   stack_push(symtab_stack, cast(Object *, current_tab));
 
   list_foreach(node, bl->statements) {
+    if (!node->data)  /* maybe error token */
+      continue;
+
     switch (node->data->objtype) {
     case Obj_Assign:
       analyzeAssign(cast(AssignObj *, node->data));

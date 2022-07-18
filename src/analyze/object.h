@@ -113,6 +113,18 @@ FuncdefObj *newFuncdef(const char *name, List *params, int rettype,
                        BlockObj *funcbody);
 void freeFuncdef(void *ptr);
 
+typedef enum {
+  Spec_TriggerSkill,
+} SpecType;
+
+typedef struct {
+  ObjectHeader;
+  SpecType type;
+  void *obj;
+} SkillSpecObj;
+
+SkillSpecObj *newSkillSpec(SpecType type, void *obj);
+
 typedef struct {
   ObjectHeader;
   int event;
@@ -167,7 +179,17 @@ typedef struct FunccallObj {
 
 FunccallObj *newFunccall(const char *name, Hash *params);
 
+typedef struct {
+  ObjectHeader;
+  const char *name;
+  ExpressionObj *exp;
+} ArgObj;
+
+ArgObj *newArg(const char *name, ExpressionObj *exp);
+
 /* e.g. newParams(2, "xxx", e: exp, "xxx2", e2, ...) */
 Hash *newParams(int param_count, ...);
+
+void freeObject(void *p);
 
 #endif

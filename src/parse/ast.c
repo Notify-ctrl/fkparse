@@ -30,14 +30,5 @@ void checktype(void *o, ExpVType a, ExpVType t) {
       yyerror(obj, "类型不匹配：需要 %s，但得到的是 %s",
               type_table[t], type_table[a]);
     }
-    //while(1);
   }
-}
-
-struct ast *newast(NodeType nodetype, struct ast *l, struct ast *r) {
-  struct ast *a = malloc(sizeof(struct ast));
-  a->nodetype = nodetype;
-  a->l = l;
-  a->r = r;
-  return a;
 }

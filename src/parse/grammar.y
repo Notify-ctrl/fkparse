@@ -9,7 +9,7 @@
 /* For travering List in switch-case. */
 static List *iter;
 #define YYDEBUG 1
-int yydebug = 0;
+int yydebug = 1;
 
 #define YYPARSE_PARAM scanner
 #define YYLEX_PARAM scanner
@@ -25,7 +25,6 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %}
 
 %union {
-  struct ast *a;
   int enum_v;
   long long i;
   char *s;
@@ -38,6 +37,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
   PackageObj *package;
   GeneralObj *general;
   SkillObj *skill;
+  SkillSpecObj *skillspec;
   TriggerSpecObj *trigger_spec;
 
   BlockObj *block;
@@ -50,6 +50,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
   TraverseObj *traverse;
   AssignObj *assign;
   FunccallObj *func_call;
+  ArgObj *arg;
 }
 
 %token <i> NUMBER
@@ -88,7 +89,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <package> package
 %type <general> general
 %type <skill> skill
-%type <a> skillspec
+%type <skillspec> skillspec
 %type <trigger_spec> triggerspec
 
 %type <block> block
@@ -98,7 +99,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <assign> assign_stat
 %type <if_stat> if_stat
 %type <loop> loop_stat
-%type <a> arg
+%type <arg> arg
 %type <func_call> action_stat action
 %type <func_call> drawCards loseHp causeDamage inflictDamage recoverHp
 %type <func_call> acquireSkill detachSkill
@@ -111,6 +112,13 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <exp> exp prefixexp opexp
 %type <var> var
 %type <func_call> func_call
+
+%destructor {} <enum_v>
+%destructor {} <i>
+%destructor { free($$); } <s>
+%destructor { list_free($$, freeObject); } <list>
+%destructor { hash_free($$, freeObject); } <hash>
+%destructor { freeObject($$); } <*>
 
 %start extension
 %define parse.error custom
@@ -193,7 +201,7 @@ skillspecs  : %empty { $$ = list_new(); }
               }
             ;
 
-skillspec   : triggerSkill { $$ = newast(N_TriggerSkill, NULL, cast(struct ast *, $1)); }
+skillspec   : triggerSkill { $$ = newSkillSpec(Spec_TriggerSkill, $1); }
             ;
 
 triggerSkill  : TRIGGER triggerspecs  { $$ = $2; }
@@ -234,7 +242,7 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
             | BREAK { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Break; }
             | func_call { $$ = cast(Object *, $1); }
             | action_stat { $$ = cast(Object *, $1); }
-            | error { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Break; }
+            | error { $$ = NULL; }
             ;
 
 assign_stat : LET var EQ exp { $$ = newAssign($2, $4); yycopyloc($$, &@$); }
@@ -257,8 +265,7 @@ func_call : CALL IDENTIFIER args { $$ = newFunccall($2, $3); yycopyloc($$, &@$);
 args : '{' arglist '}' {
           $$ = hash_new();
           list_foreach(iter, $2) {
-            hash_set($$, cast(const char *, cast(struct ast *, iter->data)->l),
-                    cast(void *, cast(struct ast *, iter->data)->r));
+            hash_set($$, cast(ArgObj *, iter->data)->name, cast(ArgObj *, iter->data)->exp);
             free(iter->data);
           }
           list_free($2, NULL);
@@ -272,7 +279,7 @@ arglist : arglist ',' arg { $$ = $1; list_append($$, cast(Object *, $3)); }
 
 arg : IDENTIFIER ':' exp {
         $3->param_name = $1;
-        $$ = newast(N_Arg, cast(struct ast *, $1), cast(struct ast *, $3));
+        $$ = newArg($1, $3);
       }
     ;
 
