@@ -906,7 +906,6 @@ static void analyzeActiveSpec(ActiveSpecObj *a) {
 
   writeline("can_use = function(self, player)");
   indent_level++;
-  writeline("local room = player:getRoom()");
   writeline("local locals = {}");
   writeline("global_self = self\n");
   analyzeBlock(a->cond);
@@ -953,7 +952,7 @@ static void analyzeActiveSpec(ActiveSpecObj *a) {
   stack_push(symtab_stack, cast(Object *, param_symtab));
   sym_new_entry("你", TPlayer, "sgs.Self", true);
   sym_new_entry("已选目标", TPlayerList, "targets", true);
-  sym_new_entry("已选卡牌", TCardList, "to_select", true);
+  sym_new_entry("已选卡牌", TCardList, "cards", true);
 
   writeline("feasible = function(self, targets, cards)");
   indent_level++;
@@ -969,9 +968,9 @@ static void analyzeActiveSpec(ActiveSpecObj *a) {
   stack_push(symtab_stack, cast(Object *, param_symtab));
   sym_new_entry("你", TPlayer, "player", true);
   sym_new_entry("选择的目标", TPlayerList, "targets", true);
-  sym_new_entry("选择的卡牌", TCardList, "self:getSubCards()", true);
+  sym_new_entry("选择的卡牌", TCardList, "cards", true);
 
-  writeline("on_use = function(self, player, targets)");
+  writeline("on_use = function(self, player, targets, cards)");
   indent_level++;
   writeline("local room = player:getRoom()");
   writeline("local locals = {}");

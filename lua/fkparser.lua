@@ -70,7 +70,7 @@ fkp.functions = {
   addMark = function(player, mark, count, hidden)
     local room = player:getRoom()
     if hidden then
-      mark = string.gsub(mark, "@", "%")
+      mark = string.gsub(mark, "@", "_")
     end
 
     if hidden then
@@ -83,7 +83,7 @@ fkp.functions = {
   loseMark = function(player, mark, count, hidden)
     local room = player:getRoom()
     if hidden then
-      mark = string.gsub(mark, "@", "%")
+      mark = string.gsub(mark, "@", "_")
     end
 
     if hidden then
@@ -93,9 +93,9 @@ fkp.functions = {
     end
   end,
 
-  getMark = function(player, mark, count, hidden)
+  getMark = function(player, mark, hidden)
     if hidden then
-      mark = string.gsub(mark, "@", "%")
+      mark = string.gsub(mark, "@", "_")
     end
 
     return player:getMark(mark)
@@ -220,16 +220,48 @@ function fkp.CreateActiveSkill(spec)
     name = spec.name,
     target_fixed = false,
     will_throw = false,
-    on_use = spec.on_use,
-    on_effect = spec.on_effect or function()end,
-    feasible = spec.feasible,
-    filter = spec.target_filter,
+    on_use = function(self, room, source, targets)
+      local plist = sgs.SPlayerList()
+      for _, p in ipairs(targets) do
+        plist:append(p)
+      end
+      local clist = sgs.CardList()
+      for _, id in sgs.list(self:getSubcards()) do
+        clist:append(sgs.Sanguosha:getCard(id))
+      end
+      return spec.on_use(self, source, plist, clist)
+    end,
+    on_effect = spec.on_effect or function()end,  -- TODO
+    feasible = function(self, targets)
+      local plist = sgs.SPlayerList()
+      for _, p in ipairs(targets) do
+        plist:append(p)
+      end
+      local clist = sgs.CardList()
+      for _, id in sgs.list(self:getSubcards()) do
+        clist:append(sgs.Sanguosha:getCard(id))
+      end
+      return spec.feasible(self, plist, clist)
+    end,
+    filter = function(self, targets, to_select)
+      local plist = sgs.SPlayerList()
+      for _, p in ipairs(targets) do
+        plist:append(p)
+      end
+      return spec.target_filter(self, plist, to_select)
+    end,
   }
 
   local vs_skill = sgs.CreateViewAsSkill{
     name = spec.name,
     n = 996,
-    view_filter = spec.card_filter,
+    view_filter = function(self, selected, to_select)
+      local clist = sgs.CardList()
+      for _, c in ipairs(selected) do
+        clist:append(c)
+      end
+      return spec.card_filter(self, clist, to_select)
+    end,
     view_as = function(self, cards)
       local card = skill_card:clone()
       for _, c in ipairs(cards) do
