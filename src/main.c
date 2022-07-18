@@ -57,7 +57,7 @@ void parse(char *filename) {
 #ifndef FK_DEBUG
   char f2[64];
   memset(f2, 0, sizeof(f2));
-  sprintf(f2, "%s-报错.txt", readfile_name);
+  sprintf(f2, "%s-error.txt", readfile_name);
   error_output = fopen(f2, "w+");
 #else
   error_output = stderr;
