@@ -137,6 +137,11 @@ static Proto builtin_func[] = {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"技能名", TString, false, {.s = NULL}},
   }},
+  {"__broadcastSkillInvoke", "fkp.functions.broadcastSkillInvoke", TNone, 3, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"技能名", TString, false, {.s = NULL}},
+    {"音频编号", TNumber, true, {.n = -1}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 

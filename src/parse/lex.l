@@ -112,6 +112,9 @@ static int yycolumn = 1;
 "弃置"    { return THROW; }
 "次数"    { return TIMES; }
 
+"说出"    { return SPEAK; }
+"台词"    { return ACT_LINE; }
+
 "游戏开始时"     { yylval->enum_v = GameStart; return EVENT; }
 "回合即将开始时"   { yylval->enum_v = TurnStart; return EVENT; }
 "阶段开始时"     { yylval->enum_v = EventPhaseStart; return EVENT; }

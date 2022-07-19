@@ -134,7 +134,11 @@ fkp.functions = {
 
   getUsedTimes = function(player, skill)
     return player:usedTimes('#' .. skill)
-  end
+  end,
+
+  broadcastSkillInvoke = function(player, skill, index)
+    player:getRoom():broadcastSkillInvoke(skill, index)
+  end,
 }
 
 function fkp.newlist(t)

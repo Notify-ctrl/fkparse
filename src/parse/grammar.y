@@ -84,6 +84,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token FROM SELECT ANITEM ANPLAYER
 %token INVOKE HAVE
 %token BECAUSE THROW TIMES
+%token SPEAK ACT_LINE
 
 %type <list> funcdefList defargs defarglist skillList packageList generalList
 %type <list> stringList skillspecs triggerSkill triggerspecs
@@ -116,6 +117,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <func_call> arrayPrepend arrayAppend arrayRemoveOne arrayAt
 %type <func_call> loseMaxHp recoverMaxHp
 %type <func_call> throwCardsBySkill getUsedTimes
+%type <func_call> broadcastSkillInvoke
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -411,6 +413,7 @@ action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
             | hasSkill { $$ = $1; yycopyloc($$, &@$); }
             | throwCardsBySkill { $$ = $1; yycopyloc($$, &@$); }
             | getUsedTimes { $$ = $1; yycopyloc($$, &@$); }
+            | broadcastSkillInvoke { $$ = $1; yycopyloc($$, &@$); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD {
@@ -619,6 +622,16 @@ getUsedTimes  : exp INVOKE ACTIVE STRING FIELD TIMES {
                       );
                 }
               ;
+
+broadcastSkillInvoke  : exp SPEAK STRING FIELD ACT_LINE {
+                          tempExp = newExpression(ExpStr, 0, 0, NULL, NULL);
+                          tempExp->strvalue = $3;
+                          $$ = newFunccall(
+                                strdup("__broadcastSkillInvoke"),
+                                newParams(2, "玩家", $1, "技能名", tempExp)
+                              );
+                        }
+                      ;
 
 %%
 
