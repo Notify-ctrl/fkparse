@@ -17,7 +17,7 @@ add_custom_command(
   OUTPUT ${PROJECT_SOURCE_DIR}/src/parse/grammar.c
   DEPENDS ${PROJECT_SOURCE_DIR}/src/parse/grammar.y
   COMMENT "Generating grammar.c"
-  COMMAND bison -d ${PROJECT_SOURCE_DIR}/src/parse/grammar.y -o ${PROJECT_SOURCE_DIR}/src/parse/grammar.c -Wcounterexamples
+  COMMAND ${BISON} -d ${PROJECT_SOURCE_DIR}/src/parse/grammar.y -o ${PROJECT_SOURCE_DIR}/src/parse/grammar.c -Wcounterexamples
 )
 
 add_custom_command(
@@ -25,7 +25,7 @@ add_custom_command(
   OUTPUT ${PROJECT_SOURCE_DIR}/src/parse/lex.c
   DEPENDS ${PROJECT_SOURCE_DIR}/src/parse/lex.l ${PROJECT_SOURCE_DIR}/src/parse/grammar.c
   COMMENT "Generating lex.c"
-  COMMAND flex -o ${PROJECT_SOURCE_DIR}/src/parse/lex.c ${PROJECT_SOURCE_DIR}/src/parse/lex.l
+  COMMAND ${FLEX} -o ${PROJECT_SOURCE_DIR}/src/parse/lex.c ${PROJECT_SOURCE_DIR}/src/parse/lex.l
 )
 
 add_executable(fkparse ${fkparse_SRCS})

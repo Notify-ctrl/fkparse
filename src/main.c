@@ -70,11 +70,19 @@ void parse(char *filename) {
     fprintf(error_output, "发生不可恢复的语法错误，编译中断。\n");
   }
 
+  fclose(in_file);
+  fclose(yyin);
+  fclose(yyout);
+
   if (error_occured) {
     fprintf(error_output, "在编译期间有错误产生，请检查您的输入文件。\n");
+#ifndef FK_DEBUG
+    fclose(error_output);
+#endif
     remove(f);
   } else {
 #ifndef FK_DEBUG
+    fclose(error_output);
     remove(f2);
 #endif
   }
@@ -87,12 +95,6 @@ void parse(char *filename) {
   hash_free(mark_table, free);
   hash_free(skill_table, free);
 
-  fclose(in_file);
-  fclose(yyin);
-  fclose(yyout);
-#ifndef FK_DEBUG
-  fclose(error_output);
-#endif
   yylex_destroy();
 }
 

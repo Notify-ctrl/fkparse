@@ -195,6 +195,9 @@ static char *getLineOfSource(int lineno) {
   int i = 1;
   while ((ch = fgetc(in_file)) != EOF) {
     if (ch == '\n') {
+#ifdef FK_WIN32
+      startpos++;   /* windows下的fseek会把'\r'也算进去 */
+#endif
       if (i == lineno) {
         break;
       } else {
