@@ -5,7 +5,6 @@
 #include "object.h"
 #include "grammar.h"
 #include "main.h"
-#include "ast.h"
 #include "enums.h"
 
 static int yycolumn = 1;
