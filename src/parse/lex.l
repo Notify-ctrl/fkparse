@@ -101,6 +101,8 @@ static int yycolumn = 1;
 "个" { return GE; }
 "元素" { return ELEMENT; }
 "拥有"  { return HAVE; }
+"手牌" { return HANDCARD; }
+"需" { return HAVETO; }
 
 "主动技"   { return ACTIVE; }
 "选牌规则:" { return CARD_FILTER; }
