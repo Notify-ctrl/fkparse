@@ -141,13 +141,10 @@ fkp.functions = {
   end,
 
   askForDiscard = function(target, skill, discard_num, min_num, optional, include_equip, prompt, pattern)
-    local min_num2=0
-    if min_num==-1 then
-      min_num2=discard_num;
-    else
-      min_num2=min_num
+    if min_num == -1 then
+      min_num = discard_num
     end
-    return target:getRoom():askForDiscard(target, skill, discard_num, min_num2, optional, include_equip, prompt, pattern)
+    return target:getRoom():askForDiscard(target, skill, discard_num, min_num, optional, include_equip, prompt, pattern)
   end,
 }
 
