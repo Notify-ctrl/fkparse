@@ -44,6 +44,7 @@ ArgObj *newArg(const char *name, ExpressionObj *exp) {
 
 Hash *mark_table;
 Hash *skill_table;
+Hash *other_string_table;
 
 ExpressionObj *newExpression(int exptype, long long value, int optype,
                              ExpressionObj *l, ExpressionObj *r) {

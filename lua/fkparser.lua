@@ -1,5 +1,12 @@
 fkp = {}
 
+sgs.LoadTranslationTable{
+  ["#Discard"] = "请弃置 %arg 张手牌",
+  ["#DiscardWithMin"] = "请弃置 %arg 张手牌，至少弃置 %arg2 张",
+  ["#DiscardWithEquip"] = "请弃置 %arg 张牌（包括装备区）",
+  ["#DiscardWithEquipMin"] = "请弃置 %arg 张牌，至少弃置 %arg2 张（包括装备区）",
+}
+
 fkp.functions = {
   prepend = function(arr, e)
     arr:prepend(e)
@@ -144,9 +151,72 @@ fkp.functions = {
     if min_num == -1 then
       min_num = discard_num
     end
-    return target:getRoom():askForDiscard(target, skill, discard_num, min_num, optional, include_equip, prompt, pattern)
+
+    if prompt == "" then
+      if include_equip then
+        if min_num < discard_num then
+          prompt = string.format("#DiscardWithEquipMin:::%d:%d", discard_num, min_num);
+        else
+          prompt = "#DiscardWithEquip"
+        end
+      else
+        if min_num < discard_num then
+          prompt = string.format("#DiscardWithMin:::%d:%d", discard_num, min_num);
+        else
+          prompt = "#Discard"
+        end
+      end
+    end
+
+    local room = target:getRoom()
+    local card = room:askForExchange(target, skill, discard_num, min_num, include_equip, prompt, optional, pattern)
+    local mreason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_THROW, target:objectName(), "", card:getSkillName(), skill)
+    room:throwCard(card, mreason, target)
+
+    local idlist = card:getSubcards()
+    local ret = sgs.CardList()
+    for _, id in sgs.list(idlist) do
+      ret:append(sgs.Sanguosha:getCard(id))
+    end
+    card:deleteLater()
+    return ret
   end,
 }
+
+fkp.functions.buildPrompt = function(base, src, dest, arg, arg2)
+  if src == nil then
+    src = ""
+  else
+    src = src:objectName()
+  end
+  if dest == nil then
+    dest = ""
+  else
+    dest = dest:objectName()
+  end
+  if arg == nil then arg = "" end
+  if arg2 == nil then arg2 = "" end
+
+  local prompt_tab = {src, dest, arg, arg2}
+  if arg2 == "" then
+    table.remove(prompt_tab, 4)
+    if arg == "" then
+      table.remove(prompt_tab, 3)
+      if dest == "" then
+        table.remove(prompt_tab, 2)
+        if src == "" then
+          table.remove(prompt_tab, 1)
+        end
+      end
+    end
+  end
+
+  for _, str in ipairs(prompt_tab) do
+    base = base .. ":" .. str
+  end
+
+  return base
+end
 
 function fkp.newlist(t)
   local element_type = swig_type(t[1])

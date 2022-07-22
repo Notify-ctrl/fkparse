@@ -41,6 +41,7 @@ static void analyzeExp(ExpressionObj *e) {
   List *node;
   ExpressionObj *array_item;
   static int markId = 0;
+  static int stringId = 0;
   char buf[64];
   const char *origtext;
 
@@ -119,8 +120,8 @@ static void analyzeExp(ExpressionObj *e) {
           origtext = hash_get(skill_table, e->strvalue);
           if (origtext) {
             writestr("'%s'", origtext);
-            t = TString;
-            break;
+          } else {
+            writestr("'%s'", e->strvalue);
           }
         } else if (!strcmp(e->param_name, "标记")) {
           origtext = hash_get(mark_table, e->strvalue);
@@ -132,11 +133,30 @@ static void analyzeExp(ExpressionObj *e) {
             origtext = hash_get(mark_table, e->strvalue);
           }
           writestr("'%s'", origtext);
-          t = TString;
-          break;
+        } else if (!strcmp(e->param_name, "文本")) {
+          origtext = hash_get(other_string_table, e->strvalue);
+          if (!origtext) {
+            sprintf(buf, "%s_str_%d", readfile_name, stringId);
+            stringId++;
+            hash_set(other_string_table, e->strvalue, strdup(buf));
+            addTranslation(buf, e->strvalue);
+            origtext = hash_get(other_string_table, e->strvalue);
+          }
+          writestr("'%s'", origtext);
+        } else {
+          writestr("'%s'", e->strvalue);
         }
+      } else {
+        origtext = hash_get(other_string_table, e->strvalue);
+        if (!origtext) {
+          sprintf(buf, "%s_str_%d", readfile_name, stringId);
+          stringId++;
+          hash_set(other_string_table, e->strvalue, strdup(buf));
+          addTranslation(buf, e->strvalue);
+          origtext = hash_get(other_string_table, e->strvalue);
+        }
+        writestr("'%s'", origtext);
       }
-      writestr("'%s'", e->strvalue);
       t = TString;
       break;
     case ExpVar:

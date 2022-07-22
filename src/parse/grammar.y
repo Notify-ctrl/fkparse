@@ -390,7 +390,11 @@ stringList  : %empty  { $$ = list_new(); }
 
 /* special function calls */
 action_stat : action { $$ = $1; }
-            | action args { $$ = $1; hash_copy($$->params, $2); }
+            | action args {
+                $$ = $1;
+                hash_copy($$->params, $2);
+                hash_free($2, NULL);
+              }
             ;
 
 action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
@@ -637,19 +641,13 @@ broadcastSkillInvoke  : exp SPEAK STRING FIELD ACT_LINE {
                         }
                       ;
 
-askForDiscard : exp HAVETO THROW exp ZHANG CARD {
-			$$ = newFunccall(
-				strdup("__askForDiscard"),
-				newParams(3,"目标",$1,"要求弃置数量",$4,"包含装备区",newExpression(ExpBool, 1, 0, NULL, NULL))
-			);
-			}
-		| exp HAVETO THROW exp ZHANG HANDCARD {
-			$$ = newFunccall(
-				strdup("__askForDiscard"),
-				newParams(2,"目标",$1,"要求弃置数量",$4)
-			);
-		}
-			;
+askForDiscard : exp THROW exp ZHANG CARD {
+                  $$ = newFunccall(
+                    strdup("__askForDiscard"),
+                    newParams(2, "目标", $1, "要求弃置数量", $3)
+                  );
+                }
+              ;
 
 
 %%

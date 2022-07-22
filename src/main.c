@@ -51,6 +51,7 @@ void parse(char *filename) {
   restrtab = list_new();
   mark_table = hash_new();
   skill_table = hash_new();
+  other_string_table = hash_new();
 
   yyout = fopen(f, "w+");
 
@@ -92,6 +93,7 @@ void parse(char *filename) {
   sym_free(global_symtab);
   hash_free(strtab, NULL);
   list_free(restrtab, freeTranslation);
+  hash_free(other_string_table, free);
   hash_free(mark_table, free);
   hash_free(skill_table, free);
 
