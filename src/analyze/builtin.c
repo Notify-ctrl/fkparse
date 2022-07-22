@@ -26,6 +26,13 @@ static Proto builtin_func[] = {
     {"下界", TNumber, true, {.n = 1}},
     {"上界", TNumber, true, {.n = 10}}
   }},
+  {"创建提示信息", "fkp.functions.buildPrompt", TString, 5, {
+    {"文本", TString, false, {.s = NULL}},
+    {"玩家1", TPlayer, true, {.s = "nil"}},
+    {"玩家2", TPlayer, true, {.s = "nil"}},
+    {"变量1", TAny, true, {.s = "nil"}},
+    {"变量2", TAny, true, {.s = "nil"}},
+  }},
 
   /* array operations */
   {"__prepend", "fkp.functions.prepend", TNone, 2, {
@@ -142,15 +149,15 @@ static Proto builtin_func[] = {
     {"技能名", TString, false, {.s = NULL}},
     {"音频编号", TNumber, true, {.n = -1}},
   }},
-  {"__askForDiscard", "fkp.functions.askForDiscard", TCard, 8,{
-      {"目标", TPlayer, false, {.s = NULL}},
-      {"技能名", TString, true, {.s = ""}},
-      {"要求弃置数量", TNumber, true, {.n = 1}},
-      {"最小弃置数量", TNumber, true, {.n = -1}},
-      {"时间限制", TBool, true, {.n = false}},
-      {"包含装备区", TBool, true, {.n = false}},
-      {"提示信息", TString, true, {.s = ""}},
-      {"弃牌限制", TString, true, {.s = "."}},
+  {"__askForDiscard", "fkp.functions.askForDiscard", TCard, 8, {
+    {"目标", TPlayer, false, {.s = NULL}},
+    {"技能名", TString, true, {.s = ""}},
+    {"要求弃置数量", TNumber, false, {.s = NULL}},
+    {"最小弃置数量", TNumber, true, {.n = -1}},
+    {"可以点取消", TBool, true, {.n = false}},
+    {"可以弃装备", TBool, true, {.n = true}},
+    {"提示信息", TString, true, {.s = ""}},
+    {"卡牌正则", TString, true, {.s = "."}},
   }},
   {NULL, NULL, TNone, 0, {}}
 };
@@ -305,7 +312,7 @@ void sym_init() {
         e->oprand1 = NULL;
         e->oprand2 = NULL;
         e->bracketed = false;
-        e->param_name = NULL;
+        e->param_name = strdup(arg->name);
 
         VarObj *v;
         switch (arg->argtype) {
@@ -319,6 +326,7 @@ void sym_init() {
           break;
         case TPlayer:
         case TCard:
+        case TAny:
           e->exptype = ExpVar;
           v = malloc(sizeof(VarObj));
           v->objtype = Obj_Var;
