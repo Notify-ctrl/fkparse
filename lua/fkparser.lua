@@ -183,6 +183,41 @@ fkp.functions = {
   end,
 }
 
+fkp.functions.buildPrompt = function(base, src, dest, arg, arg2)
+  if src == nil then
+    src = ""
+  else
+    src = src:objectName()
+  end
+  if dest == nil then
+    dest = ""
+  else
+    dest = dest:objectName()
+  end
+  if arg == nil then arg = "" end
+  if arg2 == nil then arg2 = "" end
+
+  local prompt_tab = {src, dest, arg, arg2}
+  if arg2 == "" then
+    table.remove(prompt_tab, 4)
+    if arg == "" then
+      table.remove(prompt_tab, 3)
+      if dest == "" then
+        table.remove(prompt_tab, 2)
+        if src == "" then
+          table.remove(prompt_tab, 1)
+        end
+      end
+    end
+  end
+
+  for _, str in ipairs(prompt_tab) do
+    base = base .. ":" .. str
+  end
+
+  return base
+end
+
 function fkp.newlist(t)
   local element_type = swig_type(t[1])
   local ret

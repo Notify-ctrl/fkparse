@@ -26,6 +26,13 @@ static Proto builtin_func[] = {
     {"下界", TNumber, true, {.n = 1}},
     {"上界", TNumber, true, {.n = 10}}
   }},
+  {"创建提示信息", "fkp.functions.buildPrompt", TString, 5, {
+    {"文本主体", TString, false, {.s = NULL}},
+    {"玩家1", TPlayer, true, {.s = "nil"}},
+    {"玩家2", TPlayer, true, {.s = "nil"}},
+    {"变量1", TAny, true, {.s = "nil"}},
+    {"变量2", TAny, true, {.s = "nil"}},
+  }},
 
   /* array operations */
   {"__prepend", "fkp.functions.prepend", TNone, 2, {
@@ -319,6 +326,7 @@ void sym_init() {
           break;
         case TPlayer:
         case TCard:
+        case TAny:
           e->exptype = ExpVar;
           v = malloc(sizeof(VarObj));
           v->objtype = Obj_Var;
