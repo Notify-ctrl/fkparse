@@ -349,6 +349,18 @@ static void printPosAnnonation(YYLTYPE *loc, Bound *bound) {
 
 void yyerror(YYLTYPE *loc, const char *msg, ...) {
   error_occured = 1;
+
+  /* built-in error report */
+  if (loc->first_line == -1) {
+    va_list ap;
+    va_start(ap, msg);
+    fprintf(error_output, "<内置函数>: ");
+    vfprintf(error_output, msg, ap);
+    fprintf(error_output, "\n");
+    va_end(ap);
+    return;
+  }
+
   char *source_line = getLineOfSource(loc->first_line);
   if (!source_line)
     return;
@@ -367,4 +379,5 @@ void yyerror(YYLTYPE *loc, const char *msg, ...) {
   getBoundOfString(best_print_pos, loc, &newloc, &bound);
   printPosAnnonation(&newloc, &bound);
   free(source_line);
+  va_end(ap);
 }

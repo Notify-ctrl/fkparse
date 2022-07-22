@@ -299,6 +299,7 @@ void sym_init() {
     for (int i = 0; i < p->argcount; i++) {
       struct ProtoArg *arg = &p->args[i];
       DefargObj *defarg = malloc(sizeof(DefargObj));
+      defarg->first_line = -1;
       defarg->objtype = Obj_Defarg;
       defarg->name = strdup(arg->name);
       defarg->type = arg->argtype;
