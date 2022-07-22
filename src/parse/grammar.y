@@ -637,19 +637,13 @@ broadcastSkillInvoke  : exp SPEAK STRING FIELD ACT_LINE {
                         }
                       ;
 
-askForDiscard : exp HAVETO THROW exp ZHANG CARD {
-			$$ = newFunccall(
-				strdup("__askForDiscard"),
-				newParams(3,"目标",$1,"要求弃置数量",$4,"包含装备区",newExpression(ExpBool, 1, 0, NULL, NULL))
-			);
-			}
-		| exp HAVETO THROW exp ZHANG HANDCARD {
-			$$ = newFunccall(
-				strdup("__askForDiscard"),
-				newParams(2,"目标",$1,"要求弃置数量",$4)
-			);
-		}
-			;
+askForDiscard : exp THROW exp ZHANG CARD {
+                  $$ = newFunccall(
+                    strdup("__askForDiscard"),
+                    newParams(2, "目标", $1, "要求弃置数量", $3)
+                  );
+                }
+              ;
 
 
 %%

@@ -142,15 +142,15 @@ static Proto builtin_func[] = {
     {"技能名", TString, false, {.s = NULL}},
     {"音频编号", TNumber, true, {.n = -1}},
   }},
-  {"__askForDiscard", "fkp.functions.askForDiscard", TCard, 8,{
-      {"目标", TPlayer, false, {.s = NULL}},
-      {"技能名", TString, true, {.s = ""}},
-      {"要求弃置数量", TNumber, true, {.n = 1}},
-      {"最小弃置数量", TNumber, true, {.n = -1}},
-      {"时间限制", TBool, true, {.n = false}},
-      {"包含装备区", TBool, true, {.n = false}},
-      {"提示信息", TString, true, {.s = ""}},
-      {"弃牌限制", TString, true, {.s = "."}},
+  {"__askForDiscard", "fkp.functions.askForDiscard", TCard, 8, {
+    {"目标", TPlayer, false, {.s = NULL}},
+    {"技能名", TString, true, {.s = ""}},
+    {"要求弃置数量", TNumber, false, {.s = NULL}},
+    {"最小弃置数量", TNumber, true, {.n = -1}},
+    {"可以点取消", TBool, true, {.n = false}},
+    {"可以弃装备", TBool, true, {.n = true}},
+    {"提示信息", TString, true, {.s = ""}},
+    {"卡牌正则", TString, true, {.s = "."}},
   }},
   {NULL, NULL, TNone, 0, {}}
 };
