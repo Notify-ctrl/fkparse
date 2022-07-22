@@ -124,10 +124,10 @@ static Proto builtin_func[] = {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"技能", TString, false, {.s = NULL}},
   }},
-  {"__obtainCard", "fkp.functions.obtainCard", TNone, 4, {
+  {"__obtainCard", "fkp.functions.obtainCard", TNone, 3, {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"卡牌", TCard, false, {.s = NULL}},
-    {"获得的原因", TString, true, {.s = ""}},
+    /* {"获得的原因", TString, true, {.s = ""}}, */
     {"公开", TBool, true, {.n = true}},
   }},
   {"__hasSkill", "fkp.functions.hasSkill", TBool, 2, {
@@ -148,7 +148,7 @@ static Proto builtin_func[] = {
     {"技能名", TString, false, {.s = NULL}},
     {"音频编号", TNumber, true, {.n = -1}},
   }},
-  {"__askForDiscard", "fkp.functions.askForDiscard", TCard, 8, {
+  {"__askForDiscard", "fkp.functions.askForDiscard", TCardList, 8, {
     {"目标", TPlayer, false, {.s = NULL}},
     {"技能名", TString, true, {.s = ""}},
     {"要求弃置数量", TNumber, false, {.s = NULL}},
@@ -158,6 +158,11 @@ static Proto builtin_func[] = {
     {"提示信息", TString, true, {.s = ""}},
     {"卡牌正则", TString, true, {.s = "."}},
   }},
+  {"__judge", "fkp.functions.judge", TCard, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"技能名", TString, true, {.s = ""}},
+  }},
+
   {NULL, NULL, TNone, 0, {}}
 };
 
@@ -167,6 +172,7 @@ static struct {
   int type;
 } reserved[] = {
   {"nil", "nil", TAny},
+  {"不存在的", "nil", TAny},
 
   {"魏", "'wei'", TNumber},
   {"蜀", "'shu'", TNumber},

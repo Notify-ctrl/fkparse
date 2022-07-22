@@ -120,8 +120,8 @@ fkp.functions = {
     return player:askForSkillInvoke(skill)
   end,
 
-  obtainCard = function(player, card, reason, open)
-    player:getRoom():obtainCard(player, card, reason, open)
+  obtainCard = function(player, card, open)
+    player:getRoom():obtainCard(player, card, open)
   end,
 
   hasSkill = function(player, skill)
@@ -170,15 +170,17 @@ fkp.functions = {
 
     local room = target:getRoom()
     local card = room:askForExchange(target, skill, discard_num, min_num, include_equip, prompt, optional, pattern)
-    local mreason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_THROW, target:objectName(), "", card:getSkillName(), skill)
-    room:throwCard(card, mreason, target)
-
-    local idlist = card:getSubcards()
     local ret = sgs.CardList()
-    for _, id in sgs.list(idlist) do
-      ret:append(sgs.Sanguosha:getCard(id))
+    if card then
+      local mreason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_THROW, target:objectName(), "", card:getSkillName(), skill)
+      room:throwCard(card, mreason, target)
+
+      local idlist = card:getSubcards()
+      for _, id in sgs.list(idlist) do
+        ret:append(sgs.Sanguosha:getCard(id))
+      end
+      card:deleteLater()
     end
-    card:deleteLater()
     return ret
   end,
 }
@@ -216,6 +218,14 @@ fkp.functions.buildPrompt = function(base, src, dest, arg, arg2)
   end
 
   return base
+end
+
+fkp.functions.judge = function(player, reason)
+  local judge = sgs.JudgeStruct()
+  judge.who = player
+  judge.reason = reason
+  player:getRoom():judge(judge)
+  return judge.card
 end
 
 function fkp.newlist(t)
