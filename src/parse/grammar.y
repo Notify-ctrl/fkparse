@@ -68,6 +68,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token TRIGGER EVENTI COND EFFECT
 %token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
 %token FUNCDEF
+%token HANDCARD HAVETO
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
 %token <enum_v> TYPE
@@ -85,6 +86,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token INVOKE HAVE
 %token BECAUSE THROW TIMES
 %token SPEAK ACT_LINE
+
 
 %type <list> funcdefList defargs defarglist skillList packageList generalList
 %type <list> stringList skillspecs triggerSkill triggerspecs
@@ -118,6 +120,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <func_call> loseMaxHp recoverMaxHp
 %type <func_call> throwCardsBySkill getUsedTimes
 %type <func_call> broadcastSkillInvoke
+%type <func_call> askForDiscard
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -414,6 +417,7 @@ action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
             | throwCardsBySkill { $$ = $1; yycopyloc($$, &@$); }
             | getUsedTimes { $$ = $1; yycopyloc($$, &@$); }
             | broadcastSkillInvoke { $$ = $1; yycopyloc($$, &@$); }
+            | askForDiscard { $$ = $1; yycopyloc($$, &@$); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD {
@@ -632,6 +636,21 @@ broadcastSkillInvoke  : exp SPEAK STRING FIELD ACT_LINE {
                               );
                         }
                       ;
+
+askForDiscard : exp HAVETO THROW exp ZHANG CARD {
+			$$ = newFunccall(
+				strdup("__askForDiscard"),
+				newParams(3,"目标",$1,"要求弃置数量",$4,"包含装备区",newExpression(ExpBool, 1, 0, NULL, NULL))
+			);
+			}
+		| exp HAVETO THROW exp ZHANG HANDCARD {
+			$$ = newFunccall(
+				strdup("__askForDiscard"),
+				newParams(2,"目标",$1,"要求弃置数量",$4)
+			);
+		}
+			;
+
 
 %%
 

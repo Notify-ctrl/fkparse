@@ -139,6 +139,13 @@ fkp.functions = {
   broadcastSkillInvoke = function(player, skill, index)
     player:getRoom():broadcastSkillInvoke(skill, index)
   end,
+
+  askForDiscard = function(target, skill, discard_num, min_num, optional, include_equip, prompt, pattern)
+    if min_num == -1 then
+      min_num = discard_num
+    end
+    return target:getRoom():askForDiscard(target, skill, discard_num, min_num, optional, include_equip, prompt, pattern)
+  end,
 }
 
 function fkp.newlist(t)
