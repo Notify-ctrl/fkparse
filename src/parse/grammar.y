@@ -390,7 +390,11 @@ stringList  : %empty  { $$ = list_new(); }
 
 /* special function calls */
 action_stat : action { $$ = $1; }
-            | action args { $$ = $1; hash_copy($$->params, $2); }
+            | action args {
+                $$ = $1;
+                hash_copy($$->params, $2);
+                hash_free($2, NULL);
+              }
             ;
 
 action      : drawCards { $$ = $1; yycopyloc($$, &@$); }

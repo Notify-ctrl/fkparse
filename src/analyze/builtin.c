@@ -27,7 +27,7 @@ static Proto builtin_func[] = {
     {"上界", TNumber, true, {.n = 10}}
   }},
   {"创建提示信息", "fkp.functions.buildPrompt", TString, 5, {
-    {"文本主体", TString, false, {.s = NULL}},
+    {"文本", TString, false, {.s = NULL}},
     {"玩家1", TPlayer, true, {.s = "nil"}},
     {"玩家2", TPlayer, true, {.s = "nil"}},
     {"变量1", TAny, true, {.s = "nil"}},
@@ -312,7 +312,7 @@ void sym_init() {
         e->oprand1 = NULL;
         e->oprand2 = NULL;
         e->bracketed = false;
-        e->param_name = NULL;
+        e->param_name = strdup(arg->name);
 
         VarObj *v;
         switch (arg->argtype) {

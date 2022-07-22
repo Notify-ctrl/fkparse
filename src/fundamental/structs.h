@@ -129,6 +129,7 @@ void addTranslation(const char *orig, const char *translated);
 
 extern Hash *mark_table;
 extern Hash *skill_table;
+extern Hash *other_string_table;
 
 extern char *event_table[];
 
