@@ -220,12 +220,31 @@ fkp.functions.buildPrompt = function(base, src, dest, arg, arg2)
   return base
 end
 
-fkp.functions.judge = function(player, reason)
+fkp.functions.judge = function(player, reason, pattern, good, play_animation)
   local judge = sgs.JudgeStruct()
   judge.who = player
   judge.reason = reason
+  judge.pattern = pattern
+  judge.good = good
+  judge.play_animation = play_animation
   player:getRoom():judge(judge)
   return judge.card
+end
+
+fkp.functions.buildPattern = function(names, suits, numbers)
+  if not names then names = {"."} end
+  if not suits then suits = {"."} end
+  if not numbers then numbers = {"."} end
+
+  names = table.concat(names, ",")
+  -- FIXME: write getters in lua
+  names = string.gsub(names, "basic,", "BasicCard,")
+  names = string.gsub(names, "trick,", "TrickCard,")
+  names = string.gsub(names, "equip", "EquipCard")
+
+  suits = table.concat(suits, ",")
+  numbers = table.concat(numbers, ",")
+  return string.format("%s|%s|%s|.", names, suits, numbers)
 end
 
 function fkp.newlist(t)

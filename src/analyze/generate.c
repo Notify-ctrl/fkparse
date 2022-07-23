@@ -220,11 +220,11 @@ static void analyzeVar(VarObj *v) {
             writestr(":getNumber()");
             t = TNumber;
           } else if (!strcmp(name, "花色")) {
-            writestr(":getSuit()");
-            t = TNumber;
+            writestr(":getSuitString()");
+            t = TString;
           } else if (!strcmp(name, "类别")) {
-            writestr(":getTypeId()");
-            t = TNumber;
+            writestr(":getType()");
+            t = TString;
           } else if (!strcmp(name, "牌名")) {
             writestr(":objectName()");
             t = TNumber;
@@ -889,7 +889,7 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
     writeline("global_self = self\n");
     initData(t->event);
     analyzeBlock(t->can_trigger);
-    clearData(t->event);
+    if (t->can_trigger->ret == NULL) clearData(t->event);
   } else {
     writeline("return target and player == target and player:hasSkill(self:objectName())");
   }
@@ -905,7 +905,7 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
   writeline("global_self = self\n");
   initData(t->event);
   analyzeBlock(t->on_trigger);
-  clearData(t->event);
+  if (t->on_trigger->ret == NULL) clearData(t->event);
   indent_level--;
   writeline("end,");
 

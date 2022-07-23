@@ -32,6 +32,11 @@ static Proto builtin_func[] = {
     {"变量1", TAny, true, {.s = "nil"}},
     {"变量2", TAny, true, {.s = "nil"}},
   }},
+  {"创建卡牌规则", "fkp.functions.buildPattern", TString, 3, {
+    {"牌名表", TStringList, true, {.s = "nil"}},
+    {"花色表", TStringList, true, {.s = "nil"}},
+    {"点数表", TNumberList, true, {.s = "nil"}},
+  }},
 
   /* array operations */
   {"__prepend", "fkp.functions.prepend", TNone, 2, {
@@ -156,11 +161,14 @@ static Proto builtin_func[] = {
     {"可以点取消", TBool, true, {.n = false}},
     {"可以弃装备", TBool, true, {.n = true}},
     {"提示信息", TString, true, {.s = ""}},
-    {"卡牌正则", TString, true, {.s = "."}},
+    {"弃牌规则", TString, true, {.s = "."}},
   }},
-  {"__judge", "fkp.functions.judge", TCard, 2, {
+  {"__judge", "fkp.functions.judge", TCard, 5, {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"技能名", TString, true, {.s = ""}},
+    {"判定规则", TString, true, {.s = "."}},
+    {"希望判定中", TBool, true, {.n = true}},
+    {"播放动画效果", TBool, true, {.n = true}},
   }},
 
   {NULL, NULL, TNone, 0, {}}
@@ -180,16 +188,16 @@ static struct {
   {"群", "'qun'", TNumber},
   {"神", "'god'", TNumber},
 
-  {"黑桃", "sgs.Card_Spade", TNumber},
-  {"红桃", "sgs.Card_Heart", TNumber},
-  {"梅花", "sgs.Card_Club", TNumber},
-  {"方块", "sgs.Card_Diamond", TNumber},
-  {"无花色", "sgs.Card_NoSuit", TNumber},
+  {"黑桃", "'spade'", TString},
+  {"红桃", "'heart'", TString},
+  {"梅花", "'club'", TString},
+  {"方块", "'diamond'", TString},
+  {"无花色", "'no_suit'", TString},
 
-  {"基本牌", "sgs.Card_TypeBasic", TNumber},
-  {"装备牌", "sgs.Card_TypeEquip", TNumber},
-  {"锦囊牌", "sgs.Card_TypeTrick", TNumber},
-  {"技能卡", "sgs.Card_TypeSkill", TNumber},
+  {"基本牌", "'basic'", TString},
+  {"装备牌", "'equip'", TString},
+  {"锦囊牌", "'trick'", TString},
+  // {"技能卡", "'SkillCard'", TString},
 
   {"手牌区", "sgs.Player_PlaceHand", TNumber},
   {"装备区", "sgs.Player_PlaceEquip", TNumber},
@@ -330,9 +338,11 @@ void sym_init() {
           e->exptype = ExpStr;
           e->strvalue = strdup(arg->d.s);
           break;
-        case TPlayer:
-        case TCard:
-        case TAny:
+        case TBool:
+          e->exptype = ExpBool;
+          e->value = arg->d.n;
+          break;
+        default:
           e->exptype = ExpVar;
           v = malloc(sizeof(VarObj));
           v->objtype = Obj_Var;
@@ -341,14 +351,6 @@ void sym_init() {
           v->obj = NULL;
           e->varValue = v;
           break;
-        case TBool:
-          e->exptype = ExpBool;
-          e->value = arg->d.n;
-          break;
-        default:
-          fprintf(stderr, "Error: unknown builtin function argtype %d\n",
-                  arg->argtype);
-          exit(1);
         }
         defarg->d = e;
       }
