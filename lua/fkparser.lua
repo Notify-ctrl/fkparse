@@ -181,6 +181,22 @@ fkp.functions = {
     card:deleteLater()
     return ret
   end,
+
+  swapPile = function(player)
+    player:getRoom():swapPile()
+  end,
+
+  changeHero = function(player, new_general, full_state, invokeStart, isSecondaryHero, sendLog)
+    player:getRoom():changeHero(player, new_general, full_state, invokeStart, isSecondaryHero, sendLog)
+  end,
+
+  swapSeat = function(playerA, playerB)
+    playerA:getRoom():swapSeat(playerA, playerB)
+  end,
+
+  askForCardChosen = function(player, who, flags, reason, handcard_visible, method, disabled_ids)
+    return player:getRoom():askForCardChosen(player, who, flags, reason, handcard_visible, method, disabled_ids)
+  end
 }
 
 fkp.functions.buildPrompt = function(base, src, dest, arg, arg2)
