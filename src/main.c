@@ -1,5 +1,4 @@
 #include "main.h"
-#include "ast.h"
 #include <stdarg.h>
 
 char *readfile_name;

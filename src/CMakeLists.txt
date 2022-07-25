@@ -1,6 +1,5 @@
 set(fkparse_SRCS
   "main.c"
-  "parse/ast.c"
   "parse/lex.c"
   "parse/grammar.c"
   "parse/error.c"
