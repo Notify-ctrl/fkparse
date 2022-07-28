@@ -1,7 +1,6 @@
 %{
 #include "main.h"
 #include "enums.h"
-#include "ast.h"
 #include "object.h"
 #include "grammar.h"
 #include "error.h"
@@ -68,7 +67,6 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token TRIGGER EVENTI COND EFFECT
 %token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
 %token FUNCDEF
-%token HANDCARD HAVETO
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
 %token <enum_v> TYPE
@@ -86,7 +84,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token INVOKE HAVE
 %token BECAUSE THROW TIMES
 %token SPEAK ACT_LINE
-
+%token EXEC JUDGE
 
 %type <list> funcdefList defargs defarglist skillList packageList generalList
 %type <list> stringList skillspecs triggerSkill triggerspecs
@@ -121,6 +119,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <func_call> throwCardsBySkill getUsedTimes
 %type <func_call> broadcastSkillInvoke
 %type <func_call> askForDiscard
+%type <func_call> judge
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -422,6 +421,7 @@ action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
             | getUsedTimes { $$ = $1; yycopyloc($$, &@$); }
             | broadcastSkillInvoke { $$ = $1; yycopyloc($$, &@$); }
             | askForDiscard { $$ = $1; yycopyloc($$, &@$); }
+            | judge { $$ = $1; yycopyloc($$, &@$); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD {
@@ -648,6 +648,13 @@ askForDiscard : exp THROW exp ZHANG CARD {
                   );
                 }
               ;
+
+judge : exp EXEC JUDGE {
+          $$ = newFunccall(
+            strdup("__judge"),
+            newParams(1, "玩家", $1)
+          );
+        }
 
 
 %%
