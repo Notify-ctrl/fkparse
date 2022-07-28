@@ -160,19 +160,19 @@ static Proto builtin_func[] = {
     {"卡牌正则", TString, true, {.s = "."}},
   }},
   {"__swapPile", "fkp.functions.swapPile", TNone, 1, {
-          {"玩家", TPlayer, false, {.s = NULL}}
+    {"玩家", TPlayer, false, {.s = NULL}}
   }},
   {"__changeHero", "fkp.functions.changeHero", TNone, 6, {
-          {"玩家", TPlayer, false, {.s = NULL}},
-          {"新将领", TString, false, {.s = NULL}},
-          {"是否满状态", TBool, true, {.n = true}},
-          {"是否以开始游戏状态变身", TBool, true, {.n = true}},
-          {"是否是变更副将", TBool, true, {.n = false}},
-          {"是否发送信息", TBool, true, {.n=true}},
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"新将领", TString, false, {.s = NULL}},
+    {"是否满状态", TBool, true, {.n = true}},
+    {"是否以开始游戏状态变身", TBool, true, {.n = true}},
+    {"是否是变更副将", TBool, true, {.n = false}},
+    {"是否发送信息", TBool, true, {.n=true}},
   }},
   {"__swapSeat", "fkp.functions.swapSeat", TNone, 2, {
-          {"玩家A", TPlayer, false, {.s = NULL}},
-          {"玩家B", TPlayer, false, {.s = NULL}},
+    {"玩家A", TPlayer, false, {.s = NULL}},
+    {"玩家B", TPlayer, false, {.s = NULL}},
   }},
   {NULL, NULL, TNone, 0, {}}
 };

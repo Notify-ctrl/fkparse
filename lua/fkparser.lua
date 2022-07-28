@@ -194,9 +194,6 @@ fkp.functions = {
     playerA:getRoom():swapSeat(playerA, playerB)
   end,
 
-  askForCardChosen = function(player, who, flags, reason, handcard_visible, method, disabled_ids)
-    return player:getRoom():askForCardChosen(player, who, flags, reason, handcard_visible, method, disabled_ids)
-  end
 }
 
 fkp.functions.buildPrompt = function(base, src, dest, arg, arg2)

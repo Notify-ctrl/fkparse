@@ -661,12 +661,10 @@ swapPile : exp WASH {
                     newParams(1, "玩家", $1)
                   );
                 };
-changeHero : exp CHANGEGENERAL STRING {
-                  tempExp = newExpression(ExpStr, 0, 0, NULL, NULL);
-                  tempExp->strvalue = $3;
+changeHero : exp CHANGEGENERAL exp {
                   $$ = newFunccall(
                     strdup("__changeHero"),
-                    newParams(2, "玩家", $1, "新将领", tempExp)
+                    newParams(2, "玩家", $1, "新将领", $3)
                   );
                 };
 swapSeat : exp YU exp CHANGESEAT {
