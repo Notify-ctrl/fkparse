@@ -5,7 +5,6 @@
 #include "object.h"
 #include "grammar.h"
 #include "main.h"
-#include "ast.h"
 #include "enums.h"
 
 static int yycolumn = 1;
@@ -27,7 +26,8 @@ static int yycolumn = 1;
  /* Frequently used IDENTIFIER */
 "你" |
 "X" |
-"其"    {
+"其" |
+"不存在的" {
     yylval->s = strdup(yytext);
     return IDENTIFIER;
     }
@@ -118,6 +118,8 @@ static int yycolumn = 1;
 
 "说出"    { return SPEAK; }
 "台词"    { return ACT_LINE; }
+"进行"    { return EXEC; }
+"判定"    { return JUDGE; }
 
 "游戏开始时"     { yylval->enum_v = GameStart; return EVENT; }
 "回合即将开始时"   { yylval->enum_v = TurnStart; return EVENT; }

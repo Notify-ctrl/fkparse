@@ -1,5 +1,4 @@
 #include "structs.h"
-#include "ast.h"
 #include "object.h"
 #include "main.h"
 
@@ -32,6 +31,11 @@ static Proto builtin_func[] = {
     {"玩家2", TPlayer, true, {.s = "nil"}},
     {"变量1", TAny, true, {.s = "nil"}},
     {"变量2", TAny, true, {.s = "nil"}},
+  }},
+  {"创建卡牌规则", "fkp.functions.buildPattern", TString, 3, {
+    {"牌名表", TStringList, true, {.s = "nil"}},
+    {"花色表", TStringList, true, {.s = "nil"}},
+    {"点数表", TNumberList, true, {.s = "nil"}},
   }},
 
   /* array operations */
@@ -125,10 +129,10 @@ static Proto builtin_func[] = {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"技能", TString, false, {.s = NULL}},
   }},
-  {"__obtainCard", "fkp.functions.obtainCard", TNone, 4, {
+  {"__obtainCard", "fkp.functions.obtainCard", TNone, 3, {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"卡牌", TCard, false, {.s = NULL}},
-    {"获得的原因", TString, true, {.s = ""}},
+    /* {"获得的原因", TString, true, {.s = ""}}, */
     {"公开", TBool, true, {.n = true}},
   }},
   {"__hasSkill", "fkp.functions.hasSkill", TBool, 2, {
@@ -149,7 +153,7 @@ static Proto builtin_func[] = {
     {"技能名", TString, false, {.s = NULL}},
     {"音频编号", TNumber, true, {.n = -1}},
   }},
-  {"__askForDiscard", "fkp.functions.askForDiscard", TCard, 8, {
+  {"__askForDiscard", "fkp.functions.askForDiscard", TCardList, 8, {
     {"目标", TPlayer, false, {.s = NULL}},
     {"技能名", TString, true, {.s = ""}},
     {"要求弃置数量", TNumber, false, {.s = NULL}},
@@ -157,7 +161,14 @@ static Proto builtin_func[] = {
     {"可以点取消", TBool, true, {.n = false}},
     {"可以弃装备", TBool, true, {.n = true}},
     {"提示信息", TString, true, {.s = ""}},
-    {"卡牌正则", TString, true, {.s = "."}},
+    {"弃牌规则", TString, true, {.s = "."}},
+  }},
+  {"__judge", "fkp.functions.judge", TCard, 5, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"技能名", TString, true, {.s = ""}},
+    {"判定规则", TString, true, {.s = "."}},
+    {"希望判定中", TBool, true, {.n = true}},
+    {"播放动画效果", TBool, true, {.n = true}},
   }},
   {"__swapPile", "fkp.functions.swapPile", TNone, 1, {
     {"玩家", TPlayer, false, {.s = NULL}}
@@ -174,6 +185,7 @@ static Proto builtin_func[] = {
     {"玩家A", TPlayer, false, {.s = NULL}},
     {"玩家B", TPlayer, false, {.s = NULL}},
   }},
+
   {NULL, NULL, TNone, 0, {}}
 };
 
@@ -183,6 +195,7 @@ static struct {
   int type;
 } reserved[] = {
   {"nil", "nil", TAny},
+  {"不存在的", "nil", TAny},
 
   {"魏", "'wei'", TNumber},
   {"蜀", "'shu'", TNumber},
@@ -190,16 +203,16 @@ static struct {
   {"群", "'qun'", TNumber},
   {"神", "'god'", TNumber},
 
-  {"黑桃", "sgs.Card_Spade", TNumber},
-  {"红桃", "sgs.Card_Heart", TNumber},
-  {"梅花", "sgs.Card_Club", TNumber},
-  {"方块", "sgs.Card_Diamond", TNumber},
-  {"无花色", "sgs.Card_NoSuit", TNumber},
+  {"黑桃", "'spade'", TString},
+  {"红桃", "'heart'", TString},
+  {"梅花", "'club'", TString},
+  {"方块", "'diamond'", TString},
+  {"无花色", "'no_suit'", TString},
 
-  {"基本牌", "sgs.Card_TypeBasic", TNumber},
-  {"装备牌", "sgs.Card_TypeEquip", TNumber},
-  {"锦囊牌", "sgs.Card_TypeTrick", TNumber},
-  {"技能卡", "sgs.Card_TypeSkill", TNumber},
+  {"基本牌", "'basic'", TString},
+  {"装备牌", "'equip'", TString},
+  {"锦囊牌", "'trick'", TString},
+  // {"技能卡", "'SkillCard'", TString},
 
   {"手牌区", "sgs.Player_PlaceHand", TNumber},
   {"装备区", "sgs.Player_PlaceEquip", TNumber},
@@ -309,6 +322,7 @@ void sym_init() {
     for (int i = 0; i < p->argcount; i++) {
       struct ProtoArg *arg = &p->args[i];
       DefargObj *defarg = malloc(sizeof(DefargObj));
+      defarg->first_line = -1;
       defarg->objtype = Obj_Defarg;
       defarg->name = strdup(arg->name);
       defarg->type = arg->argtype;
@@ -339,9 +353,11 @@ void sym_init() {
           e->exptype = ExpStr;
           e->strvalue = strdup(arg->d.s);
           break;
-        case TPlayer:
-        case TCard:
-        case TAny:
+        case TBool:
+          e->exptype = ExpBool;
+          e->value = arg->d.n;
+          break;
+        default:
           e->exptype = ExpVar;
           v = malloc(sizeof(VarObj));
           v->objtype = Obj_Var;
@@ -350,14 +366,6 @@ void sym_init() {
           v->obj = NULL;
           e->varValue = v;
           break;
-        case TBool:
-          e->exptype = ExpBool;
-          e->value = arg->d.n;
-          break;
-        default:
-          fprintf(stderr, "Error: unknown builtin function argtype %d\n",
-                  arg->argtype);
-          exit(1);
         }
         defarg->d = e;
       }
