@@ -183,6 +183,19 @@ fkp.functions = {
     end
     return ret
   end,
+
+  swapPile = function(player)
+    player:getRoom():swapPile()
+  end,
+
+  changeHero = function(player, new_general, full_state, invokeStart, isSecondaryHero, sendLog)
+    player:getRoom():changeHero(player, new_general, full_state, invokeStart, isSecondaryHero, sendLog)
+  end,
+
+  swapSeat = function(playerA, playerB)
+    playerA:getRoom():swapSeat(playerA, playerB)
+  end,
+
 }
 
 fkp.functions.buildPrompt = function(base, src, dest, arg, arg2)

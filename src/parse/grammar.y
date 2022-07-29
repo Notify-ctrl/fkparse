@@ -83,7 +83,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token FROM SELECT ANITEM ANPLAYER
 %token INVOKE HAVE
 %token BECAUSE THROW TIMES
-%token SPEAK ACT_LINE
+%token SPEAK ACT_LINE WASH CHANGEGENERAL CHANGESEAT YU
 %token EXEC JUDGE
 
 %type <list> funcdefList defargs defarglist skillList packageList generalList
@@ -119,6 +119,9 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <func_call> throwCardsBySkill getUsedTimes
 %type <func_call> broadcastSkillInvoke
 %type <func_call> askForDiscard
+%type <func_call> swapPile
+%type <func_call> changeHero
+%type <func_call> swapSeat
 %type <func_call> judge
 
 %type <exp> exp prefixexp opexp
@@ -421,6 +424,9 @@ action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
             | getUsedTimes { $$ = $1; yycopyloc($$, &@$); }
             | broadcastSkillInvoke { $$ = $1; yycopyloc($$, &@$); }
             | askForDiscard { $$ = $1; yycopyloc($$, &@$); }
+            | swapPile { $$ = $1; yycopyloc($$, &@$); }
+            | changeHero { $$ = $1; yycopyloc($$, &@$); }
+            | swapSeat { $$ = $1; yycopyloc($$, &@$); }
             | judge { $$ = $1; yycopyloc($$, &@$); }
             ;
 
@@ -649,13 +655,30 @@ askForDiscard : exp THROW exp ZHANG CARD {
                 }
               ;
 
+swapPile : exp WASH {
+                  $$ = newFunccall(
+                    strdup("__swapPile"),
+                    newParams(1, "玩家", $1)
+                  );
+                };
+changeHero : exp CHANGEGENERAL exp {
+                  $$ = newFunccall(
+                    strdup("__changeHero"),
+                    newParams(2, "玩家", $1, "新将领", $3)
+                  );
+                };
+swapSeat : exp YU exp CHANGESEAT {
+                $$ = newFunccall(
+                  strdup("__swapSeat"),
+                  newParams(2, "玩家A", $1, "玩家B", $3)
+                );
+           };
 judge : exp EXEC JUDGE {
           $$ = newFunccall(
             strdup("__judge"),
             newParams(1, "玩家", $1)
           );
         }
-
 
 %%
 

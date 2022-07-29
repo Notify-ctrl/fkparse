@@ -249,6 +249,43 @@
 
 如果有多个编号完的音频还需要选择，在后面加上\{'音频编号': <编号>\}。
 
+\section{交换座位}
+
+\begin{verbatim}
+  <表达式> 与 <表达式> 交换座位
+\end{verbatim}
+
+表达式均为玩家类型。
+
+没有其他参数。
+
+\section{洗牌}
+
+\begin{verbatim}
+  <表达式> 洗牌
+\end{verbatim}
+
+表达式均为玩家类型。
+
+没有其他参数。
+
+\section{变身}
+
+\begin{verbatim}
+  <表达式> 变身为 <字符串>
+\end{verbatim}
+
+表达式为玩家类型，字符串为要变身的武将，应使用内部标识。
+
+其他参数：
+
+\begin{itemize}
+  \item \verb|'是否满状态'| 布尔类型，默认为\verb|真|
+  \item \verb|'是否以开始游戏状态变身'| 布尔类型，默认为\verb|真|
+  \item \verb|'是否是变更副将'| 布尔类型，默认为\verb|假|（即变更主将，而且一般也只能变更主将）
+  \item \verb|'是否发送信息'| 布尔类型，默认为\verb|真|
+\end{itemize}
+
 \section{判定}
 
 \begin{verbatim}
@@ -266,7 +303,3 @@
   \item \verb|'希望判定中'|: 布尔类型，是否希望获得\verb|'判定规则'|中描述的判定结果，默认为\verb|真|。
   \item \verb|'提示信息'|: 布尔类型，是否会播放打钩打叉动画，默认为\verb|真|。
 \end{itemize}
-
-
-
-如果有多个编号完的音频还需要选择，在后面加上\{'音频编号': <编号>\}。
