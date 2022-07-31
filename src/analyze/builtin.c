@@ -179,13 +179,22 @@ static Proto builtin_func[] = {
     {"是否满状态", TBool, true, {.n = true}},
     {"是否以开始游戏状态变身", TBool, true, {.n = true}},
     {"是否是变更副将", TBool, true, {.n = false}},
-    {"是否发送信息", TBool, true, {.n=true}},
+    {"是否发送信息", TBool, true, {.n = true}},
   }},
   {"__swapSeat", "fkp.functions.swapSeat", TNone, 2, {
     {"玩家A", TPlayer, false, {.s = NULL}},
     {"玩家B", TPlayer, false, {.s = NULL}},
   }},
-
+  {"__askForGuanxing", "fkp.functions.askForGuanxing", TNone, 3, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"参与观星的牌", TCardList, false, {.s = NULL}},
+    {"观星类型", TNumber, true, {.n = 0}}, // 0 is GuanxingBothSides
+  }},
+  {"__getNCards", "fkp.functions.getNCards", TCardList, 3, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"获得牌的数量", TNumber, false, {.s = NULL}},
+    {"是否不放回", TBool, true, {.n = true}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 
@@ -295,6 +304,10 @@ static struct {
   {"中性", "sgs.General_Neuter", TNumber},
 
   {"其他角色", "room:getOtherPlayers(player)", TPlayerList},
+
+  {"只观看顶部", "sgs.Room_GuanxingUpOnly", TNumber},
+  {"顶部底部均观看", "sgs.Room_GuanxingBothSides", TNumber},
+  {"只观看底部", "sgs.Room_GuanxingDownOnly", TNumber},
 
   {NULL, NULL, TNone}
 };

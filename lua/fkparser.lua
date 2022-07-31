@@ -196,6 +196,14 @@ fkp.functions = {
     playerA:getRoom():swapSeat(playerA, playerB)
   end,
 
+  askForGuanxing = function(player, cards, guanxing_type)
+    player:getRoom():askForGuanxing(player, cards, guanxing_type)
+  end,
+  
+  getNCards = function(player, card_number, update_pile_number)
+    player:getRoom():getNCards(card_number, update_pile_number)
+  end
+
 }
 
 fkp.functions.buildPrompt = function(base, src, dest, arg, arg2)

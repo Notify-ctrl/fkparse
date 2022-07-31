@@ -105,6 +105,8 @@ static int yycolumn = 1;
 "变身为" { return CHANGEGENERAL; }
 "交换座位" { return CHANGESEAT; }
 "与" { return YU; }
+"进行观星" { return GUANXING; }
+"牌堆顶" { return PILETOP; }
 
 "主动技"   { return ACTIVE; }
 "选牌规则:" { return CARD_FILTER; }
@@ -186,6 +188,13 @@ static int yycolumn = 1;
     yylval->s = strdup(yytext);
     return GENDER;
     }
+
+"只观看顶部" |
+"顶部底部均观看" |
+"只观看底部" {
+    yylval->s = strdup(yytext);
+    return GUANXINGTYPE;
+}
 
 "魏" |
 "蜀" |
