@@ -197,11 +197,21 @@ fkp.functions = {
   end,
 
   askForGuanxing = function(player, cards, guanxing_type)
-    player:getRoom():askForGuanxing(player, cards, guanxing_type)
+    local idlist = sgs.IntList()
+    for _,card in sgs.list(cards) do
+      idlist:append(card:getId())
+    end
+    player:getRoom():askForGuanxing(player, idlist, guanxing_type)
   end,
   
   getNCards = function(player, card_number, update_pile_number)
-    return player:getRoom():getNCards(card_number, update_pile_number)
+    local room = player:getRoom()
+    local idlist = room:getNCards(card_number, update_pile_number)
+    local cdl = sgs.CardList()
+    for _, id in sgs.list(idlist) do
+      cdl:append(sgs.Sanguosha:getCard(id))
+    end
+    return cdl
   end
 
 }
