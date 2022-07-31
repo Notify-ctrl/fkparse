@@ -201,7 +201,7 @@ fkp.functions = {
   end,
   
   getNCards = function(player, card_number, update_pile_number)
-    player:getRoom():getNCards(card_number, update_pile_number)
+    return player:getRoom():getNCards(card_number, update_pile_number)
   end
 
 }

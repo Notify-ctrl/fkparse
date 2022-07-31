@@ -692,7 +692,7 @@ askForGuanxing : exp TO exp GUANXING {
           );
         };
 
-getNCards: exp ACQUIRE PILETOP exp ZHANG CARD {
+getNCards: exp SELECT PILETOP exp ZHANG CARD {
           $$ = newFunccall(
             strdup("__getNCards"),
             newParams(2, "玩家", $1, "获得牌的数量", $4)
