@@ -210,6 +210,18 @@ static void analyzeVar(VarObj *v) {
           } else if (!strcmp(name, "身份")) {
             writestr(":getRoleEnum()");
             t = TNumber;
+          } else if (!strcmp(name, "性别")) {
+            writestr(":getGender()");
+            t = TNumber;
+          } else if (!strcmp(name, "手牌上限")) {
+            writestr(":getMaxCards()");
+            t = TNumber;
+          } else if (!strcmp(name, "势力")) {
+            writestr(":getKingdom()");
+            t = TString;
+          } else if (!strcmp(name, "座位号")) {
+            writestr(":getSeat()");
+            t = TNumber;
           } else {
             yyerror(cast(YYLTYPE *, v), "无法获取 玩家 的属性 '%s'\n", name);
             t = TNone;
@@ -227,6 +239,9 @@ static void analyzeVar(VarObj *v) {
             t = TString;
           } else if (!strcmp(name, "牌名")) {
             writestr(":objectName()");
+            t = TNumber;
+          } else if (!strcmp(name, "编号")) {
+            writestr(":getId()");
             t = TNumber;
           } else {
             yyerror(cast(YYLTYPE *, v), "无法获取 卡牌 的属性 '%s'\n", name);

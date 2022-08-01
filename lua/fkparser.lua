@@ -390,7 +390,7 @@ function fkp.CreateTriggerSkill(spec)
     on_trigger = function(self, event, player, data)
       local room = player:getRoom()
       if not specs[event] then return end
-      for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
+      for _, p in sgs.qlist(room:getAlivePlayers()) do
         if specs[event][1](self, player, p, data) then
           return specs[event][2](self, player, p, data)
         end
