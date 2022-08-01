@@ -111,6 +111,9 @@ static int yycolumn = 1;
 "选目标规则:" { return TARGET_FILTER; }
 "可以点确定:"    { return FEASIBLE; }
 "使用后:"    { return ON_USE; }
+"视为技"   { return VIEWAS; }
+"视为规则:" { return VSRULE; }
+"可以响应:" { return RESPONSABLE; }
 
 "因" { return BECAUSE; }
 "弃置"    { return THROW; }

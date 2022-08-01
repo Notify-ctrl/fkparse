@@ -37,6 +37,12 @@ static Proto builtin_func[] = {
     {"花色表", TStringList, true, {.s = "nil"}},
     {"点数表", TNumberList, true, {.s = "nil"}},
   }},
+  {"创建虚拟牌", "fkp.functions.newVirtualCard", TCard, 4, {
+    {"点数", TNumber, true, {.n = 0}},
+    {"花色", TString, true, {.s = "no_suit"}},
+    {"牌名", TString, true, {.s = "slash"}},
+    {"子卡牌", TCardList, true, {.s = "nil"}},
+  }},
 
   /* array operations */
   {"__prepend", "fkp.functions.prepend", TNone, 2, {
@@ -208,6 +214,8 @@ static struct {
   {"梅花", "'club'", TString},
   {"方块", "'diamond'", TString},
   {"无花色", "'no_suit'", TString},
+  {"黑色无花色", "'no_suit_black'", TString},
+  {"红色无花色", "'no_suit_red'", TString},
 
   {"基本牌", "'basic'", TString},
   {"装备牌", "'equip'", TString},

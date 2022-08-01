@@ -7,6 +7,16 @@ sgs.LoadTranslationTable{
   ["#DiscardWithEquipMin"] = "请弃置 %arg 张牌，至少弃置 %arg2 张（包括装备区）",
 }
 
+local string2suit = {
+  spade = sgs.Card_Spade,
+  club = sgs.Card_Club,
+  heart = sgs.Card_Heart,
+  diamond = sgs.Card_Diamond,
+  no_suit = sgs.Card_NoSuit,
+  no_suit_black = sgs.Card_NoSuitBlack,
+  no_suit_red = sgs.Card_NoSuitRed,
+}
+
 fkp.functions = {
   prepend = function(arr, e)
     arr:prepend(e)
@@ -258,6 +268,13 @@ fkp.functions.buildPattern = function(names, suits, numbers)
   suits = table.concat(suits, ",")
   numbers = table.concat(numbers, ",")
   return string.format("%s|%s|%s|.", names, suits, numbers)
+end
+
+fkp.functions.newVirtualCard = function(suit, number, name, subcards)
+  if not subcards then subcards = sgs.CardList() end
+  local ret = sgs.Sanguosha:cloneCard(name, string2suit[suit], number)
+  ret:addSubcards(subcards)
+  return ret
 end
 
 function fkp.newlist(t)

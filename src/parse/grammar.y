@@ -42,6 +42,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
   SkillSpecObj *skillspec;
   TriggerSpecObj *trigger_spec;
   ActiveSpecObj *active_spec;
+  ViewAsSpecObj *vs_spec;
 
   BlockObj *block;
   ExpressionObj *exp;
@@ -66,6 +67,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token PKGSTART
 %token TRIGGER EVENTI COND EFFECT
 %token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
+%token VIEWAS VSRULE RESPONSABLE
 %token FUNCDEF
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
@@ -99,6 +101,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <skillspec> skillspec
 %type <trigger_spec> triggerspec
 %type <active_spec> activespec
+%type <vs_spec> vsspec
 
 %type <block> block
 %type <any> statement
@@ -218,6 +221,7 @@ skillspecs  : %empty { $$ = list_new(); }
 
 skillspec   : triggerSkill { $$ = newSkillSpec(Spec_TriggerSkill, $1); }
             | activespec { $$ = newSkillSpec(Spec_ActiveSkill, $1); }
+            | vsspec { $$ = newSkillSpec(Spec_ViewAsSkill, $1); }
             ;
 
 triggerSkill  : TRIGGER triggerspecs  { $$ = $2; }
@@ -248,6 +252,12 @@ activespec  : ACTIVE COND block CARD_FILTER block TARGET_FILTER block FEASIBLE b
             | ACTIVE COND block CARD_FILTER block TARGET_FILTER block FEASIBLE block ON_USE block
               { $$ = newActiveSpec($3, $5, $7, $9, $11, NULL); yycopyloc($$, &@$); }
             ;
+
+vsspec  : VIEWAS COND block CARD_FILTER block FEASIBLE block VSRULE block
+          { $$ = newViewAsSpec($3, $5, $7, $9); yycopyloc($$, &@$); }
+        | VIEWAS COND block CARD_FILTER block FEASIBLE block VSRULE block RESPONSABLE exp
+          { $$ = newViewAsSpec($3, $5, $7, $9); $$->responsable = $11->value; yycopyloc($$, &@$); }
+        ;
 
 block   : statements  { $$ = newBlock($1, NULL); yycopyloc($$, &@$); }
         | statements retstat  { $$ = newBlock($1, $2); yycopyloc($$, &@$); }

@@ -168,6 +168,19 @@ ActiveSpecObj *newActiveSpec(BlockObj *cond, BlockObj *card_filter,
   return ret;
 }
 
+ViewAsSpecObj *newViewAsSpec(BlockObj *cond, BlockObj *card_filter,
+                             BlockObj *feasible, BlockObj *view_as)
+{
+  ViewAsSpecObj *ret = malloc(sizeof(ViewAsSpecObj));
+  ret->objtype = Obj_ViewAsSpec;
+  ret->cond = cond;
+  ret->card_filter = card_filter;
+  ret->feasible = feasible;
+  ret->view_as = view_as;
+  ret->responsable = true;
+  return ret;
+}
+
 SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
                    const char *interid, List *specs) {
   SkillObj *ret = malloc(sizeof(SkillObj));
