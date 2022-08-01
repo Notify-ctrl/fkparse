@@ -378,6 +378,7 @@ static void analyzeFunccall(FunccallObj *f) {
 
   List *node;
   bool start = true;
+  bool errored = false;
   list_foreach(node, d->params) {
     if (!start) {
       writestr(", ");
@@ -392,6 +393,7 @@ static void analyzeFunccall(FunccallObj *f) {
       if (!a->d) {
         yyerror(cast(YYLTYPE *, f), "调用函数“%s”时：", f->name);
         yyerror(cast(YYLTYPE *, a), "函数“%s”的参数“%s”没有默认值，调用时必须传入值", f->name, name);
+        errored = true;
       } else {
         analyzeExp(a->d);
       }
@@ -403,6 +405,82 @@ static void analyzeFunccall(FunccallObj *f) {
 
   writestr(")");
   f->rettype = d->rettype;
+
+  /* 因为没有函数重载，所以要对数组操作耦合一下
+     TAny用多了容易翻车 */
+  if (errored) return;
+  if (!strcmp(f->name, "__prepend") || !strcmp(f->name, "__append")) {
+    ExpressionObj *array = hash_get(f->params, "array");
+    ExpressionObj *value = hash_get(f->params, "value");
+
+    if (array->valuetype == TEmptyList) {
+      switch (value->valuetype) {
+      case TNumber:
+        array->valuetype = TNumberList;
+        break;
+      case TString:
+        array->valuetype = TStringList;
+        break;
+      case TCard:
+        array->valuetype = TCardList;
+        break;
+      case TPlayer:
+        array->valuetype = TPlayerList;
+        break;
+      default:
+        yyerror(cast(YYLTYPE *, f), "不能把类型 %d 添加到数组中");
+        break;
+      }
+      if (array->exptype == ExpVar && array->varValue) {
+        symtab_item *i = sym_lookup(array->varValue->name);
+        if (i) i->type = array->valuetype;
+      }
+    } else {
+      ExpVType t = TNone;
+      switch (array->valuetype) {
+      case TNumberList:
+        t = TNumber;
+        break;
+      case TStringList:
+        t = TString;
+        break;
+      case TPlayerList:
+        t = TPlayer;
+        break;
+      case TCardList:
+        t = TCard;
+        break;
+      case TEmptyList:
+        t = TAny;
+        break;
+      default:
+        yyerror(cast(YYLTYPE *, f), "未知的数组类型");
+        break;
+      }
+
+      checktype(value, value->valuetype, t);
+    }
+
+  } else if (!strcmp(f->name, "__at")) {
+    ExpressionObj *array = hash_get(f->params, "array");
+    switch (array->valuetype) {
+    case TNumberList:
+      f->rettype = TNumber;
+      break;
+    case TStringList:
+      f->rettype = TString;
+      break;
+    case TPlayerList:
+      f->rettype = TPlayer;
+      break;
+    case TCardList:
+      f->rettype = TCard;
+      break;
+    default:
+      yyerror(cast(YYLTYPE *, f), "试图对不是数组或者空数组根据下标取值");
+      break;
+    }
+  }
 }
 
 void analyzeBlock(BlockObj *bl) {
