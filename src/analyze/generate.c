@@ -943,6 +943,8 @@ static void analyzeActiveSpec(ActiveSpecObj *a) {
 
   writeline("card_filter = function(self, selected, to_select)");
   indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
   analyzeBlock(a->card_filter);
   indent_level--;
   writeline("end,\n");
@@ -960,6 +962,8 @@ static void analyzeActiveSpec(ActiveSpecObj *a) {
 
   writeline("target_filter = function(self, targets, to_select, selected)");
   indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
   analyzeBlock(a->target_filter);
   indent_level--;
   writeline("end,\n");
@@ -976,6 +980,8 @@ static void analyzeActiveSpec(ActiveSpecObj *a) {
 
   writeline("feasible = function(self, targets, cards)");
   indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
   analyzeBlock(a->feasible);
   indent_level--;
   writeline("end,\n");
@@ -1026,6 +1032,79 @@ static void analyzeActiveSpec(ActiveSpecObj *a) {
   current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
+static void analyzeViewAsSpec(ViewAsSpecObj *v) {
+  Hash *param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "player", true);
+
+  writeline("can_use = function(self, player)");
+  indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
+  analyzeBlock(v->cond);
+  indent_level--;
+  writeline("end,\n");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+
+  param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "sgs.Self", true);
+  sym_new_entry("已选卡牌", TCardList, "selected", true);
+  sym_new_entry("备选卡牌", TCard, "to_select", true);
+
+  writeline("card_filter = function(self, selected, to_select)");
+  indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
+  analyzeBlock(v->card_filter);
+  indent_level--;
+  writeline("end,\n");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+
+  param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "sgs.Self", true);
+  sym_new_entry("已选卡牌", TCardList, "cards", true);
+
+  writeline("feasible = function(self, cards)");
+  indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
+  analyzeBlock(v->feasible);
+  indent_level--;
+  writeline("end,\n");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+
+  param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "sgs.Self", true);
+  sym_new_entry("选择的卡牌", TCardList, "cards", true);
+
+  writeline("view_as = function(self, cards)");
+  indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
+  analyzeBlock(v->view_as);
+  indent_level--;
+  writeline("end,\n");
+
+  writeline("responsable = %s,", v->responsable ? "true" : "false");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
+}
+
 static void analyzeSkill(SkillObj *s) {
   List *node;
 
@@ -1036,30 +1115,37 @@ static void analyzeSkill(SkillObj *s) {
     analyzeActiveSpec(s->activeSpec);
     indent_level--;
     writeline("}");
-    if (!s->triggerSpecs)
-      writeline("if not sgs.Sanguosha:getSkill('%s') then \
-all_skills:append(%s_ac) end\n", s->interid, s->interid);
   }
 
-  if (s->triggerSpecs) {
-    writeline("%s = fkp.CreateTriggerSkill{", s->interid);
+  if (s->vsSpec) {
+    writeline("%s_vs = fkp.CreateViewAsSkill{", s->interid);
     indent_level++;
     writeline("name = '%s',", s->interid);
-    writeline("frequency = %s,", sym_lookup(s->frequency)->origtext);
-    if (s->activeSpec)
-      writeline("view_as_skill = %s_ac,", s->interid);
-    writeline("specs = {");
-    indent_level++;
+    analyzeViewAsSpec(s->vsSpec);
+    indent_level--;
+    writeline("}");
+  }
+
+  writeline("%s = fkp.CreateTriggerSkill{", s->interid);
+  indent_level++;
+  writeline("name = '%s',", s->interid);
+  writeline("frequency = %s,", sym_lookup(s->frequency)->origtext);
+  if (s->activeSpec)
+    writeline("view_as_skill = %s_ac,", s->interid);
+  else if (s->vsSpec)
+    writeline("view_as_skill = %s_vs,", s->interid);
+  writeline("specs = {");
+  indent_level++;
+  if (s->triggerSpecs)
     list_foreach(node, s->triggerSpecs) {
       analyzeTriggerSpec(cast(TriggerSpecObj *, node->data));
     }
-    indent_level--;
-    writeline("}");
-    indent_level--;
-    writeline("}");
-    writeline("if not sgs.Sanguosha:getSkill('%s') then \
+  indent_level--;
+  writeline("}");
+  indent_level--;
+  writeline("}");
+  writeline("if not sgs.Sanguosha:getSkill('%s') then \
 all_skills:append(%s) end\n", s->interid, s->interid);
-  }
 }
 
 static void analyzeGeneral(GeneralObj *g) {

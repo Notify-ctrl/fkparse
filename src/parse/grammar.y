@@ -321,18 +321,18 @@ exp : FALSE { $$ = newExpression(ExpBool, 0, 0, NULL, NULL); yycopyloc($$, &@$);
     | STRING { $$ = newExpression(ExpStr, 0, 0, NULL, NULL); $$->strvalue = $1; yycopyloc($$, &@$); }
     | prefixexp { $$ = $1; }
     | opexp { $$ = $1; }
-    | '(' action_stat ')'
-      {
-        $$ = newExpression(ExpFunc, 0, 0, NULL, NULL);
-        $$->func = $2;
-        yycopyloc($$, &@$);
-      }
     | array { $$ = newExpression(ExpArray, 0, 0, NULL, NULL); $$->array = $1; yycopyloc($$, &@$); }
     ;
 
 prefixexp : var { $$ = newExpression(ExpVar, 0, 0, NULL, NULL); $$->varValue = $1; yycopyloc($$, &@$); }
       | '(' func_call ')'
           { $$ = newExpression(ExpFunc, 0, 0, NULL, NULL); $$->func = $2; yycopyloc($$, &@$); }
+      | '(' action_stat ')'
+        {
+          $$ = newExpression(ExpFunc, 0, 0, NULL, NULL);
+          $$->func = $2;
+          yycopyloc($$, &@$);
+        }
       | '(' exp ')' { $$ = $2; $$->bracketed = 1; yycopyloc($$, &@$); }
       ;
 

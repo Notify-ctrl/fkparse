@@ -47,6 +47,7 @@ typedef struct {
 
   List *triggerSpecs;
   struct ActiveSpecObj *activeSpec;
+  struct ViewAsSpecObj *vsSpec;
   /* TODO: other skill specs */
 } SkillObj;
 
@@ -188,7 +189,7 @@ ActiveSpecObj *newActiveSpec(BlockObj *cond, BlockObj *card_filter,
                              BlockObj *target_filter, BlockObj *feasible,
                              BlockObj *on_use, BlockObj *on_effect);
 
-typedef struct {
+typedef struct ViewAsSpecObj {
   ObjectHeader;
   BlockObj *cond;
   BlockObj *card_filter;

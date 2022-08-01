@@ -270,9 +270,10 @@ fkp.functions.buildPattern = function(names, suits, numbers)
   return string.format("%s|%s|%s|.", names, suits, numbers)
 end
 
-fkp.functions.newVirtualCard = function(suit, number, name, subcards)
+fkp.functions.newVirtualCard = function(number, suit, name, subcards, skill)
   if not subcards then subcards = sgs.CardList() end
   local ret = sgs.Sanguosha:cloneCard(name, string2suit[suit], number)
+  ret:setSkillName(skill)
   ret:addSubcards(subcards)
   return ret
 end
@@ -431,6 +432,38 @@ function fkp.CreateActiveSkill(spec)
     enabled_at_play = spec.can_use,
     enabled_at_response = function(self, player, pattern)
       return pattern == "@@" .. spec.name
+    end,
+  }
+
+  return vs_skill
+end
+
+function fkp.CreateViewAsSkill(spec)
+  assert(type(spec.name) == "string")
+
+  local vs_skill = sgs.CreateViewAsSkill{
+    name = spec.name,
+    n = 996,
+    view_filter = function(self, selected, to_select)
+      local clist = sgs.CardList()
+      for _, c in ipairs(selected) do
+        clist:append(c)
+      end
+      return spec.card_filter(self, clist, to_select)
+    end,
+    view_as = function(self, cards)
+      local clist = sgs.CardList()
+      for _, c in ipairs(cards) do
+        clist:append(c)
+      end
+      if spec.feasible(self, clist) then
+        return spec.view_as(self, clist)
+      end
+      return nil
+    end,
+    enabled_at_play = spec.can_use,
+    enabled_at_response = function(self, player, pattern)
+      return false
     end,
   }
 

@@ -37,11 +37,12 @@ static Proto builtin_func[] = {
     {"花色表", TStringList, true, {.s = "nil"}},
     {"点数表", TNumberList, true, {.s = "nil"}},
   }},
-  {"创建虚拟牌", "fkp.functions.newVirtualCard", TCard, 4, {
+  {"创建虚拟牌", "fkp.functions.newVirtualCard", TCard, 5, {
     {"点数", TNumber, true, {.n = 0}},
     {"花色", TString, true, {.s = "no_suit"}},
     {"牌名", TString, true, {.s = "slash"}},
     {"子卡牌", TCardList, true, {.s = "nil"}},
+    {"技能名", TString, true, {.s = ""}},
   }},
 
   /* array operations */

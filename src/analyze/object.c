@@ -206,6 +206,7 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
 
   ret->triggerSpecs = NULL;
   ret->activeSpec = NULL;
+  ret->vsSpec = NULL;
 
   List *iter;
   list_foreach(iter, specs) {
@@ -221,6 +222,14 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
         freeObject(ret->activeSpec);
       }
       ret->activeSpec = cast(ActiveSpecObj *, data->obj);
+      free(data);
+      break;
+    case Spec_ViewAsSkill:
+      if (ret->vsSpec != NULL) {
+        yyerror(cast(YYLTYPE *, data->obj), "不允许一个技能下同时存在多个视为技");
+        freeObject(ret->activeSpec);
+      }
+      ret->vsSpec = cast(ViewAsSpecObj *, data->obj);
       free(data);
       break;
     }
@@ -441,6 +450,15 @@ static void freeActiveSpec(void *p) {
   free(a);
 }
 
+static void freeViewAsSpec(void *p) {
+  ViewAsSpecObj *v = p;
+  freeObject(v->cond);
+  freeObject(v->card_filter);
+  freeObject(v->feasible);
+  freeObject(v->view_as);
+  free(v);
+}
+
 static void freeDefarg(void *ptr) {
   DefargObj *d = ptr;
   free((void *)d->name);
@@ -474,6 +492,7 @@ static void freeSkill(void *ptr) {
   free((void *)s->interid);
   list_free(s->triggerSpecs, freeTriggerSpec);
   freeObject(s->activeSpec);
+  freeObject(s->vsSpec);
   free(s);
 }
 
@@ -516,6 +535,7 @@ void freeObject(void *p) {
   case Obj_Block: freeBlock(p); break;
   case Obj_TriggerSpec: freeTriggerSpec(p); break;
   case Obj_ActiveSpec: freeActiveSpec(p); break;
+  case Obj_ViewAsSpec: freeViewAsSpec(p); break;
   case Obj_If: freeIf(p); break;
   case Obj_Loop: freeLoop(p); break;
   case Obj_Traverse: freeTraverse(p); break;
