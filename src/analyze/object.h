@@ -195,7 +195,8 @@ typedef struct ViewAsSpecObj {
   BlockObj *card_filter;
   BlockObj *feasible;
   BlockObj *view_as;
-  bool responsable;
+  BlockObj *can_response;
+  ExpressionObj *responsable;
 } ViewAsSpecObj;
 
 ViewAsSpecObj *newViewAsSpec(BlockObj *cond, BlockObj *card_filter,

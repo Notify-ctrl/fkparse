@@ -1176,10 +1176,35 @@ static void analyzeViewAsSpec(ViewAsSpecObj *v) {
   indent_level--;
   writeline("end,\n");
 
-  writeline("responsable = %s,", v->responsable ? "true" : "false");
-
   stack_pop(symtab_stack);
   sym_free(param_symtab);
+
+  if (v->can_response) {
+    param_symtab = hash_new();
+    current_tab = param_symtab;
+    stack_push(symtab_stack, cast(Object *, param_symtab));
+    sym_new_entry("你", TPlayer, "player", true);
+
+    writeline("can_response = function(self, player)");
+    indent_level++;
+    writeline("local locals = {}");
+    writeline("global_self = self\n");
+    analyzeBlock(v->can_response);
+    indent_level--;
+    writeline("end,\n");
+
+    stack_pop(symtab_stack);
+    sym_free(param_symtab);
+  }
+
+  if (v->responsable) {
+    print_indent();
+    writestr("response_patterns = ");
+    analyzeExp(v->responsable);
+    checktype(v->responsable, v->responsable->valuetype, TStringList);
+    writestr("\n");
+  }
+
   current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 

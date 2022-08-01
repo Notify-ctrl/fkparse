@@ -67,7 +67,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token PKGSTART
 %token TRIGGER EVENTI COND EFFECT
 %token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
-%token VIEWAS VSRULE RESPONSABLE
+%token VIEWAS VSRULE RESPONSECOND RESPONSABLE
 %token FUNCDEF
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
@@ -255,8 +255,16 @@ activespec  : ACTIVE COND block CARD_FILTER block TARGET_FILTER block FEASIBLE b
 
 vsspec  : VIEWAS COND block CARD_FILTER block FEASIBLE block VSRULE block
           { $$ = newViewAsSpec($3, $5, $7, $9); yycopyloc($$, &@$); }
-        | VIEWAS COND block CARD_FILTER block FEASIBLE block VSRULE block RESPONSABLE exp
-          { $$ = newViewAsSpec($3, $5, $7, $9); $$->responsable = $11->value; yycopyloc($$, &@$); }
+        | VIEWAS COND block CARD_FILTER block FEASIBLE block VSRULE block RESPONSECOND block RESPONSABLE array
+          {
+            $$ = newViewAsSpec($3, $5, $7, $9);
+            $$->can_response = $11;
+            tempExp = newExpression(ExpArray, 0, 0, NULL, NULL);
+            tempExp->array = $13;
+            yycopyloc(tempExp, &@13);
+            $$->responsable = tempExp;
+            yycopyloc($$, &@$);
+          }
         ;
 
 block   : statements  { $$ = newBlock($1, NULL); yycopyloc($$, &@$); }

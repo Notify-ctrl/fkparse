@@ -177,7 +177,8 @@ ViewAsSpecObj *newViewAsSpec(BlockObj *cond, BlockObj *card_filter,
   ret->card_filter = card_filter;
   ret->feasible = feasible;
   ret->view_as = view_as;
-  ret->responsable = true;
+  ret->can_response = NULL;
+  ret->responsable = NULL;
   return ret;
 }
 
@@ -456,6 +457,8 @@ static void freeViewAsSpec(void *p) {
   freeObject(v->card_filter);
   freeObject(v->feasible);
   freeObject(v->view_as);
+  freeObject(v->can_response);
+  freeObject(v->responsable);
   free(v);
 }
 

@@ -113,7 +113,8 @@ static int yycolumn = 1;
 "使用后:"    { return ON_USE; }
 "视为技"   { return VIEWAS; }
 "视为规则:" { return VSRULE; }
-"可以响应:" { return RESPONSABLE; }
+"响应条件:" { return RESPONSECOND; }
+"响应规则:" { return RESPONSABLE; }
 
 "因" { return BECAUSE; }
 "弃置"    { return THROW; }

@@ -278,6 +278,40 @@ fkp.functions.newVirtualCard = function(number, suit, name, subcards, skill)
   return ret
 end
 
+local function table_filter(tab, func)
+  local ret = {}
+  for index, item in ipairs(tab) do
+    if func(item) then
+      ret[index] = item
+    end
+  end
+  return ret
+end
+
+fkp.functions.patternMatch = function(pattern1, pattern2)
+  local pattern_tab1 = pattern1:split('#')[1]:split('|')
+  local pattern_tab2 = pattern2:split('#')[1]:split('|')
+  for i = 1, 4 - #pattern_tab1 do
+    table.insert(pattern_tab1, '.')
+  end
+  for i = 1, 4 - #pattern_tab2 do
+    table.insert(pattern_tab2, '.')
+  end
+  for i = 1, 4 do
+    pattern_tab1[i] = pattern_tab1[i]:split(',')
+    pattern_tab2[i] = pattern_tab2[i]:split(',')
+    if #table_filter(pattern_tab1[i], function(item)
+      -- TODO: handle 'BasicCard', etc.
+      return item == '.'
+          or table.contains(pattern_tab2[i], item)
+          or table.contains(pattern_tab2[i], '.')
+    end) == 0 then
+      return false
+    end
+  end
+  return true
+end
+
 function fkp.newlist(t)
   local element_type = swig_type(t[1])
   local ret
@@ -440,6 +474,7 @@ end
 
 function fkp.CreateViewAsSkill(spec)
   assert(type(spec.name) == "string")
+  spec.response_patterns = spec.response_patterns or {}
 
   local vs_skill = sgs.CreateViewAsSkill{
     name = spec.name,
@@ -463,6 +498,23 @@ function fkp.CreateViewAsSkill(spec)
     end,
     enabled_at_play = spec.can_use,
     enabled_at_response = function(self, player, pattern)
+      if not (spec.can_response and spec.can_response(self, player)) then return false end
+
+      for _, item in ipairs(spec.response_patterns) do
+        if fkp.functions.patternMatch(item, pattern) then
+          return true
+        end
+      end
+      return false
+    end,
+    enabled_at_nullification = function(self, player)
+      if not (spec.can_response and spec.can_response(self, player)) then return false end
+
+      for _, item in ipairs(spec.response_patterns) do
+        if fkp.functions.patternMatch(item, "nullification") then
+          return true
+        end
+      end
       return false
     end,
   }
