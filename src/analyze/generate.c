@@ -243,6 +243,9 @@ static void analyzeVar(VarObj *v) {
           } else if (!strcmp(name, "编号")) {
             writestr(":getId()");
             t = TNumber;
+          } else if (!strcmp(name, "是否被装备")) {
+            writestr(":isEquipped()");
+            t = TBool;
           } else {
             yyerror(cast(YYLTYPE *, v), "无法获取 卡牌 的属性 '%s'\n", name);
             t = TNone;
