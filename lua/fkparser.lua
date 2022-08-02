@@ -206,6 +206,29 @@ fkp.functions = {
     playerA:getRoom():swapSeat(playerA, playerB)
   end,
 
+  askForGuanxing = function(player, cards, guanxing_type)
+    local idlist = sgs.IntList()
+    for _,card in sgs.list(cards) do
+      idlist:append(card:getId())
+    end
+    player:getRoom():askForGuanxing(player, idlist, guanxing_type)
+  end,
+  
+  getNCards = function(player, card_number, update_pile_number)
+    local room = player:getRoom()
+    local idlist = room:getNCards(card_number, update_pile_number)
+    local cdl = sgs.CardList()
+    for _, id in sgs.list(idlist) do
+      cdl:append(sgs.Sanguosha:getCard(id))
+    end
+    return cdl
+  end,
+
+  retrial = function(card, player, judge, skill_name, exchange)
+    local room = player:getRoom()
+    return room:retrial(card, player, judge, skill_name, exchange)
+  end
+
 }
 
 fkp.functions.buildPrompt = function(base, src, dest, arg, arg2)
