@@ -105,8 +105,11 @@ static int yycolumn = 1;
 "变身为" { return CHANGEGENERAL; }
 "交换座位" { return CHANGESEAT; }
 "与" { return YU; }
-"进行观星" { return GUANXING; }
+"观星" { return GUANXING; }
 "牌堆顶" { return PILETOP; }
+"将" { return JIANG; }
+"结果" { return RESULT; }
+"修改" { return FIX; }
 
 "主动技"   { return ACTIVE; }
 "选牌规则:" { return CARD_FILTER; }

@@ -86,6 +86,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token SPEAK ACT_LINE WASH CHANGEGENERAL CHANGESEAT YU
 %token EXEC JUDGE
 %token GUANXINGTYPE GUANXING PILETOP
+%token JIANG RESULT FIX
 
 %type <list> funcdefList defargs defarglist skillList packageList generalList
 %type <list> stringList skillspecs triggerSkill triggerspecs
@@ -126,6 +127,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <func_call> judge
 %type <func_call> askForGuanxing
 %type <func_call> getNCards
+%type <func_call> retrial
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -433,6 +435,7 @@ action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
             | judge { $$ = $1; yycopyloc($$, &@$); }
             | askForGuanxing { $$ = $1; yycopyloc($$, &@$); }
             | getNCards { $$ = $1; yycopyloc($$, &@$); }
+            | retrial { $$ = $1; yycopyloc($$, &@$); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD {
@@ -685,7 +688,7 @@ judge : exp EXEC JUDGE {
           );
         };
 
-askForGuanxing : exp TO exp GUANXING {
+askForGuanxing : exp TO exp EXEC GUANXING {
           $$ = newFunccall(
             strdup("__askForGuanxing"),
             newParams(2, "玩家", $1, "参与观星的牌", $3)
@@ -699,6 +702,12 @@ getNCards: exp SELECT PILETOP exp ZHANG CARD {
           );
         };
 
+retrial: exp JIANG JUDGE RESULT FIX EQ exp {
+          $$ = newFunccall(
+            strdup("__retrial"),
+            newParams(2, "玩家", $1, "改判牌", $7)
+          );
+        };
 %%
 
 static int yyreport_syntax_error(const yypcontext_t *ctx) {

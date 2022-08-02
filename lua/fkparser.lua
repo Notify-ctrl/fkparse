@@ -212,6 +212,11 @@ fkp.functions = {
       cdl:append(sgs.Sanguosha:getCard(id))
     end
     return cdl
+  end,
+
+  retrial = function(card, player, judge, skill_name, exchange)
+    local room = player:getRoom()
+    return room:retrial(card, player, judge, skill_name, exchange)
   end
 
 }

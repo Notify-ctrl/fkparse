@@ -195,6 +195,13 @@ static Proto builtin_func[] = {
     {"获得牌的数量", TNumber, false, {.s = NULL}},
     {"是否不放回", TBool, true, {.n = true}},
   }},
+  {"__retrial", "fkp.functions.retrial", TNone, 5, {
+    {"改判牌", TCard, false, {.s = NULL}},
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"判定结构体", TAny, true, {.s = "判定结构体"}},
+    {"技能名", TString, true, {.s = ""}},
+    {"是否交换", TBool, true, {.n = false}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 
@@ -305,9 +312,10 @@ static struct {
 
   {"其他角色", "room:getOtherPlayers(player)", TPlayerList},
 
-  {"只观看顶部", "sgs.Room_GuanxingUpOnly", TNumber},
-  {"顶部底部均观看", "sgs.Room_GuanxingBothSides", TNumber},
-  {"只观看底部", "sgs.Room_GuanxingDownOnly", TNumber},
+  {"只放置顶部", "sgs.Room_GuanxingUpOnly", TNumber},
+  {"顶部底部均放置", "sgs.Room_GuanxingBothSides", TNumber},
+  {"只放置底部", "sgs.Room_GuanxingDownOnly", TNumber},
+  {"判定结构体", "judge", TAny},
 
   {NULL, NULL, TNone}
 };
