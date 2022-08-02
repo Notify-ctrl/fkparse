@@ -42,6 +42,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
   SkillSpecObj *skillspec;
   TriggerSpecObj *trigger_spec;
   ActiveSpecObj *active_spec;
+  ViewAsSpecObj *vs_spec;
 
   BlockObj *block;
   ExpressionObj *exp;
@@ -66,6 +67,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token PKGSTART
 %token TRIGGER EVENTI COND EFFECT
 %token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
+%token VIEWAS VSRULE RESPONSECOND RESPONSABLE
 %token FUNCDEF
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
@@ -101,6 +103,7 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <skillspec> skillspec
 %type <trigger_spec> triggerspec
 %type <active_spec> activespec
+%type <vs_spec> vsspec
 
 %type <block> block
 %type <any> statement
@@ -223,6 +226,7 @@ skillspecs  : %empty { $$ = list_new(); }
 
 skillspec   : triggerSkill { $$ = newSkillSpec(Spec_TriggerSkill, $1); }
             | activespec { $$ = newSkillSpec(Spec_ActiveSkill, $1); }
+            | vsspec { $$ = newSkillSpec(Spec_ViewAsSkill, $1); }
             ;
 
 triggerSkill  : TRIGGER triggerspecs  { $$ = $2; }
@@ -253,6 +257,20 @@ activespec  : ACTIVE COND block CARD_FILTER block TARGET_FILTER block FEASIBLE b
             | ACTIVE COND block CARD_FILTER block TARGET_FILTER block FEASIBLE block ON_USE block
               { $$ = newActiveSpec($3, $5, $7, $9, $11, NULL); yycopyloc($$, &@$); }
             ;
+
+vsspec  : VIEWAS COND block CARD_FILTER block FEASIBLE block VSRULE block
+          { $$ = newViewAsSpec($3, $5, $7, $9); yycopyloc($$, &@$); }
+        | VIEWAS COND block CARD_FILTER block FEASIBLE block VSRULE block RESPONSECOND block RESPONSABLE array
+          {
+            $$ = newViewAsSpec($3, $5, $7, $9);
+            $$->can_response = $11;
+            tempExp = newExpression(ExpArray, 0, 0, NULL, NULL);
+            tempExp->array = $13;
+            yycopyloc(tempExp, &@13);
+            $$->responsable = tempExp;
+            yycopyloc($$, &@$);
+          }
+        ;
 
 block   : statements  { $$ = newBlock($1, NULL); yycopyloc($$, &@$); }
         | statements retstat  { $$ = newBlock($1, $2); yycopyloc($$, &@$); }
@@ -316,18 +334,18 @@ exp : FALSE { $$ = newExpression(ExpBool, 0, 0, NULL, NULL); yycopyloc($$, &@$);
     | STRING { $$ = newExpression(ExpStr, 0, 0, NULL, NULL); $$->strvalue = $1; yycopyloc($$, &@$); }
     | prefixexp { $$ = $1; }
     | opexp { $$ = $1; }
-    | '(' action_stat ')'
-      {
-        $$ = newExpression(ExpFunc, 0, 0, NULL, NULL);
-        $$->func = $2;
-        yycopyloc($$, &@$);
-      }
     | array { $$ = newExpression(ExpArray, 0, 0, NULL, NULL); $$->array = $1; yycopyloc($$, &@$); }
     ;
 
 prefixexp : var { $$ = newExpression(ExpVar, 0, 0, NULL, NULL); $$->varValue = $1; yycopyloc($$, &@$); }
       | '(' func_call ')'
           { $$ = newExpression(ExpFunc, 0, 0, NULL, NULL); $$->func = $2; yycopyloc($$, &@$); }
+      | '(' action_stat ')'
+        {
+          $$ = newExpression(ExpFunc, 0, 0, NULL, NULL);
+          $$->func = $2;
+          yycopyloc($$, &@$);
+        }
       | '(' exp ')' { $$ = $2; $$->bracketed = 1; yycopyloc($$, &@$); }
       ;
 

@@ -210,6 +210,18 @@ static void analyzeVar(VarObj *v) {
           } else if (!strcmp(name, "身份")) {
             writestr(":getRoleEnum()");
             t = TNumber;
+          } else if (!strcmp(name, "性别")) {
+            writestr(":getGender()");
+            t = TNumber;
+          } else if (!strcmp(name, "手牌上限")) {
+            writestr(":getMaxCards()");
+            t = TNumber;
+          } else if (!strcmp(name, "势力")) {
+            writestr(":getKingdom()");
+            t = TString;
+          } else if (!strcmp(name, "座位号")) {
+            writestr(":getSeat()");
+            t = TNumber;
           } else {
             yyerror(cast(YYLTYPE *, v), "无法获取 玩家 的属性 '%s'\n", name);
             t = TNone;
@@ -228,6 +240,12 @@ static void analyzeVar(VarObj *v) {
           } else if (!strcmp(name, "牌名")) {
             writestr(":objectName()");
             t = TNumber;
+          } else if (!strcmp(name, "编号")) {
+            writestr(":getId()");
+            t = TNumber;
+          } else if (!strcmp(name, "是否被装备")) {
+            writestr(":isEquipped()");
+            t = TBool;
           } else {
             yyerror(cast(YYLTYPE *, v), "无法获取 卡牌 的属性 '%s'\n", name);
             t = TNone;
@@ -378,6 +396,7 @@ static void analyzeFunccall(FunccallObj *f) {
 
   List *node;
   bool start = true;
+  bool errored = false;
   list_foreach(node, d->params) {
     if (!start) {
       writestr(", ");
@@ -392,6 +411,7 @@ static void analyzeFunccall(FunccallObj *f) {
       if (!a->d) {
         yyerror(cast(YYLTYPE *, f), "调用函数“%s”时：", f->name);
         yyerror(cast(YYLTYPE *, a), "函数“%s”的参数“%s”没有默认值，调用时必须传入值", f->name, name);
+        errored = true;
       } else {
         analyzeExp(a->d);
       }
@@ -403,6 +423,82 @@ static void analyzeFunccall(FunccallObj *f) {
 
   writestr(")");
   f->rettype = d->rettype;
+
+  /* 因为没有函数重载，所以要对数组操作耦合一下
+     TAny用多了容易翻车 */
+  if (errored) return;
+  if (!strcmp(f->name, "__prepend") || !strcmp(f->name, "__append")) {
+    ExpressionObj *array = hash_get(f->params, "array");
+    ExpressionObj *value = hash_get(f->params, "value");
+
+    if (array->valuetype == TEmptyList) {
+      switch (value->valuetype) {
+      case TNumber:
+        array->valuetype = TNumberList;
+        break;
+      case TString:
+        array->valuetype = TStringList;
+        break;
+      case TCard:
+        array->valuetype = TCardList;
+        break;
+      case TPlayer:
+        array->valuetype = TPlayerList;
+        break;
+      default:
+        yyerror(cast(YYLTYPE *, f), "不能把类型 %d 添加到数组中");
+        break;
+      }
+      if (array->exptype == ExpVar && array->varValue) {
+        symtab_item *i = sym_lookup(array->varValue->name);
+        if (i) i->type = array->valuetype;
+      }
+    } else {
+      ExpVType t = TNone;
+      switch (array->valuetype) {
+      case TNumberList:
+        t = TNumber;
+        break;
+      case TStringList:
+        t = TString;
+        break;
+      case TPlayerList:
+        t = TPlayer;
+        break;
+      case TCardList:
+        t = TCard;
+        break;
+      case TEmptyList:
+        t = TAny;
+        break;
+      default:
+        yyerror(cast(YYLTYPE *, f), "未知的数组类型");
+        break;
+      }
+
+      checktype(value, value->valuetype, t);
+    }
+
+  } else if (!strcmp(f->name, "__at")) {
+    ExpressionObj *array = hash_get(f->params, "array");
+    switch (array->valuetype) {
+    case TNumberList:
+      f->rettype = TNumber;
+      break;
+    case TStringList:
+      f->rettype = TString;
+      break;
+    case TPlayerList:
+      f->rettype = TPlayer;
+      break;
+    case TCardList:
+      f->rettype = TCard;
+      break;
+    default:
+      yyerror(cast(YYLTYPE *, f), "试图对不是数组或者空数组根据下标取值");
+      break;
+    }
+  }
 }
 
 void analyzeBlock(BlockObj *bl) {
@@ -943,6 +1039,8 @@ static void analyzeActiveSpec(ActiveSpecObj *a) {
 
   writeline("card_filter = function(self, selected, to_select)");
   indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
   analyzeBlock(a->card_filter);
   indent_level--;
   writeline("end,\n");
@@ -960,6 +1058,8 @@ static void analyzeActiveSpec(ActiveSpecObj *a) {
 
   writeline("target_filter = function(self, targets, to_select, selected)");
   indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
   analyzeBlock(a->target_filter);
   indent_level--;
   writeline("end,\n");
@@ -976,6 +1076,8 @@ static void analyzeActiveSpec(ActiveSpecObj *a) {
 
   writeline("feasible = function(self, targets, cards)");
   indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
   analyzeBlock(a->feasible);
   indent_level--;
   writeline("end,\n");
@@ -1026,6 +1128,104 @@ static void analyzeActiveSpec(ActiveSpecObj *a) {
   current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
+static void analyzeViewAsSpec(ViewAsSpecObj *v) {
+  Hash *param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "player", true);
+
+  writeline("can_use = function(self, player)");
+  indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
+  analyzeBlock(v->cond);
+  indent_level--;
+  writeline("end,\n");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+
+  param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "sgs.Self", true);
+  sym_new_entry("已选卡牌", TCardList, "selected", true);
+  sym_new_entry("备选卡牌", TCard, "to_select", true);
+
+  writeline("card_filter = function(self, selected, to_select)");
+  indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
+  analyzeBlock(v->card_filter);
+  indent_level--;
+  writeline("end,\n");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+
+  param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "sgs.Self", true);
+  sym_new_entry("已选卡牌", TCardList, "cards", true);
+
+  writeline("feasible = function(self, cards)");
+  indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
+  analyzeBlock(v->feasible);
+  indent_level--;
+  writeline("end,\n");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+
+  param_symtab = hash_new();
+  current_tab = param_symtab;
+  stack_push(symtab_stack, cast(Object *, param_symtab));
+  sym_new_entry("你", TPlayer, "sgs.Self", true);
+  sym_new_entry("选择的卡牌", TCardList, "cards", true);
+
+  writeline("view_as = function(self, cards)");
+  indent_level++;
+  writeline("local locals = {}");
+  writeline("global_self = self\n");
+  analyzeBlock(v->view_as);
+  indent_level--;
+  writeline("end,\n");
+
+  stack_pop(symtab_stack);
+  sym_free(param_symtab);
+
+  if (v->can_response) {
+    param_symtab = hash_new();
+    current_tab = param_symtab;
+    stack_push(symtab_stack, cast(Object *, param_symtab));
+    sym_new_entry("你", TPlayer, "player", true);
+
+    writeline("can_response = function(self, player)");
+    indent_level++;
+    writeline("local locals = {}");
+    writeline("global_self = self\n");
+    analyzeBlock(v->can_response);
+    indent_level--;
+    writeline("end,\n");
+
+    stack_pop(symtab_stack);
+    sym_free(param_symtab);
+  }
+
+  if (v->responsable) {
+    print_indent();
+    writestr("response_patterns = ");
+    analyzeExp(v->responsable);
+    checktype(v->responsable, v->responsable->valuetype, TStringList);
+    writestr("\n");
+  }
+
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
+}
+
 static void analyzeSkill(SkillObj *s) {
   List *node;
 
@@ -1036,30 +1236,37 @@ static void analyzeSkill(SkillObj *s) {
     analyzeActiveSpec(s->activeSpec);
     indent_level--;
     writeline("}");
-    if (!s->triggerSpecs)
-      writeline("if not sgs.Sanguosha:getSkill('%s') then \
-all_skills:append(%s_ac) end\n", s->interid, s->interid);
   }
 
-  if (s->triggerSpecs) {
-    writeline("%s = fkp.CreateTriggerSkill{", s->interid);
+  if (s->vsSpec) {
+    writeline("%s_vs = fkp.CreateViewAsSkill{", s->interid);
     indent_level++;
     writeline("name = '%s',", s->interid);
-    writeline("frequency = %s,", sym_lookup(s->frequency)->origtext);
-    if (s->activeSpec)
-      writeline("view_as_skill = %s_ac,", s->interid);
-    writeline("specs = {");
-    indent_level++;
+    analyzeViewAsSpec(s->vsSpec);
+    indent_level--;
+    writeline("}");
+  }
+
+  writeline("%s = fkp.CreateTriggerSkill{", s->interid);
+  indent_level++;
+  writeline("name = '%s',", s->interid);
+  writeline("frequency = %s,", sym_lookup(s->frequency)->origtext);
+  if (s->activeSpec)
+    writeline("view_as_skill = %s_ac,", s->interid);
+  else if (s->vsSpec)
+    writeline("view_as_skill = %s_vs,", s->interid);
+  writeline("specs = {");
+  indent_level++;
+  if (s->triggerSpecs)
     list_foreach(node, s->triggerSpecs) {
       analyzeTriggerSpec(cast(TriggerSpecObj *, node->data));
     }
-    indent_level--;
-    writeline("}");
-    indent_level--;
-    writeline("}");
-    writeline("if not sgs.Sanguosha:getSkill('%s') then \
+  indent_level--;
+  writeline("}");
+  indent_level--;
+  writeline("}");
+  writeline("if not sgs.Sanguosha:getSkill('%s') then \
 all_skills:append(%s) end\n", s->interid, s->interid);
-  }
 }
 
 static void analyzeGeneral(GeneralObj *g) {

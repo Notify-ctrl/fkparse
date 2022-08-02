@@ -24,6 +24,7 @@ enum ObjType {
   Obj_Block,
   Obj_TriggerSpec,
   Obj_ActiveSpec,
+  Obj_ViewAsSpec,
   Obj_If,
   Obj_Loop,
   Obj_Traverse,

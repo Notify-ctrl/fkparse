@@ -7,6 +7,16 @@ sgs.LoadTranslationTable{
   ["#DiscardWithEquipMin"] = "请弃置 %arg 张牌，至少弃置 %arg2 张（包括装备区）",
 }
 
+local string2suit = {
+  spade = sgs.Card_Spade,
+  club = sgs.Card_Club,
+  heart = sgs.Card_Heart,
+  diamond = sgs.Card_Diamond,
+  no_suit = sgs.Card_NoSuit,
+  no_suit_black = sgs.Card_NoSuitBlack,
+  no_suit_red = sgs.Card_NoSuitRed,
+}
+
 fkp.functions = {
   prepend = function(arr, e)
     arr:prepend(e)
@@ -283,6 +293,48 @@ fkp.functions.buildPattern = function(names, suits, numbers)
   return string.format("%s|%s|%s|.", names, suits, numbers)
 end
 
+fkp.functions.newVirtualCard = function(number, suit, name, subcards, skill)
+  if not subcards then subcards = sgs.CardList() end
+  local ret = sgs.Sanguosha:cloneCard(name, string2suit[suit], number)
+  ret:setSkillName(skill)
+  ret:addSubcards(subcards)
+  return ret
+end
+
+local function table_filter(tab, func)
+  local ret = {}
+  for index, item in ipairs(tab) do
+    if func(item) then
+      ret[index] = item
+    end
+  end
+  return ret
+end
+
+fkp.functions.patternMatch = function(pattern1, pattern2)
+  local pattern_tab1 = pattern1:split('#')[1]:split('|')
+  local pattern_tab2 = pattern2:split('#')[1]:split('|')
+  for i = 1, 4 - #pattern_tab1 do
+    table.insert(pattern_tab1, '.')
+  end
+  for i = 1, 4 - #pattern_tab2 do
+    table.insert(pattern_tab2, '.')
+  end
+  for i = 1, 4 do
+    pattern_tab1[i] = pattern_tab1[i]:split(',')
+    pattern_tab2[i] = pattern_tab2[i]:split(',')
+    if #table_filter(pattern_tab1[i], function(item)
+      -- TODO: handle 'BasicCard', etc.
+      return item == '.'
+          or table.contains(pattern_tab2[i], item)
+          or table.contains(pattern_tab2[i], '.')
+    end) == 0 then
+      return false
+    end
+  end
+  return true
+end
+
 function fkp.newlist(t)
   local element_type = swig_type(t[1])
   local ret
@@ -361,7 +413,7 @@ function fkp.CreateTriggerSkill(spec)
     on_trigger = function(self, event, player, data)
       local room = player:getRoom()
       if not specs[event] then return end
-      for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
+      for _, p in sgs.qlist(room:getAlivePlayers()) do
         if specs[event][1](self, player, p, data) then
           return specs[event][2](self, player, p, data)
         end
@@ -437,6 +489,56 @@ function fkp.CreateActiveSkill(spec)
     enabled_at_play = spec.can_use,
     enabled_at_response = function(self, player, pattern)
       return pattern == "@@" .. spec.name
+    end,
+  }
+
+  return vs_skill
+end
+
+function fkp.CreateViewAsSkill(spec)
+  assert(type(spec.name) == "string")
+  spec.response_patterns = spec.response_patterns or {}
+
+  local vs_skill = sgs.CreateViewAsSkill{
+    name = spec.name,
+    n = 996,
+    view_filter = function(self, selected, to_select)
+      local clist = sgs.CardList()
+      for _, c in ipairs(selected) do
+        clist:append(c)
+      end
+      return spec.card_filter(self, clist, to_select)
+    end,
+    view_as = function(self, cards)
+      local clist = sgs.CardList()
+      for _, c in ipairs(cards) do
+        clist:append(c)
+      end
+      if spec.feasible(self, clist) then
+        return spec.view_as(self, clist)
+      end
+      return nil
+    end,
+    enabled_at_play = spec.can_use,
+    enabled_at_response = function(self, player, pattern)
+      if not (spec.can_response and spec.can_response(self, player)) then return false end
+
+      for _, item in ipairs(spec.response_patterns) do
+        if fkp.functions.patternMatch(item, pattern) then
+          return true
+        end
+      end
+      return false
+    end,
+    enabled_at_nullification = function(self, player)
+      if not (spec.can_response and spec.can_response(self, player)) then return false end
+
+      for _, item in ipairs(spec.response_patterns) do
+        if fkp.functions.patternMatch(item, "nullification") then
+          return true
+        end
+      end
+      return false
     end,
   }
 
