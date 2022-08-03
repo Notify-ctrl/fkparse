@@ -239,7 +239,7 @@ static void analyzeVar(VarObj *v) {
             t = TString;
           } else if (!strcmp(name, "牌名")) {
             writestr(":objectName()");
-            t = TNumber;
+            t = TString;
           } else if (!strcmp(name, "编号")) {
             writestr(":getId()");
             t = TNumber;
@@ -1226,6 +1226,279 @@ static void analyzeViewAsSpec(ViewAsSpecObj *v) {
   current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
+static void analyzeStatusSpec(const char *name, const char *trans, StatusSpecObj *s) {
+  Hash *param_symtab;
+  char buf[64];
+  /* prohibit skill */
+  if (s->is_prohibited) {
+    sprintf(buf, "#%s_pr", name);
+    addTranslation(buf, trans);
+    writeline("%s_pr = fkp.CreateProhibitSkill{", name);
+    indent_level++;
+    writeline("name = '#%s_pr',", name);
+
+    param_symtab = hash_new();
+    current_tab = param_symtab;
+    stack_push(symtab_stack, cast(Object *, param_symtab));
+    sym_new_entry("来源", TPlayer, "from", true);
+    sym_new_entry("目标", TPlayer, "to", true);
+    sym_new_entry("卡牌", TCard, "card", true);
+    writeline("is_prohibited = function(self, from, to, card)");
+    indent_level++;
+    writeline("local locals = {}");
+    writeline("global_self = self\n");
+    analyzeBlock(s->is_prohibited);
+    indent_level--;
+    writeline("end,\n");
+    stack_pop(symtab_stack);
+    sym_free(param_symtab);
+
+    indent_level--;
+    writeline("}");
+    writeline("if not sgs.Sanguosha:getSkill('#%s_pr') then \
+all_skills:append(%s_pr) end", name, name);
+    writeline("extension0:insertRelatedSkills('%s', '#%s_pr')\n", name, name);
+  }
+
+  /* filter skill */
+  if (s->card_filter && s->vsrule) {
+    sprintf(buf, "#%s_fi", name);
+    addTranslation(buf, trans);
+    writeline("%s_fi = fkp.CreateFilterSkill{", name);
+    indent_level++;
+    writeline("name = '#%s_fi',", name);
+
+    param_symtab = hash_new();
+    current_tab = param_symtab;
+    stack_push(symtab_stack, cast(Object *, param_symtab));
+    sym_new_entry("你", TPlayer, "sgs.Self", true);
+    sym_new_entry("备选卡牌", TCard, "to_select", true);
+    writeline("card_filter = function(self, to_select)");
+    indent_level++;
+    writeline("local locals = {}");
+    writeline("global_self = self\n");
+    analyzeBlock(s->card_filter);
+    indent_level--;
+    writeline("end,\n");
+    stack_pop(symtab_stack);
+    sym_free(param_symtab);
+
+    param_symtab = hash_new();
+    current_tab = param_symtab;
+    stack_push(symtab_stack, cast(Object *, param_symtab));
+    sym_new_entry("你", TPlayer, "sgs.Self", true);
+    sym_new_entry("备选卡牌", TCard, "to_select", true);
+    writeline("view_as = function(self, to_select)");
+    indent_level++;
+    writeline("local locals = {}");
+    writeline("global_self = self\n");
+    analyzeBlock(s->vsrule);
+    indent_level--;
+    writeline("end,\n");
+    stack_pop(symtab_stack);
+    sym_free(param_symtab);
+
+    indent_level--;
+    writeline("}");
+    writeline("if not sgs.Sanguosha:getSkill('#%s_fi') then \
+all_skills:append(%s_fi) end", name, name);
+    writeline("extension0:insertRelatedSkills('%s', '#%s_fi')\n", name, name);
+  }
+
+  /* distance skill */
+  if (s->distance_correct) {
+    sprintf(buf, "#%s_di", name);
+    addTranslation(buf, trans);
+    writeline("%s_di = fkp.CreateDistanceSkill{", name);
+    indent_level++;
+    writeline("name = '#%s_di',", name);
+
+    param_symtab = hash_new();
+    current_tab = param_symtab;
+    stack_push(symtab_stack, cast(Object *, param_symtab));
+    sym_new_entry("来源", TPlayer, "from", true);
+    sym_new_entry("目标", TPlayer, "to", true);
+    writeline("correct_func = function(self, from, to)");
+    indent_level++;
+    writeline("local locals = {}");
+    writeline("global_self = self\n");
+    analyzeBlock(s->distance_correct);
+    indent_level--;
+    writeline("end,\n");
+    stack_pop(symtab_stack);
+    sym_free(param_symtab);
+
+    indent_level--;
+    writeline("}");
+    writeline("if not sgs.Sanguosha:getSkill('#%s_di') then \
+all_skills:append(%s_di) end", name, name);
+    writeline("extension0:insertRelatedSkills('%s', '#%s_di')\n", name, name);
+  }
+
+  /* maxcard skill */
+  if (s->max_extra || s->max_fixed) {
+    sprintf(buf, "#%s_ex", name);
+    addTranslation(buf, trans);
+    writeline("%s_ex = fkp.CreateMaxCardsSkill{", name);
+    indent_level++;
+    writeline("name = '#%s_ex',", name);
+
+    if (s->max_extra) {
+      param_symtab = hash_new();
+      current_tab = param_symtab;
+      stack_push(symtab_stack, cast(Object *, param_symtab));
+      sym_new_entry("玩家", TPlayer, "target", true);
+      writeline("extra_func = function(self, target)");
+      indent_level++;
+      writeline("local locals = {}");
+      writeline("global_self = self\n");
+      analyzeBlock(s->max_extra);
+      indent_level--;
+      writeline("end,\n");
+      stack_pop(symtab_stack);
+      sym_free(param_symtab);
+    }
+
+    if (s->max_fixed) {
+      param_symtab = hash_new();
+      current_tab = param_symtab;
+      stack_push(symtab_stack, cast(Object *, param_symtab));
+      sym_new_entry("玩家", TPlayer, "target", true);
+      writeline("fixed_func = function(self, target)");
+      indent_level++;
+      writeline("local locals = {}");
+      writeline("global_self = self\n");
+      analyzeBlock(s->max_fixed);
+      indent_level--;
+      writeline("end,\n");
+      stack_pop(symtab_stack);
+      sym_free(param_symtab);
+    }
+
+    indent_level--;
+    writeline("}");
+    writeline("if not sgs.Sanguosha:getSkill('#%s_ex') then \
+all_skills:append(%s_ex) end", name, name);
+    writeline("extension0:insertRelatedSkills('%s', '#%s_ex')\n", name, name);
+  }
+
+  /* tmd skill */
+  if (s->tmd_distance || s->tmd_extarget || s->tmd_residue) {
+    sprintf(buf, "#%s_tm", name);
+    addTranslation(buf, trans);
+    writeline("%s_tm = fkp.CreateTargetModSkill{", name);
+    indent_level++;
+    writeline("name = '#%s_tm',", name);
+    writeline("pattern = '.',");
+
+    if (s->tmd_distance) {
+      param_symtab = hash_new();
+      current_tab = param_symtab;
+      stack_push(symtab_stack, cast(Object *, param_symtab));
+      sym_new_entry("玩家", TPlayer, "target", true);
+      sym_new_entry("卡牌", TCard, "card", true);
+      writeline("distance_limit_func = function(self, target, card)");
+      indent_level++;
+      writeline("local locals = {}");
+      writeline("global_self = self\n");
+      analyzeBlock(s->tmd_distance);
+      indent_level--;
+      writeline("end,\n");
+      stack_pop(symtab_stack);
+      sym_free(param_symtab);
+    }
+
+    if (s->tmd_extarget) {
+      param_symtab = hash_new();
+      current_tab = param_symtab;
+      stack_push(symtab_stack, cast(Object *, param_symtab));
+      sym_new_entry("玩家", TPlayer, "target", true);
+      sym_new_entry("卡牌", TCard, "card", true);
+      writeline("extra_target_func = function(self, target, card)");
+      indent_level++;
+      writeline("local locals = {}");
+      writeline("global_self = self\n");
+      analyzeBlock(s->tmd_extarget);
+      indent_level--;
+      writeline("end,\n");
+      stack_pop(symtab_stack);
+      sym_free(param_symtab);
+    }
+
+    if (s->tmd_residue) {
+      param_symtab = hash_new();
+      current_tab = param_symtab;
+      stack_push(symtab_stack, cast(Object *, param_symtab));
+      sym_new_entry("玩家", TPlayer, "target", true);
+      sym_new_entry("卡牌", TCard, "card", true);
+      writeline("residue_func = function(self, target, card)");
+      indent_level++;
+      writeline("local locals = {}");
+      writeline("global_self = self\n");
+      analyzeBlock(s->tmd_residue);
+      indent_level--;
+      writeline("end,\n");
+      stack_pop(symtab_stack);
+      sym_free(param_symtab);
+    }
+
+    indent_level--;
+    writeline("}");
+    writeline("if not sgs.Sanguosha:getSkill('#%s_tm') then \
+all_skills:append(%s_tm) end", name, name);
+    writeline("extension0:insertRelatedSkills('%s', '#%s_tm')\n", name, name);
+  }
+
+  /* atkrange skill */
+  if (s->atkrange_extra || s->atkrange_fixed) {
+    sprintf(buf, "#%s_at", name);
+    addTranslation(buf, trans);
+    writeline("%s_at = fkp.CreateAttackRangeSkill{", name);
+    indent_level++;
+    writeline("name = '#%s_at',", name);
+
+    if (s->atkrange_extra) {
+      param_symtab = hash_new();
+      current_tab = param_symtab;
+      stack_push(symtab_stack, cast(Object *, param_symtab));
+      sym_new_entry("玩家", TPlayer, "target", true);
+      writeline("extra_func = function(self, target)");
+      indent_level++;
+      writeline("local locals = {}");
+      writeline("global_self = self\n");
+      analyzeBlock(s->atkrange_extra);
+      indent_level--;
+      writeline("end,\n");
+      stack_pop(symtab_stack);
+      sym_free(param_symtab);
+    }
+
+    if (s->atkrange_fixed) {
+      param_symtab = hash_new();
+      current_tab = param_symtab;
+      stack_push(symtab_stack, cast(Object *, param_symtab));
+      sym_new_entry("玩家", TPlayer, "target", true);
+      writeline("fixed_func = function(self, target)");
+      indent_level++;
+      writeline("local locals = {}");
+      writeline("global_self = self\n");
+      analyzeBlock(s->atkrange_fixed);
+      indent_level--;
+      writeline("end,\n");
+      stack_pop(symtab_stack);
+      sym_free(param_symtab);
+    }
+
+    indent_level--;
+    writeline("}");
+    writeline("if not sgs.Sanguosha:getSkill('#%s_at') then \
+all_skills:append(%s_at) end", name, name);
+    writeline("extension0:insertRelatedSkills('%s', '#%s_at')\n", name, name);
+  }
+
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
+}
+
 static void analyzeSkill(SkillObj *s) {
   List *node;
 
@@ -1245,6 +1518,10 @@ static void analyzeSkill(SkillObj *s) {
     analyzeViewAsSpec(s->vsSpec);
     indent_level--;
     writeline("}");
+  }
+
+  if (s->statusSpec) {
+    analyzeStatusSpec(s->interid, s->id, s->statusSpec);
   }
 
   writeline("%s = fkp.CreateTriggerSkill{", s->interid);

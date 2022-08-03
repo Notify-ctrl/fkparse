@@ -296,6 +296,9 @@ end
 fkp.functions.newVirtualCard = function(number, suit, name, subcards, skill)
   if not subcards then subcards = sgs.CardList() end
   local ret = sgs.Sanguosha:cloneCard(name, string2suit[suit], number)
+  if not ret then
+    ret = sgs.Sanguosha:cloneCard("slash", string2suit[suit], number)
+  end
   ret:setSkillName(skill)
   ret:addSubcards(subcards)
   return ret
@@ -544,3 +547,28 @@ function fkp.CreateViewAsSkill(spec)
 
   return vs_skill
 end
+
+fkp.CreateFilterSkill = function(spec)
+  assert(type(spec.name) == "string")
+  return sgs.CreateFilterSkill{
+    name = spec.name,
+    view_filter = spec.card_filter,
+    view_as = function(self, to_select)
+      local ret = spec.view_as(self, to_select)
+      if ret then
+        ret:deleteLater()
+        local card = sgs.Sanguosha:cloneCard(ret:objectName(), ret:getSuit(), ret:getNumber())
+        card:setSkillName(self:objectName())
+        local _card = sgs.Sanguosha:getWrappedCard(to_select:getId())
+        _card:takeOver(card)
+        return _card
+      end
+    end,
+  }
+end
+
+fkp.CreateProhibitSkill = sgs.CreateProhibitSkill
+fkp.CreateDistanceSkill = sgs.CreateDistanceSkill
+fkp.CreateMaxCardsSkill = sgs.CreateMaxCardsSkill
+fkp.CreateTargetModSkill = sgs.CreateTargetModSkill
+fkp.CreateAttackRangeSkill = sgs.CreateAttackRangeSkill
