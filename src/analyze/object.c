@@ -182,6 +182,13 @@ ViewAsSpecObj *newViewAsSpec(BlockObj *cond, BlockObj *card_filter,
   return ret;
 }
 
+StatusSpecObj *newStatusSpec() {
+  StatusSpecObj *ret = malloc(sizeof(StatusSpecObj));
+  memset(ret, 0, sizeof(StatusSpecObj));  // NULL
+  ret->objtype = Obj_StatusSpec;
+  return ret;
+}
+
 SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
                    const char *interid, List *specs) {
   SkillObj *ret = malloc(sizeof(SkillObj));
@@ -208,6 +215,7 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
   ret->triggerSpecs = NULL;
   ret->activeSpec = NULL;
   ret->vsSpec = NULL;
+  ret->statusSpec = NULL;
 
   List *iter;
   list_foreach(iter, specs) {
@@ -228,9 +236,17 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
     case Spec_ViewAsSkill:
       if (ret->vsSpec != NULL) {
         yyerror(cast(YYLTYPE *, data->obj), "不允许一个技能下同时存在多个视为技");
-        freeObject(ret->activeSpec);
+        freeObject(ret->vsSpec);
       }
       ret->vsSpec = cast(ViewAsSpecObj *, data->obj);
+      free(data);
+      break;
+    case Spec_StatusSkill:
+      if (ret->statusSpec != NULL) {
+        yyerror(cast(YYLTYPE *, data->obj), "不允许一个技能下同时存在多个状态技");
+        freeObject(ret->statusSpec);
+      }
+      ret->statusSpec = cast(StatusSpecObj *, data->obj);
       free(data);
       break;
     }
@@ -462,6 +478,22 @@ static void freeViewAsSpec(void *p) {
   free(v);
 }
 
+static void freeStatusSpec(void *p) {
+  StatusSpecObj *v = p;
+  freeObject(v->is_prohibited);
+  freeObject(v->card_filter);
+  freeObject(v->vsrule);
+  freeObject(v->distance_correct);
+  freeObject(v->max_extra);
+  freeObject(v->max_fixed);
+  freeObject(v->tmd_residue);
+  freeObject(v->tmd_distance);
+  freeObject(v->tmd_extarget);
+  freeObject(v->atkrange_extra);
+  freeObject(v->atkrange_fixed);
+  free(v);
+}
+
 static void freeDefarg(void *ptr) {
   DefargObj *d = ptr;
   free((void *)d->name);
@@ -496,6 +528,7 @@ static void freeSkill(void *ptr) {
   list_free(s->triggerSpecs, freeTriggerSpec);
   freeObject(s->activeSpec);
   freeObject(s->vsSpec);
+  freeObject(s->statusSpec);
   free(s);
 }
 
@@ -539,6 +572,7 @@ void freeObject(void *p) {
   case Obj_TriggerSpec: freeTriggerSpec(p); break;
   case Obj_ActiveSpec: freeActiveSpec(p); break;
   case Obj_ViewAsSpec: freeViewAsSpec(p); break;
+  case Obj_StatusSpec: freeStatusSpec(p); break;
   case Obj_If: freeIf(p); break;
   case Obj_Loop: freeLoop(p); break;
   case Obj_Traverse: freeTraverse(p); break;

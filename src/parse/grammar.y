@@ -1,3 +1,12 @@
+%code requires {
+
+typedef struct {
+  int tag;
+  BlockObj *block;
+} StatusFunc;
+
+}
+
 %{
 #include "main.h"
 #include "enums.h"
@@ -24,6 +33,14 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
   dst->last_line = loc->last_line;
   dst->last_column = loc->last_column;
 }
+
+static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
+  StatusFunc *ret = malloc(sizeof(StatusFunc));
+  ret->tag = tag;
+  ret->block = block;
+  return ret;
+}
+
 %}
 
 %union {
@@ -43,6 +60,8 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
   TriggerSpecObj *trigger_spec;
   ActiveSpecObj *active_spec;
   ViewAsSpecObj *vs_spec;
+  StatusSpecObj *status_spec;
+  StatusFunc *status_func;
 
   BlockObj *block;
   ExpressionObj *exp;
@@ -68,6 +87,8 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %token TRIGGER EVENTI COND EFFECT
 %token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
 %token VIEWAS VSRULE RESPONSECOND RESPONSABLE
+%token STATUSSKILL IS_PROHIBITED DISTANCE_CORRECT MAX_EXTRA MAX_FIXED
+%token TMD_RESIDUE TMD_DISTANCE TMD_EXTARGET ATKRANGE_EXTRA ATKRANGE_FIXED
 %token FUNCDEF
 %token <enum_v> EVENT
 %token LET EQ IF THEN ELSE END REPEAT UNTIL
@@ -104,6 +125,9 @@ static void yycopyloc(void *p, YYLTYPE *loc) {
 %type <trigger_spec> triggerspec
 %type <active_spec> activespec
 %type <vs_spec> vsspec
+%type <status_spec> statusspec
+%type <list> statusfuncs
+%type <status_func> statusfunc
 
 %type <block> block
 %type <any> statement
@@ -227,6 +251,7 @@ skillspecs  : %empty { $$ = list_new(); }
 skillspec   : triggerSkill { $$ = newSkillSpec(Spec_TriggerSkill, $1); }
             | activespec { $$ = newSkillSpec(Spec_ActiveSkill, $1); }
             | vsspec { $$ = newSkillSpec(Spec_ViewAsSkill, $1); }
+            | statusspec { $$ = newSkillSpec(Spec_StatusSkill, $1); }
             ;
 
 triggerSkill  : TRIGGER triggerspecs  { $$ = $2; }
@@ -271,6 +296,89 @@ vsspec  : VIEWAS COND block CARD_FILTER block FEASIBLE block VSRULE block
             yycopyloc($$, &@$);
           }
         ;
+
+statusspec  : STATUSSKILL statusfuncs
+              {
+                $$ = newStatusSpec();
+                list_foreach(iter, $2) {
+                  StatusFunc *f = cast(StatusFunc *, iter->data);
+                  switch (f->tag) {
+                  case IS_PROHIBITED:
+                    freeObject($$->is_prohibited);
+                    $$->is_prohibited = f->block;
+                    break;
+                  case CARD_FILTER:
+                    freeObject($$->card_filter);
+                    $$->card_filter = f->block;
+                    break;
+                  case VSRULE:
+                    freeObject($$->vsrule);
+                    $$->vsrule = f->block;
+                    break;
+                  case DISTANCE_CORRECT:
+                    freeObject($$->distance_correct);
+                    $$->distance_correct = f->block;
+                    break;
+                  case MAX_EXTRA:
+                    freeObject($$->max_extra);
+                    $$->max_extra = f->block;
+                    break;
+                  case MAX_FIXED:
+                    freeObject($$->max_fixed);
+                    $$->max_fixed = f->block;
+                    break;
+                  case TMD_RESIDUE:
+                    freeObject($$->tmd_residue);
+                    $$->tmd_residue = f->block;
+                    break;
+                  case TMD_DISTANCE:
+                    freeObject($$->tmd_distance);
+                    $$->tmd_distance = f->block;
+                    break;
+                  case TMD_EXTARGET:
+                    freeObject($$->tmd_extarget);
+                    $$->tmd_extarget = f->block;
+                    break;
+                  case ATKRANGE_EXTRA:
+                    freeObject($$->atkrange_extra);
+                    $$->atkrange_extra = f->block;
+                    break;
+                  case ATKRANGE_FIXED:
+                    freeObject($$->atkrange_fixed);
+                    $$->atkrange_fixed = f->block;
+                    break;
+                  default:
+                    break;
+                  }
+                }
+                list_free($2, free);
+              }
+            ;
+
+statusfuncs : statusfunc
+              {
+                $$ = list_new();
+                list_append($$, cast(Object *, $1));
+              }
+            | statusfuncs statusfunc
+              {
+                $$ = $1;
+                list_append($$, cast(Object *, $2));
+              }
+            ;
+
+statusfunc  : IS_PROHIBITED block { $$ = newStatusFunc(IS_PROHIBITED, $2); }
+            | CARD_FILTER block { $$ = newStatusFunc(CARD_FILTER, $2); }
+            | VSRULE block { $$ = newStatusFunc(VSRULE, $2); }
+            | DISTANCE_CORRECT block { $$ = newStatusFunc(DISTANCE_CORRECT, $2); }
+            | MAX_EXTRA block { $$ = newStatusFunc(MAX_EXTRA, $2); }
+            | MAX_FIXED block { $$ = newStatusFunc(MAX_FIXED, $2); }
+            | TMD_RESIDUE block { $$ = newStatusFunc(TMD_RESIDUE, $2); }
+            | TMD_DISTANCE block { $$ = newStatusFunc(TMD_DISTANCE, $2); }
+            | TMD_EXTARGET block { $$ = newStatusFunc(TMD_EXTARGET, $2); }
+            | ATKRANGE_EXTRA block { $$ = newStatusFunc(ATKRANGE_EXTRA, $2); }
+            | ATKRANGE_FIXED block { $$ = newStatusFunc(ATKRANGE_FIXED, $2); }
+            ;
 
 block   : statements  { $$ = newBlock($1, NULL); yycopyloc($$, &@$); }
         | statements retstat  { $$ = newBlock($1, $2); yycopyloc($$, &@$); }

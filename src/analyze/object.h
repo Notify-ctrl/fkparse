@@ -48,7 +48,7 @@ typedef struct {
   List *triggerSpecs;
   struct ActiveSpecObj *activeSpec;
   struct ViewAsSpecObj *vsSpec;
-  /* TODO: other skill specs */
+  struct StatusSpecObj *statusSpec;
 } SkillObj;
 
 SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
@@ -155,6 +155,7 @@ typedef enum {
   Spec_TriggerSkill,
   Spec_ActiveSkill,
   Spec_ViewAsSkill,
+  Spec_StatusSkill,
 } SpecType;
 
 typedef struct {
@@ -201,6 +202,23 @@ typedef struct ViewAsSpecObj {
 
 ViewAsSpecObj *newViewAsSpec(BlockObj *cond, BlockObj *card_filter,
                              BlockObj *feasible, BlockObj *view_as);
+
+typedef struct StatusSpecObj {
+  ObjectHeader;
+  BlockObj *is_prohibited;
+  BlockObj *card_filter;
+  BlockObj *vsrule;
+  BlockObj *distance_correct;
+  BlockObj *max_extra;
+  BlockObj *max_fixed;
+  BlockObj *tmd_residue;
+  BlockObj *tmd_distance;
+  BlockObj *tmd_extarget;
+  BlockObj *atkrange_extra;
+  BlockObj *atkrange_fixed;
+} StatusSpecObj;
+
+StatusSpecObj *newStatusSpec();
 
 typedef struct {
   ObjectHeader;

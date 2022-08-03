@@ -1378,16 +1378,17 @@ void analyzeExtension(ExtensionObj *e) {
   writeline("local all_skills = sgs.SkillList()\n");
 
   List *node;
+
+  list_foreach(node, e->packages) {
+    analyzePackage(cast(PackageObj *, node->data));
+  }
+
   list_foreach(node, e->funcdefs) {
     analyzeFuncdef(cast(FuncdefObj *, node->data));
   }
 
   list_foreach(node, e->skills) {
     analyzeSkill(cast(SkillObj *, node->data));
-  }
-
-  list_foreach(node, e->packages) {
-    analyzePackage(cast(PackageObj *, node->data));
   }
 
   loadTranslations();
