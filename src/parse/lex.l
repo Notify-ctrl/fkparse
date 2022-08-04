@@ -120,6 +120,16 @@ static int yycolumn = 1;
 "视为规则:" { return VSRULE; }
 "响应条件:" { return RESPONSECOND; }
 "响应规则:" { return RESPONSABLE; }
+"状态技"   { return STATUSSKILL; }
+"禁止指定目标:"   { return IS_PROHIBITED; }
+"距离修正:" { return DISTANCE_CORRECT; }
+"手牌上限修正:"   { return MAX_EXTRA; }
+"手牌上限固定:"   { return MAX_FIXED; }
+"出牌次数修正:"   { return TMD_RESIDUE; }
+"出牌距离修正:"   { return TMD_DISTANCE; }
+"出牌目标数量修正:" { return TMD_EXTARGET; }
+"攻击范围修正:"   { return ATKRANGE_EXTRA; }
+"攻击范围固定:"   { return ATKRANGE_FIXED; }
 
 "因" { return BECAUSE; }
 "弃置"    { return THROW; }
