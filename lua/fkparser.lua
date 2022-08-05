@@ -338,6 +338,19 @@ fkp.functions.patternMatch = function(pattern1, pattern2)
   return true
 end
 
+fkp.functions.chat = function(p, s) p:speak(s) end
+fkp.functions.sendlog = function(player, log_type, from, to, card, arg, arg2)
+  local room = player:getRoom()
+  local log = sgs.LogMessage()
+  log.type = log_type
+  log.from = from
+  log.to = to or sgs.SPlayerList()
+  log.card_str = card and card:toString() or ""
+  log.arg = arg or ""
+  log.arg2 = arg2 or ""
+  room:sendLog(log)
+end
+
 function fkp.newlist(t)
   local element_type = swig_type(t[1])
   local ret

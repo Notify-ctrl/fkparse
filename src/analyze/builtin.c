@@ -209,6 +209,19 @@ static Proto builtin_func[] = {
     {"技能名", TString, true, {.s = ""}},
     {"是否交换", TBool, true, {.n = false}},
   }},
+  {"__chat", "fkp.functions.chat", TNone, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"聊天句子", TAny, false, {.s = NULL}},
+  }},
+  {"__sendlog", "fkp.functions.sendlog", TNone, 7, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"战报", TString, false, {.s = NULL}},
+    {"%from", TPlayer, true, {.s = "nil"}},
+    {"%to", TPlayerList, true, {.s = "nil"}},
+    {"%card", TCard, true, {.s = "nil"}},
+    {"%arg", TAny, true, {.s = "nil"}},
+    {"%arg2", TAny, true, {.s = "nil"}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 

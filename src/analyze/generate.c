@@ -142,6 +142,16 @@ static void analyzeExp(ExpressionObj *e) {
             origtext = hash_get(other_string_table, e->strvalue);
           }
           writestr("'%s'", origtext);
+        } else if (!strcmp(e->param_name, "战报")) {
+          origtext = hash_get(other_string_table, e->strvalue);
+          if (!origtext) {
+            sprintf(buf, "#%s_str_%d", readfile_name, stringId);
+            stringId++;
+            hash_set(other_string_table, e->strvalue, strdup(buf));
+            addTranslation(buf, e->strvalue);
+            origtext = hash_get(other_string_table, e->strvalue);
+          }
+          writestr("'%s'", origtext);
         } else {
           writestr("'%s'", e->strvalue);
         }

@@ -137,6 +137,7 @@ static int yycolumn = 1;
 
 "说出"    { return SPEAK; }
 "台词"    { return ACT_LINE; }
+"发送战报"  { return SENDLOG; }
 "进行"    { return EXEC; }
 "判定"    { return JUDGE; }
 
