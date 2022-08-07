@@ -280,7 +280,11 @@ end
 fkp.functions.buildPattern = function(names, suits, numbers)
   if not names then names = {"."} end
   if not suits then suits = {"."} end
-  if not numbers then numbers = {"."} end
+  if not numbers then
+    numbers = {"."}
+  else
+    numbers = sgs.QList2Table(numbers)
+  end
 
   names = table.concat(names, ",")
   -- FIXME: write getters in lua
