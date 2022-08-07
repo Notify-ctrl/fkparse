@@ -44,6 +44,8 @@ static Proto builtin_func[] = {
     {"子卡牌", TCardList, true, {.s = "nil"}},
     {"技能名", TString, true, {.s = ""}},
   }},
+  {"创建卡牌移动信息"},
+  {"移动卡牌"},
 
   /* array operations */
   {"__prepend", "fkp.functions.prepend", TNone, 2, {
@@ -222,6 +224,10 @@ static Proto builtin_func[] = {
     {"%arg", TAny, true, {.s = "nil"}},
     {"%arg2", TAny, true, {.s = "nil"}},
   }},
+  {"__throwCards", ""},
+  {"__giveCards"},
+  {"__pindian"},
+  {"__swapCards"},
   {NULL, NULL, TNone, 0, {}}
 };
 
