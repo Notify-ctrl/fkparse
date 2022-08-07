@@ -339,6 +339,17 @@ static struct {
   {"只放置底部", "sgs.Room_GuanxingDownOnly", TNumber},
   {"判定结构体", "judge", TAny},
 
+  /* card move reasons */
+  {"因使用而移动", "sgs.CardMoveReason_S_REASON_USE", TNumber},
+  {"因打出而移动", "sgs.CardMoveReason_S_REASON_RESPONSE", TNumber},
+  {"因弃置而移动", "sgs.CardMoveReason_S_REASON_DISCARD", TNumber},
+  {"因重铸而移动", "sgs.CardMoveReason_S_REASON_RECAST", TNumber},
+  {"因拼点而移动", "sgs.CardMoveReason_S_REASON_PINDIAN", TNumber},
+  {"因摸牌而移动", "sgs.CardMoveReason_S_REASON_DRAW", TNumber},
+  {"因置入而移动", "sgs.CardMoveReason_S_REASON_PUT", TNumber},
+  {"因交给而移动", "sgs.CardMoveReason_S_REASON_GIVE", TNumber},
+  {"因换牌而移动", "sgs.CardMoveReason_S_REASON_SWAP", TNumber},
+
   {NULL, NULL, TNone}
 };
 

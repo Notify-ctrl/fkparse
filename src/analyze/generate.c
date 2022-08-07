@@ -46,7 +46,15 @@ static void analyzeExp(ExpressionObj *e) {
 
   if ((e->exptype == ExpCalc || e->exptype == ExpCmp) && e->optype != 0) {
     if (e->optype == 3 || e->optype == 4) {
-      analyzeExp(e->oprand1);
+      if (e->varValue && strstr(e->varValue->name, "移动")
+        && strstr(e->varValue->name, "原因")) {
+          writestr("bit32.band(");
+          analyzeExp(e->oprand1);
+          writestr(", ");
+          analyzeExp(e->oprand2);
+          writestr(")");
+        } else
+          analyzeExp(e->oprand1);
       if (e->oprand1->valuetype == TPlayer) {
         writestr(":objectName()");
       }
@@ -718,7 +726,7 @@ static void initData(int event) {
       defineLocal("目的地牌堆", "move.to_pile_name", TString);
       defineLocal("移动的来源", "move.from", TPlayer);
       defineLocal("移动的目标", "move.to", TPlayer);
-      defineLocal("移动的原因", "move.reason", TString);
+      defineLocal("移动的原因", "move.reason.m_reason", TString);
       defineLocal("是打开的", "move.open", TBool);
       defineLocal("是最后的手牌", "move.is_last_handcard", TBool);
       break;
@@ -940,7 +948,7 @@ static void clearData(int event) {
       clearLocal("目的地牌堆", "move.to_pile_name", rewrite);
       clearLocal("移动的来源", "move.from", rewrite);
       clearLocal("移动的目标", "move.to", rewrite);
-      clearLocal("移动的原因", "move.reason", rewrite);
+      clearLocal("移动的原因", "move.reason.m_reason", rewrite);
       clearLocal("是打开的", "move.open", rewrite);
       clearLocal("是最后的手牌", "move.is_last_handcard", rewrite);
       if (rewrite) writeline("data:setValue(move)");
