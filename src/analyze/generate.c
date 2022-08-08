@@ -209,6 +209,11 @@ static void analyzeVar(VarObj *v) {
       analyzeExp(v->obj);
       checktype(v->obj, v->obj->valuetype, TCard);
       writestr(":getId())");
+    } else if (!strcmp(name, "获胜者")) {
+      writestr("fkp.functions.getPindianWinner(");
+      analyzeExp(v->obj);
+      checktype(v->obj, v->obj->valuetype, TPindian);
+      writestr(")");
     } else {
       analyzeExp(v->obj);
       switch (v->obj->valuetype) {
@@ -278,6 +283,27 @@ static void analyzeVar(VarObj *v) {
             t = TNumber;
           } else {
             yyerror(cast(YYLTYPE *, v), "无法获取 数组 的属性 '%s'\n", name);
+            t = TNone;
+          }
+          break;
+        case TPindian:
+          if (!strcmp(name, "来源")) {
+            writestr(".from");
+            t = TPlayer;
+          } else if (!strcmp(name, "目标")) {
+            writestr(".to");
+            t = TPlayer;
+          } else if (!strcmp(name, "来源卡牌")) {
+            writestr(".from_card");
+            t = TCard;
+          } else if (!strcmp(name, "目标卡牌")) {
+            writestr(".to_card");
+            t = TCard;
+          } else if (!strcmp(name, "原因")) {
+            writestr(".reason");
+            t = TString;
+          } else {
+            yyerror(cast(YYLTYPE *, v), "无法获取 拼点结果 的属性 '%s'\n", name);
             t = TNone;
           }
           break;

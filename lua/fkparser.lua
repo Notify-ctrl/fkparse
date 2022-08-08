@@ -355,6 +355,103 @@ fkp.functions.sendlog = function(player, log_type, from, to, card, arg, arg2)
   room:sendLog(log)
 end
 
+fkp.functions.newMoveInfo = function(cards, to_place, to, m_reason, skill_name, unhide)
+  local room = Sanguosha:currentRoom()
+  if cards:length() == 0 then return end
+  local card = cards:first()
+  local from_place = room:getCardPlace(card:getId())
+  local from = room:getCardOwner(card:getId())
+  local reason = sgs.CardMoveReason()
+  reason.m_reason = m_reason
+  reason.m_playerId = from and from:objectName() or ""
+  reason.m_targetId = to and to:objectName() or ""
+  reason.m_skillName = skill_name
+  reason.m_eventName = ""
+  local idlist = sgs.IntList()
+  for _, c in sgs.list(cards) do
+    idlist:append(c:getId())
+  end
+  return sgs.CardsMoveStruct(idlist, from, to, from_place, to_place, reason)
+end
+
+fkp.functions.moveCards = function(moves)
+  local room = Sanguosha:currentRoom()
+  room:moveCardsAtomic(moves, false)
+end
+
+fkp.functions.throwCards = function(player, thrower, skill_name, cards)
+  local room = player:getRoom()
+  local dummy = sgs.DummyCard()
+  dummy:addSubcards(cards)
+  room:throwCard(dummy, player, thrower)
+  dummy:deleteLater()
+end
+
+fkp.functions.giveCards = function(to, from, cards, skill, unhide)
+  local room = to:getRoom()
+  local dummy = sgs.DummyCard()
+  dummy:addSubcards(cards)
+  room:obtainCard(to, dummy,
+    sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, to:objectName(), from:objectName(), skill, ""), unhide)
+  dummy:deleteLater()
+end
+
+local pindian_stack = {}
+fkp.functions.pindian = function(from, to, skill_name)
+  local room = from:getRoom()
+  room:setTag("fkp_pindianing", sgs.QVariant(true))
+  from:pindian(to, skill_name)
+  local pindian_result = pindian_stack[#pindian_stack]
+  table.removeOne(pindian_stack, pindian_result)
+  if #pindian_stack == 0 then
+    room:setTag("fkp_pindianing", sgs.QVariant(false))
+  end
+  return pindian_result
+end
+
+fkp.functions.getPindianWinner = function(pindian)
+  local from, to = pindian.from_number, pindian.to_number
+  if from > to then
+    return pindian.from
+  elseif from < to then
+    return pindian.to
+  else
+    return nil
+  end
+end
+
+fkp.functions.swapCards = function(from, to, skill_name, place)
+  if from:objectName() == to:objectName() then return end
+  local room = from:getRoom()
+  if place == sgs.Player_PlaceHand then
+    -- copyed from dimeng in Lua handbook
+    local exchangeMove = sgs.CardsMoveList()
+    local move1 = sgs.CardsMoveStruct(from:handCards(), to, sgs.Player_PlaceHand, sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_SWAP, from:objectName(), to:objectName(), skill_name, ""))
+    local move2 = sgs.CardsMoveStruct(to:handCards(), from, sgs.Player_PlaceHand, sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_SWAP, to:objectName(), from:objectName(), skill_name, ""))
+    exchangeMove:append(move1)
+    exchangeMove:append(move2)
+    room:moveCardsAtomic(exchangeMove, false);
+  elseif place == sgs.Player_PlaceEquip then
+    -- copyed from ganlu in Lua handbook
+    local first, second = from, to
+    local equips1, equips2 = sgs.IntList(), sgs.IntList()
+    for _, equip in sgs.qlist(first:getEquips()) do
+      equips1:append(equip:getId())
+    end
+    for _, equip in sgs.qlist(second:getEquips()) do
+      equips2:append(equip:getId())
+    end
+    local exchangeMove = sgs.CardsMoveList()
+    local move1 = sgs.CardsMoveStruct(equips1, second, sgs.Player_PlaceEquip,
+      sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_SWAP, first:objectName(), second:objectName(), skill_name, ""))
+    local move2 = sgs.CardsMoveStruct(equips2, first, sgs.Player_PlaceEquip,
+      sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_SWAP, first:objectName(), second:objectName(), skill_name, ""))
+    exchangeMove:append(move2)
+    exchangeMove:append(move1)
+    room:moveCards(exchangeMove, false)
+  end
+end
+
 function fkp.newlist(t)
   local element_type = swig_type(t[1])
   local ret
@@ -364,6 +461,8 @@ function fkp.newlist(t)
     ret = sgs.PlayerList()
   elseif element_type == "Card *" then
     ret = sgs.CardList()
+  elseif element_type == "CardsMoveStruct *" then
+    ret = sgs.CardsMoveList()
   elseif element_type == "number" then
     ret = sgs.IntList()
   elseif element_type == "string" then
@@ -589,3 +688,22 @@ fkp.CreateDistanceSkill = sgs.CreateDistanceSkill
 fkp.CreateMaxCardsSkill = sgs.CreateMaxCardsSkill
 fkp.CreateTargetModSkill = sgs.CreateTargetModSkill
 fkp.CreateAttackRangeSkill = sgs.CreateAttackRangeSkill
+
+-- global skill used by fkparse
+fkp_global = sgs.CreateTriggerSkill{
+  name = "fkp_global",
+  global = true,
+  events = {sgs.Pindian},
+  can_trigger = function(self, target)
+    return target
+  end,
+  on_trigger = function(self, event, player, data)
+    local room = player:getRoom()
+    if event == sgs.Pindian then
+      if not room:getTag("fkp_pindianing"):toBool() then return end
+      local pindian = data:toPindian()
+      table.insert(pindian_stack, pindian)
+    end
+  end,
+}
+

@@ -111,6 +111,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token GUANXINGTYPE GUANXING PILETOP
 %token JIANG RESULT FIX
 %token SENDLOG
+%token GIVE PINDIAN SWAPCARD
 
 %type <list> funcdefList defargs defarglist skillList packageList generalList
 %type <list> stringList skillspecs triggerSkill triggerspecs
@@ -157,6 +158,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> getNCards
 %type <func_call> retrial
 %type <func_call> chat sendlog
+%type <func_call> throwCards giveCards pindian swapCards
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -564,8 +566,13 @@ action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
             | askForGuanxing { $$ = $1; yycopyloc($$, &@$); }
             | getNCards { $$ = $1; yycopyloc($$, &@$); }
             | retrial { $$ = $1; yycopyloc($$, &@$); }
-            | chat { $$ = $1; }
-            | sendlog { $$ = $1; }
+            | chat
+            | sendlog
+            | throwCards
+            | giveCards
+            | pindian
+            | swapCards
+              { $$ = $1; }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD {
@@ -853,6 +860,39 @@ sendlog : exp SENDLOG exp {
               newParams(2, "玩家", $1, "战报", $3)
             );
           }
+          ;
+
+throwCards : exp THROW CARD exp {
+                $$ = newFunccall(
+                  strdup("__throwCards"),
+                  newParams(2, "玩家", $1, "卡牌列表", $4)
+                );
+              }
+            ;
+
+giveCards : exp GIVE exp CARD exp {
+              $$ = newFunccall(
+                strdup("__giveCards"),
+                newParams(3, "来源", $1, "目标", $3, "卡牌列表", $5)
+              );
+            }
+          ;
+
+pindian   : exp YU exp PINDIAN {
+              $$ = newFunccall(
+                strdup("__pindian"),
+                newParams(2, "来源", $1, "目标", $3)
+              );
+            }
+          ;
+
+swapCards : exp YU exp SWAPCARD {
+              $$ = newFunccall(
+                strdup("__swapCards"),
+                newParams(2, "来源", $1, "目标", $3)
+              );
+            }
+          ;
 
 %%
 
