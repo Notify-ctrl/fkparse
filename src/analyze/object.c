@@ -106,11 +106,12 @@ AssignObj *newAssign(VarObj *var, ExpressionObj *e) {
   return ret;
 }
 
-IfObj *newIf(ExpressionObj *cond, BlockObj *then, BlockObj *el) {
+IfObj *newIf(ExpressionObj *cond, BlockObj *then, List *elif, BlockObj *el) {
   IfObj *ret = malloc(sizeof(IfObj));
   ret->objtype = Obj_If;
   ret->cond = cond;
   ret->then = then;
+  ret->elif = elif;
   ret->el = el;
   return ret;
 }
@@ -423,6 +424,7 @@ static void freeAssign(AssignObj *a) {
 static void freeIf(IfObj *i) {
   freeObject(i->cond);
   freeObject(i->then);
+  list_free(i->elif, freeObject);
   freeObject(i->el);
   free(i);
 }

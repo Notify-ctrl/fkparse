@@ -55,6 +55,7 @@ static int yycolumn = 1;
 "为"    { return EQ; }
 "若"    { return IF; }
 "则"    { return THEN; }
+"否则若"  { return ELSEIF; }
 "否则"  { return ELSE; }
 "以上"  { return END; }
 "重复此流程:"   { return REPEAT; }

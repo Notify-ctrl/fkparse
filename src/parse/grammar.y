@@ -91,7 +91,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token TMD_RESIDUE TMD_DISTANCE TMD_EXTARGET ATKRANGE_EXTRA ATKRANGE_FIXED
 %token FUNCDEF
 %token <enum_v> EVENT
-%token LET EQ IF THEN ELSE END REPEAT UNTIL
+%token LET EQ IF THEN ELSEIF ELSE END REPEAT UNTIL
 %token <enum_v> TYPE
 %token RETURN CALL
 %token IN EVERY TOWARD PREPEND APPEND DELETE DI GE ELEMENT
@@ -111,6 +111,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token GUANXINGTYPE GUANXING PILETOP
 %token JIANG RESULT FIX
 
+%type <list> eliflist
 %type <list> funcdefList defargs defarglist skillList packageList generalList
 %type <list> stringList skillspecs triggerSkill triggerspecs
 %type <list> statements arglist explist array
@@ -401,9 +402,16 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
 assign_stat : LET var EQ exp { $$ = newAssign($2, $4); yycopyloc($$, &@$); }
             ;
 
-if_stat : IF exp THEN block END { $$ = newIf($2, $4, NULL); yycopyloc($$, &@$); }
-        | IF exp THEN block ELSE block END { $$ = newIf($2, $4, $6); yycopyloc($$, &@$); }
+if_stat : IF exp THEN block eliflist END { $$ = newIf($2, $4, $5, NULL); yycopyloc($$, &@$); }
+        | IF exp THEN block eliflist ELSE block END { $$ = newIf($2, $4, $5, $7); yycopyloc($$, &@$); }
         ;
+
+eliflist  : %empty  { $$ = list_new(); }
+          | eliflist ELSEIF exp THEN block {
+              $$ = $1;
+              list_append($$, cast(Object *, newIf($3, $5, list_new(), NULL)));
+            }
+          ;
 
 loop_stat : REPEAT block UNTIL exp { $$ = newLoop($2, $4); yycopyloc($$, &@$); }
           ;

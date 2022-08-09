@@ -224,10 +224,11 @@ typedef struct {
   ObjectHeader;
   ExpressionObj *cond;
   BlockObj *then;
+  List *elif;
   BlockObj *el; /* maybe NULL */
 } IfObj;
 
-IfObj *newIf(ExpressionObj *cond, BlockObj *then, BlockObj *el);
+IfObj *newIf(ExpressionObj *cond, BlockObj *then, List *elif, BlockObj *el);
 
 typedef struct {
   ObjectHeader;

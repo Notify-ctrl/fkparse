@@ -316,6 +316,18 @@ static void analyzeIf(IfObj *i) {
   writestr(" then\n");
   indent_level++;
   analyzeBlock(i->then);
+  
+  List *node;
+  list_foreach(node, i->elif) {
+    IfObj *i2 = cast(IfObj *, node->data);
+    indent_level--;
+    print_indent();
+    writestr("elseif ");
+    analyzeExp(i2->cond);
+    writestr(" then\n");
+    indent_level++;
+    analyzeBlock(i2->then);
+  }
   if (i->el) {
     indent_level--;
     writeline("else");
