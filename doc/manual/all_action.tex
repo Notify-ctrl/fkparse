@@ -350,3 +350,96 @@
 \end{itemize}
 
 特别注意：调用此语句需将时机设定为“改判前”。
+
+\section{聊天}
+
+\begin{verbatim}
+  <表达式> 说出 <表达式>
+\end{verbatim}
+
+玩家类型；字符串类型/数字类型
+
+本语句可以让一名玩家在聊天框中发送一句话。
+
+\section{发送战报}
+
+\begin{verbatim}
+  <表达式> 发送战报 <表达式>
+\end{verbatim}
+
+玩家类型；字符串类型 \\
+
+额外参数：
+
+\begin{itemize}
+  \item \verb|'%from'|: 玩家类型。将以玩家使用的武将名替换战报文本的所有“\%from”。
+  \item \verb|'%to'|: 玩家类型。将以玩家使用的武将名替换战报文本的所有“\%to”。
+  \item \verb|'%card'|: 卡牌类型。将以形如“杀[♣7]”的形式替换战报文本中的所有“\%card”。
+  \item \verb|'%arg'|: 任意类型。将替换战报文本中的所有“\%arg”。
+  \item \verb|'%arg2'|: 任意类型。将替换战报文本中的所有“\%arg2”。
+\end{itemize}
+
+\section{弃置牌}
+
+\begin{verbatim}
+  <表达式> 弃置牌 <表达式>
+\end{verbatim}
+
+玩家类型；卡牌数组类型
+
+本语句可以直接弃置某一名玩家的相应卡牌。 \\
+
+额外参数：
+
+\begin{itemize}
+  \item \verb|'来源'|: 玩家类型，本次弃牌的来源。比如A拆掉B的一张牌，那么语句是B弃置牌xxx，而来源是A。
+  \item \verb|'技能名'|: 字符串类型，与本次弃牌相关的技能。默认为当前的技能。
+\end{itemize}
+
+\section{换牌}
+
+\begin{verbatim}
+  <表达式> 与 <表达式> 换牌
+\end{verbatim}
+
+玩家类型；玩家类型 \\
+
+额外参数：
+
+\begin{itemize}
+  \item \verb|'区域'|: 要换牌的区域，可以为手牌区或装备区，默认为手牌区。
+  \item \verb|'技能名'|: 字符串类型，与本次弃牌相关的技能。默认为当前的技能。
+\end{itemize}
+
+\section{给牌}
+
+\begin{verbatim}
+  <表达式> 交给 <表达式> 牌 <表达式>
+\end{verbatim}
+
+玩家类型；玩家类型；卡牌数组类型 \\
+
+额外参数：
+
+\begin{itemize}
+  \item \verb|'公开'|: 布尔类型，本次给牌是否正面朝上。默认为不公开。
+  \item \verb|'技能名'|: 字符串类型，与本次弃牌相关的技能。默认为当前的技能。
+\end{itemize}
+
+\section{拼点}
+
+\begin{verbatim}
+  <表达式> 与 <表达式> 拼点
+\end{verbatim}
+
+玩家类型；玩家类型 \\
+
+额外参数：
+
+\begin{itemize}
+  \item \verb|'技能名'|: 字符串类型，与本次弃牌相关的技能。默认为当前的技能。
+\end{itemize}
+
+返回：拼点信息
+
+参见“类型可以获取的属性”一章以详细了解如何处理拼点的结果。
