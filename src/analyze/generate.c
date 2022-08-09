@@ -124,11 +124,15 @@ static void analyzeExp(ExpressionObj *e) {
     case ExpStr:
       if (e->param_name != NULL) {
         if (strstr(e->param_name, "原因") || strstr(e->param_name, "技能")) {
-          origtext = hash_get(skill_table, e->strvalue);
-          if (origtext) {
-            writestr("'%s'", origtext);
-          } else {
-            writestr("'%s'", e->strvalue);
+          if (strlen(e->strvalue) == 0 && !strcmp(e->param_name, "技能名"))
+            writestr("self:objectName()");
+          else {
+            origtext = hash_get(skill_table, e->strvalue);
+            if (origtext) {
+              writestr("'%s'", origtext);
+            } else {
+              writestr("'%s'", e->strvalue);
+            }
           }
         } else if (!strcmp(e->param_name, "标记")) {
           origtext = hash_get(mark_table, e->strvalue);
