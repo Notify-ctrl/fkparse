@@ -356,8 +356,8 @@ fkp.functions.sendlog = function(player, log_type, from, to, card, arg, arg2)
 end
 
 fkp.functions.newMoveInfo = function(cards, to_place, to, m_reason, skill_name, unhide)
-  local room = Sanguosha:currentRoom()
-  if cards:length() == 0 then return end
+  local room = sgs.Sanguosha:currentRoom()
+  if cards:length() == 0 then return sgs.CardsMoveStruct() end
   local card = cards:first()
   local from_place = room:getCardPlace(card:getId())
   local from = room:getCardOwner(card:getId())
@@ -375,7 +375,7 @@ fkp.functions.newMoveInfo = function(cards, to_place, to, m_reason, skill_name, 
 end
 
 fkp.functions.moveCards = function(moves)
-  local room = Sanguosha:currentRoom()
+  local room = sgs.Sanguosha:currentRoom()
   room:moveCardsAtomic(moves, false)
 end
 
@@ -396,28 +396,32 @@ fkp.functions.giveCards = function(to, from, cards, skill, unhide)
   dummy:deleteLater()
 end
 
-local pindian_stack = {}
-fkp.functions.pindian = function(from, to, skill_name)
+fkp.functions.pindian = function(to, from, skill_name)
   local room = from:getRoom()
   room:setTag("fkp_pindianing", sgs.QVariant(true))
   from:pindian(to, skill_name)
-  local pindian_result = pindian_stack[#pindian_stack]
-  table.removeOne(pindian_stack, pindian_result)
-  if #pindian_stack == 0 then
+  local pindian_result = {
+    from = room:getTag("fkp_pindian_result_from"):toPlayer(),
+    to = room:getTag("fkp_pindian_result_to"):toPlayer(),
+    from_card = room:getTag("fkp_pindian_result_from_card"):toCard(),
+    to_card = room:getTag("fkp_pindian_result_to_card"):toCard(),
+    from_number = room:getTag("fkp_pindian_result_from_number"):toInt(),
+    to_number = room:getTag("fkp_pindian_result_to_number"):toInt(),
+    reason = room:getTag("fkp_pindian_result_reason"):toString(),
+  }
+  local from, to = pindian_result.from_number, pindian_result.to_number
+  if from > to then
+    pindian_result.winner = pindian_result.from
+  elseif from < to then
+    pindian_result.winner = pindian_result.to
+  -- by default it is nil, so not need add an else here
+  end
+  local times = room:getTag("fkp_pindian_times"):toInt() - 1
+  room:setTag("fkp_pindian_times", sgs.QVariant(times))
+  if times == 0 then
     room:setTag("fkp_pindianing", sgs.QVariant(false))
   end
   return pindian_result
-end
-
-fkp.functions.getPindianWinner = function(pindian)
-  local from, to = pindian.from_number, pindian.to_number
-  if from > to then
-    return pindian.from
-  elseif from < to then
-    return pindian.to
-  else
-    return nil
-  end
 end
 
 fkp.functions.swapCards = function(from, to, skill_name, place)
@@ -690,9 +694,11 @@ fkp.CreateTargetModSkill = sgs.CreateTargetModSkill
 fkp.CreateAttackRangeSkill = sgs.CreateAttackRangeSkill
 
 -- global skill used by fkparse
+local all_skills = sgs.SkillList()
 fkp_global = sgs.CreateTriggerSkill{
   name = "fkp_global",
   global = true,
+  priority = -1,
   events = {sgs.Pindian},
   can_trigger = function(self, target)
     return target
@@ -701,9 +707,34 @@ fkp_global = sgs.CreateTriggerSkill{
     local room = player:getRoom()
     if event == sgs.Pindian then
       if not room:getTag("fkp_pindianing"):toBool() then return end
+      -- data is in stack when cpp calls thread->trigger
+      -- so it will be deleted when pindian() call completes
+      -- but QSanguosha's skillcard:onUse and triggerskill:trigger is not
+      -- in the same lua_State (辣鸡神杀)
+      -- so we can't build a global table to save these data
       local pindian = data:toPindian()
-      table.insert(pindian_stack, pindian)
+      local v = sgs.QVariant()
+      v:setValue(pindian.from)
+      room:setTag("fkp_pindian_result_from", v)
+      v:setValue(pindian.to)
+      room:setTag("fkp_pindian_result_to", v)
+      v:setValue(pindian.from_card)
+      room:setTag("fkp_pindian_result_from_card", v)
+      v:setValue(pindian.to_card)
+      room:setTag("fkp_pindian_result_to_card", v)
+      v:setValue(pindian.from_number)
+      room:setTag("fkp_pindian_result_from_number", v)
+      v:setValue(pindian.to_number)
+      room:setTag("fkp_pindian_result_to_number", v)
+      room:setTag("fkp_pindian_result_reason", sgs.QVariant(pindian.reason))
+      if not room:getTag("fkp_pindian_times") then
+        room:setTag("fkp_pindian_times", sgs.QVariant(1))
+      else
+        local times = room:getTag("fkp_pindian_times"):toInt() + 1
+        room:setTag("fkp_pindian_times", sgs.QVariant(times))
+      end
     end
   end,
 }
-
+if not sgs.Sanguosha:getSkill('fkp_global') then all_skills:append(fkp_global) end
+sgs.Sanguosha:addSkills(all_skills)

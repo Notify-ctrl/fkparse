@@ -55,7 +55,7 @@ static void analyzeExp(ExpressionObj *e) {
           writestr(")");
         } else
           analyzeExp(e->oprand1);
-      if (e->oprand1->valuetype == TPlayer) {
+      if (e->oprand1->valuetype == TPlayer && e->oprand2->valuetype == TPlayer) {
         writestr(":objectName()");
       }
       switch (e->optype) {
@@ -63,7 +63,7 @@ static void analyzeExp(ExpressionObj *e) {
         case 4: writestr(" == "); break;
       }
       analyzeExp(e->oprand2);
-      if (e->oprand2->valuetype == TPlayer) {
+      if (e->oprand1->valuetype == TPlayer && e->oprand2->valuetype == TPlayer) {
         writestr(":objectName()");
       }
       t = TBool;
@@ -208,16 +208,13 @@ static void analyzeVar(VarObj *v) {
       analyzeExp(v->obj);
       checktype(v->obj, v->obj->valuetype, TCard);
       writestr(":getId())");
+      t = TNumber;
     } else if (!strcmp(name, "持有者")) {
       writestr("room:getCardOwner(");
       analyzeExp(v->obj);
       checktype(v->obj, v->obj->valuetype, TCard);
       writestr(":getId())");
-    } else if (!strcmp(name, "获胜者")) {
-      writestr("fkp.functions.getPindianWinner(");
-      analyzeExp(v->obj);
-      checktype(v->obj, v->obj->valuetype, TPindian);
-      writestr(")");
+      t = TPlayer;
     } else {
       analyzeExp(v->obj);
       switch (v->obj->valuetype) {
@@ -297,11 +294,20 @@ static void analyzeVar(VarObj *v) {
           } else if (!strcmp(name, "目标")) {
             writestr(".to");
             t = TPlayer;
+          } else if (!strcmp(name, "获胜者")) {
+            writestr(".winner");
+            t = TPlayer;
           } else if (!strcmp(name, "来源卡牌")) {
             writestr(".from_card");
             t = TCard;
           } else if (!strcmp(name, "目标卡牌")) {
             writestr(".to_card");
+            t = TCard;
+          } else if (!strcmp(name, "来源点数")) {
+            writestr(".from_number");
+            t = TCard;
+          } else if (!strcmp(name, "目标点数")) {
+            writestr(".to_number");
             t = TCard;
           } else if (!strcmp(name, "原因")) {
             writestr(".reason");
