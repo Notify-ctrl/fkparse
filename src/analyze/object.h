@@ -95,6 +95,7 @@ enum ExpVType {
   TStringList,
   TMark,
   TFunc,
+  TPindian,
 
   TNotSure = 0xFFFE,
   TAny = 0xFFFF

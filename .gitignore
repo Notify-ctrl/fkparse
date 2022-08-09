@@ -8,3 +8,4 @@ lex.c
 doc/manual/*
 !doc/manual/*.tex
 .idea/
+!doc/manual/Makefile
