@@ -864,7 +864,7 @@ askResponseForCard: exp SELECT TO exp RESPOND AZHANG CARD {
            );
          };
 
-askForCardChosen: exp ACQUIRE exp AZHANG CARD {
+askForCardChosen: exp SELECT exp AZHANG CARD {
            $$ = newFunccall(
              strdup("__askForCardChosen"),
              newParams(2, "玩家", $1, "被选牌者", $3)

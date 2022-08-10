@@ -239,20 +239,13 @@ static Proto builtin_func[] = {
     {"是否为改判", TBool, true, {.n = false}},
     {"技能名", TString, true, {.s = ""}},
     {"是否为临时", TBool, true, {.n = false}},
-    }},
-  {"__askForCardChosen", "fkp.functions.askForCardChosen", TCard, 7, {
+  }},
+  {"__askForCardChosen", "fkp.functions.askForCardChosen", TCard, 5, {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"被选牌者", TPlayer, false, {.s = NULL}},
-    {"位置", TString, true, {.s = "h"}},
+    {"位置", TNumberList, true, {.s = "nil"}},
     {"原因", TString, true, {.s = ""}},
     {"是否可见手牌", TBool, true, {.n = false}},
-    {"用途", TAny, true, {.s = "无用途"}},
-    {"禁止弃置列表", TCardList, true, {.s = "nil"}},
-  }},
-  {"创建具体区域", "fkp.functions.buildArea", TString, 3, {
-    {"包含手牌区", TBool, true, {.n = false}},
-    {"包含装备区", TBool, true, {.n = false}},
-    {"包含判定区", TBool, true, {.n = false}},
   }},
   {NULL, NULL, TNone, 0, {}}
 };
