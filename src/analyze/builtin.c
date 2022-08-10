@@ -209,6 +209,51 @@ static Proto builtin_func[] = {
     {"技能名", TString, true, {.s = ""}},
     {"是否交换", TBool, true, {.n = false}},
   }},
+  {"__askRespondForCard", "fkp.functions.askRespondForCard", TCard, 8, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"选牌规则", TString, true, {.s = "."}},
+    {"提示", TString, true, {.s = ""}},
+    {"相关数据", TString, true, {.s = "环境数据"}},
+    {"目标", TPlayer, false, {.s = NULL}},
+    {"是否为改判", TBool, true, {.n = false}},
+    {"技能名", TString, true, {.s = ""}},
+    {"是否为临时", TBool, true, {.n = false}},
+    }},
+  {"__askForCard", "fkp.functions.askForCard", TCard, 9, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"选牌规则", TString, true, {.s = "."}},
+    {"提示", TString, true, {.s = ""}},
+    {"相关数据", TAny, true, {.s = "环境数据"}},
+    {"用途", TAny, true, {.s = "无用途"}},
+    {"目标", TPlayer, false, {.s = NULL}},
+    {"是否为改判", TBool, true, {.n = false}},
+    {"技能名", TString, true, {.s = ""}},
+    {"是否为临时", TBool, true, {.n = false}},
+  }},
+  {"__askUseForCard", "fkp.functions.askUseForCard", TCard, 8, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"选牌规则", TString, true, {.s = "."}},
+    {"提示", TString, true, {.s = ""}},
+    {"相关数据", TAny, true, {.s = "环境数据"}},
+    {"目标", TPlayer, false, {.s = NULL}},
+    {"是否为改判", TBool, true, {.n = false}},
+    {"技能名", TString, true, {.s = ""}},
+    {"是否为临时", TBool, true, {.n = false}},
+    }},
+  {"__askForCardChosen", "fkp.functions.askForCardChosen", TCard, 7, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"被选牌者", TPlayer, false, {.s = NULL}},
+    {"位置", TString, true, {.s = "h"}},
+    {"原因", TString, true, {.s = ""}},
+    {"是否可见手牌", TBool, true, {.n = false}},
+    {"用途", TAny, true, {.s = "无用途"}},
+    {"禁止弃置列表", TCardList, true, {.s = "nil"}},
+  }},
+  {"创建具体区域", "fkp.functions.buildArea", TString, 3, {
+    {"包含手牌区", TBool, false, {.s = NULL}},
+    {"包含装备区", TBool, false, {.s = NULL}},
+    {"包含判定区", TBool, true, {.n = false}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 
@@ -325,6 +370,14 @@ static struct {
   {"顶部底部均放置", "sgs.Room_GuanxingBothSides", TNumber},
   {"只放置底部", "sgs.Room_GuanxingDownOnly", TNumber},
   {"判定结构体", "judge", TAny},
+  {"环境数据","data",TAny},
+
+  {"无用途", "sgs.Card_MethodNone",TNumber},
+  {"用于使用", "sgs.Card_MethodUse", TNumber},
+  {"用于响应", "sgs.Card_MethodResponse", TNumber},
+  {"用于弃牌", "sgs.Card_MethodDiscard", TNumber},
+  {"用于重铸", "sgs.Card_MethodRecast", TNumber},
+  {"用于拼点", "sgs.Card_MethodPindian", TNumber},
 
   {NULL, NULL, TNone}
 };

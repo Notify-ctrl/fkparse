@@ -109,7 +109,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token SPEAK ACT_LINE WASH CHANGEGENERAL CHANGESEAT YU
 %token EXEC JUDGE
 %token GUANXINGTYPE GUANXING PILETOP
-%token JIANG RESULT FIX
+%token JIANG RESULT FIX SELF AZHANG USE RESPOND
 
 %type <list> funcdefList defargs defarglist skillList packageList generalList
 %type <list> stringList skillspecs triggerSkill triggerspecs
@@ -155,6 +155,10 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> askForGuanxing
 %type <func_call> getNCards
 %type <func_call> retrial
+%type <func_call> askChooseForCard
+%type <func_call> askUseForCard
+%type <func_call> askResponseForCard
+%type <func_call> askForCardChosen
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -562,6 +566,10 @@ action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
             | askForGuanxing { $$ = $1; yycopyloc($$, &@$); }
             | getNCards { $$ = $1; yycopyloc($$, &@$); }
             | retrial { $$ = $1; yycopyloc($$, &@$); }
+            | askChooseForCard { $$ = $1; yycopyloc($$, &@$); }
+            | askUseForCard { $$ = $1; yycopyloc($$, &@$); }
+            | askResponseForCard { $$ = $1; yycopyloc($$, &@$); }
+            | askForCardChosen { $$ = $1; yycopyloc($$, &@$); }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD {
@@ -834,6 +842,34 @@ retrial: exp JIANG JUDGE RESULT FIX EQ exp {
             newParams(2, "玩家", $1, "改判牌", $7)
           );
         };
+
+askChooseForCard: exp SELECT SELF FIELD AZHANG CARD {
+          $$ = newFunccall(
+            strdup("__askForCard"),
+            newParams(1, "玩家", $1)
+          );
+        };
+
+askUseForCard: exp SELECT TO exp USE AZHANG CARD {
+          $$ = newFunccall(
+            strdup("__askUseForCard"),
+            newParams(2, "玩家", $1, "目标", $4)
+          );
+        };
+
+askResponseForCard: exp SELECT TO exp RESPOND AZHANG CARD {
+           $$ = newFunccall(
+             strdup("__askRespondForCard"),
+             newParams(2, "玩家", $1, "目标", $4)
+           );
+         };
+
+askForCardChosen: exp ACQUIRE exp AZHANG CARD {
+           $$ = newFunccall(
+             strdup("__askForCardChosen"),
+             newParams(2, "玩家", $1, "被选牌者", $3)
+           );
+         };
 %%
 
 static int yyreport_syntax_error(const yypcontext_t *ctx) {

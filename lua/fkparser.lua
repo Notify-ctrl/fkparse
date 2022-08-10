@@ -227,9 +227,87 @@ fkp.functions = {
   retrial = function(card, player, judge, skill_name, exchange)
     local room = player:getRoom()
     return room:retrial(card, player, judge, skill_name, exchange)
-  end
+  end,
 
 }
+
+fkp.functions.askForCard = function(player, pattern, prompt, data, method, to, isRetrial, skill_name, isProvision)
+  if isProvision == nil then
+    isProvision = false
+  end
+  if skill_name == nil then
+    skill_name = ''
+  end
+  if isRetrial == nil then
+    isRetrial = false
+  end
+  return player:getRoom():askForCard(player, pattern, prompt, data, method, to, isRetrial, skill_name, isProvision)
+end
+
+fkp.functions.askUseForCard = function(player, pattern, prompt, data, to, isRetrial, skill_name, isProvision)
+  if isProvision == nil then
+    isProvision = false
+  end
+  if skill_name == nil then
+    skill_name = ''
+  end
+  if isRetrial == nil then
+    isRetrial = false
+  end
+  return player:getRoom():askForCard(player, pattern, prompt, data, sgs.Card_MethodUse, to, isRetrial, skill_name, isProvision)
+end
+
+fkp.functions.askRespondForCard = function(player, pattern, prompt, data, to, isRetrial, skill_name, isProvision)
+  if isProvision == nil then
+    isProvision = false
+  end
+  if skill_name == nil then
+    skill_name = ''
+  end
+  if isRetrial == nil then
+    isRetrial = false
+  end
+  return player:getRoom():askForCard(player, pattern, prompt, data, sgs.Card_MethodResponse, to, isRetrial, skill_name, isProvision)
+end
+
+fkp.functions.askForCardChosen = function(player, who, flags, reason, handcard_visible, method, disabled_ids)
+  -- disabled_ids 传入时是TCardList，应该转化成TNumberList
+  local _disable_ids = sgs.IntList();
+  if disabled_ids == nil then
+    _disable_ids = nil
+  else
+    for _, card in sgs.list(disabled_ids) do
+      _disable_ids:append(card:getId())
+    end
+  end
+  if reason == nil then
+    reason = ''
+  end
+  if method == nil then
+    method = sgs.Card_MethodNone
+  end
+  if handcard_visible == nil then
+    handcard_visible = false
+  end
+  local room = player:getRoom()
+  local _result = room:askForCardChosen(player, who, flags, reason, handcard_visible, method, _disable_ids)
+  -- askForCardChosen传出的是TNumber，应当转化为TCard
+  return sgs.Sanguosha:getCard(_result)
+  end
+
+fkp.functions.buildArea = function(hasH, hasE, hasJ)
+  local res = ""
+  if hasH then
+    res = res .. "h"
+  end
+  if hasE then
+    res = res .. "e"
+  end
+  if hasJ then
+    res = res .. "j"
+  end
+  return res
+end
 
 fkp.functions.buildPrompt = function(base, src, dest, arg, arg2)
   if src == nil then
