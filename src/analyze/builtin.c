@@ -225,7 +225,7 @@ static Proto builtin_func[] = {
     {"提示", TString, true, {.s = ""}},
     {"相关数据", TAny, true, {.s = "环境数据"}},
     {"用途", TAny, true, {.s = "无用途"}},
-    {"目标", TPlayer, false, {.s = NULL}},
+    {"目标", TPlayer, true, {.s = NULL}},
     {"是否为改判", TBool, true, {.n = false}},
     {"技能名", TString, true, {.s = ""}},
     {"是否为临时", TBool, true, {.n = false}},
@@ -250,8 +250,8 @@ static Proto builtin_func[] = {
     {"禁止弃置列表", TCardList, true, {.s = "nil"}},
   }},
   {"创建具体区域", "fkp.functions.buildArea", TString, 3, {
-    {"包含手牌区", TBool, false, {.s = NULL}},
-    {"包含装备区", TBool, false, {.s = NULL}},
+    {"包含手牌区", TBool, true, {.n = false}},
+    {"包含装备区", TBool, true, {.n = false}},
     {"包含判定区", TBool, true, {.n = false}},
   }},
   {NULL, NULL, TNone, 0, {}}

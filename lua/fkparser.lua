@@ -297,6 +297,9 @@ fkp.functions.askForCardChosen = function(player, who, flags, reason, handcard_v
 
 fkp.functions.buildArea = function(hasH, hasE, hasJ)
   local res = ""
+  if hasE==nil and hasH==nil and hasJ==nil then
+    return "hej"
+  end
   if hasH then
     res = res .. "h"
   end
