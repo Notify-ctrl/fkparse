@@ -546,42 +546,42 @@ action_stat : action { $$ = $1; }
               }
             ;
 
-action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
-            | loseHp { $$ = $1; yycopyloc($$, &@$); }
-            | loseMaxHp { $$ = $1; yycopyloc($$, &@$); }
-            | causeDamage { $$ = $1; yycopyloc($$, &@$); }
-            | inflictDamage { $$ = $1; yycopyloc($$, &@$); }
-            | recoverHp { $$ = $1; yycopyloc($$, &@$); }
-            | recoverMaxHp { $$ = $1; yycopyloc($$, &@$); }
-            | acquireSkill { $$ = $1; yycopyloc($$, &@$); }
-            | detachSkill { $$ = $1; yycopyloc($$, &@$); }
-            | addMark { $$ = $1; yycopyloc($$, &@$); }
-            | loseMark { $$ = $1; yycopyloc($$, &@$); }
-            | getMark { $$ = $1; yycopyloc($$, &@$); }
-            | askForChoice { $$ = $1; yycopyloc($$, &@$); }
-            | askForChoosePlayer { $$ = $1; yycopyloc($$, &@$); }
-            | askForSkillInvoke { $$ = $1; yycopyloc($$, &@$); }
-            | obtainCard { $$ = $1; yycopyloc($$, &@$); }
-            | arrayPrepend { $$ = $1; yycopyloc($$, &@$); }
-            | arrayAppend { $$ = $1; yycopyloc($$, &@$); }
-            | arrayRemoveOne { $$ = $1; yycopyloc($$, &@$); }
-            | arrayAt { $$ = $1; yycopyloc($$, &@$); }
-            | hasSkill { $$ = $1; yycopyloc($$, &@$); }
-            | throwCardsBySkill { $$ = $1; yycopyloc($$, &@$); }
-            | getUsedTimes { $$ = $1; yycopyloc($$, &@$); }
-            | broadcastSkillInvoke { $$ = $1; yycopyloc($$, &@$); }
-            | askForDiscard { $$ = $1; yycopyloc($$, &@$); }
-            | swapPile { $$ = $1; yycopyloc($$, &@$); }
-            | changeHero { $$ = $1; yycopyloc($$, &@$); }
-            | swapSeat { $$ = $1; yycopyloc($$, &@$); }
-            | judge { $$ = $1; yycopyloc($$, &@$); }
-            | askForGuanxing { $$ = $1; yycopyloc($$, &@$); }
-            | getNCards { $$ = $1; yycopyloc($$, &@$); }
-            | retrial { $$ = $1; yycopyloc($$, &@$); }
-            | askChooseForCard { $$ = $1; yycopyloc($$, &@$); }
-            | askUseForCard { $$ = $1; yycopyloc($$, &@$); }
-            | askResponseForCard { $$ = $1; yycopyloc($$, &@$); }
-            | askForCardChosen { $$ = $1; yycopyloc($$, &@$); }
+action      : drawCards
+            | loseHp
+            | loseMaxHp
+            | causeDamage
+            | inflictDamage
+            | recoverHp
+            | recoverMaxHp
+            | acquireSkill
+            | detachSkill
+            | addMark
+            | loseMark
+            | getMark
+            | askForChoice
+            | askForChoosePlayer
+            | askForSkillInvoke
+            | obtainCard
+            | arrayPrepend
+            | arrayAppend
+            | arrayRemoveOne
+            | arrayAt
+            | hasSkill
+            | throwCardsBySkill
+            | getUsedTimes
+            | broadcastSkillInvoke
+            | askForDiscard
+            | swapPile
+            | changeHero
+            | swapSeat
+            | judge
+            | askForGuanxing
+            | getNCards
+            | retrial
+            | askChooseForCard
+            | askUseForCard
+            | askResponseForCard
+            | askForCardChosen
             | chat
             | sendlog
             | throwCards
