@@ -55,7 +55,7 @@ static void analyzeExp(ExpressionObj *e) {
           writestr(")");
         } else
           analyzeExp(e->oprand1);
-      if (e->oprand1->valuetype == TPlayer && e->oprand2->valuetype == TPlayer) {
+      if (e->oprand1->valuetype == TPlayer) {
         writestr(":objectName()");
       }
       switch (e->optype) {
