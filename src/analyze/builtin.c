@@ -1,24 +1,7 @@
 #include "structs.h"
 #include "object.h"
 #include "main.h"
-
-struct ProtoArg {
-  const char *name;
-  ExpVType argtype;
-  bool have_default;
-  union {
-    long long n;
-    const char *s;
-  } d;
-};
-
-typedef struct {
-  const char *dst;
-  const char *src;
-  ExpVType rettype;
-  int argcount;
-  struct ProtoArg args[10];
-} Proto;
+#include "builtin.h"
 
 static Proto builtin_func[] = {
   {"生成随机数", "math.random", TNumber, 2, {
@@ -287,11 +270,7 @@ static Proto builtin_func[] = {
   {NULL, NULL, TNone, 0, {}}
 };
 
-static struct {
-  char *dst;
-  char *src;
-  int type;
-} reserved[] = {
+static BuiltinVar reserved[] = {
   {"nil", "nil", TAny},
   {"不存在的", "nil", TAny},
 
@@ -415,6 +394,87 @@ static struct {
   {NULL, NULL, TNone}
 };
 
+static void loadfuncdef(Proto *p) {
+  FuncdefObj *def = malloc(sizeof(FuncdefObj));
+  def->objtype = Obj_Funcdef;
+  def->funcname = strdup(p->src);
+  sym_new_entry(p->dst, TFunc, cast(const char *, def), true);
+  def->rettype = p->rettype;
+  def->funcbody = NULL;
+
+  List *l = list_new();
+  for (int i = 0; i < p->argcount; i++) {
+    struct ProtoArg *arg = &p->args[i];
+    DefargObj *defarg = malloc(sizeof(DefargObj));
+    defarg->first_line = -1;
+    defarg->objtype = Obj_Defarg;
+    defarg->name = strdup(arg->name);
+    defarg->type = arg->argtype;
+
+    if (!arg->have_default) {
+      defarg->d = NULL;
+    } else {
+      ExpressionObj *e = malloc(sizeof(ExpressionObj));
+      e->objtype = Obj_Expression;
+      e->valuetype = arg->argtype;
+      e->optype = 0;
+      e->strvalue = NULL;
+      e->varValue = NULL;
+      e->func = NULL;
+      e->array = NULL;
+      e->oprand1 = NULL;
+      e->oprand2 = NULL;
+      e->bracketed = false;
+      e->param_name = strdup(arg->name);
+
+      VarObj *v;
+      switch (arg->argtype) {
+      case TNumber:
+        e->exptype = ExpNum;
+        e->value = arg->d.n;
+        break;
+      case TString:
+        e->exptype = ExpStr;
+        e->strvalue = strdup(arg->d.s);
+        break;
+      case TBool:
+        e->exptype = ExpBool;
+        e->value = arg->d.n;
+        break;
+      default:
+        e->exptype = ExpVar;
+        v = malloc(sizeof(VarObj));
+        v->objtype = Obj_Var;
+        v->name = strdup(arg->d.s);
+        v->type = arg->argtype;
+        v->obj = NULL;
+        e->varValue = v;
+        break;
+      }
+      defarg->d = e;
+    }
+    list_append(l, cast(Object *, defarg));
+  }
+  def->params = l;
+}
+
+static void loadvar(BuiltinVar *v) {
+  sym_new_entry(v->dst, v->type, v->src, true);
+}
+
+void loadmodule(Proto *ps, BuiltinVar *vs) {
+  for (int i = 0; ; i++) {
+    Proto *p = &ps[i];
+    if (p->dst == NULL) break;
+    loadfuncdef(p);
+  }
+
+  for (int i = 0; ; i++) {
+    if (vs[i].dst == NULL) break;
+    loadvar(&vs[i]);
+  }
+}
+
 void sym_init() {
   if (builtin_symtab != NULL) return;
   builtin_symtab = hash_new();
@@ -423,77 +483,7 @@ void sym_init() {
   current_tab = builtin_symtab;
   last_lookup_tab = NULL;
 
-  for (int i = 0; ; i++) {
-    Proto *p = &builtin_func[i];
-    if (p->dst == NULL) break;
-
-    FuncdefObj *def = malloc(sizeof(FuncdefObj));
-    def->objtype = Obj_Funcdef;
-    def->funcname = strdup(p->src);
-    sym_new_entry(p->dst, TFunc, cast(const char *, def), true);
-    def->rettype = p->rettype;
-    def->funcbody = NULL;
-
-    List *l = list_new();
-    for (int i = 0; i < p->argcount; i++) {
-      struct ProtoArg *arg = &p->args[i];
-      DefargObj *defarg = malloc(sizeof(DefargObj));
-      defarg->first_line = -1;
-      defarg->objtype = Obj_Defarg;
-      defarg->name = strdup(arg->name);
-      defarg->type = arg->argtype;
-
-      if (!arg->have_default) {
-        defarg->d = NULL;
-      } else {
-        ExpressionObj *e = malloc(sizeof(ExpressionObj));
-        e->objtype = Obj_Expression;
-        e->valuetype = arg->argtype;
-        e->optype = 0;
-        e->strvalue = NULL;
-        e->varValue = NULL;
-        e->func = NULL;
-        e->array = NULL;
-        e->oprand1 = NULL;
-        e->oprand2 = NULL;
-        e->bracketed = false;
-        e->param_name = strdup(arg->name);
-
-        VarObj *v;
-        switch (arg->argtype) {
-        case TNumber:
-          e->exptype = ExpNum;
-          e->value = arg->d.n;
-          break;
-        case TString:
-          e->exptype = ExpStr;
-          e->strvalue = strdup(arg->d.s);
-          break;
-        case TBool:
-          e->exptype = ExpBool;
-          e->value = arg->d.n;
-          break;
-        default:
-          e->exptype = ExpVar;
-          v = malloc(sizeof(VarObj));
-          v->objtype = Obj_Var;
-          v->name = strdup(arg->d.s);
-          v->type = arg->argtype;
-          v->obj = NULL;
-          e->varValue = v;
-          break;
-        }
-        defarg->d = e;
-      }
-      list_append(l, cast(Object *, defarg));
-    }
-    def->params = l;
-  }
-
-  for (int i = 0; ; i++) {
-    if (reserved[i].dst == NULL) break;
-    sym_new_entry(reserved[i].dst, reserved[i].type, reserved[i].src, true);
-  }
+  loadmodule(builtin_func, reserved);
 }
 
 char *event_table[] = {
