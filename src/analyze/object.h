@@ -95,6 +95,7 @@ enum ExpVType {
   TStringList,
   TMark,
   TFunc,
+  TPindian,
 
   TNotSure = 0xFFFE,
   TAny = 0xFFFF
@@ -224,10 +225,11 @@ typedef struct {
   ObjectHeader;
   ExpressionObj *cond;
   BlockObj *then;
+  List *elif;
   BlockObj *el; /* maybe NULL */
 } IfObj;
 
-IfObj *newIf(ExpressionObj *cond, BlockObj *then, BlockObj *el);
+IfObj *newIf(ExpressionObj *cond, BlockObj *then, List *elif, BlockObj *el);
 
 typedef struct {
   ObjectHeader;

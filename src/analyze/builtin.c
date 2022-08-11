@@ -44,6 +44,17 @@ static Proto builtin_func[] = {
     {"子卡牌", TCardList, true, {.s = "nil"}},
     {"技能名", TString, true, {.s = ""}},
   }},
+  {"创建卡牌移动信息", "fkp.functions.newMoveInfo", TString, 6, {
+    {"卡牌列表", TCardList, false, {.s = NULL}},
+    {"移动目标区域", TNumber, false, {.s = NULL}},
+    {"移动目标角色", TPlayer, true, {.s = "nil"}},
+    {"移牌原因", TNumber, true, {.n = 7}}, /* sgs.CardMoveReason_S_REASON_GOTCARD */
+    {"技能名", TString, true, {.s = ""}},
+    {"公开", TBool, true, {.n = true}},
+  }},
+  {"移动卡牌", "fkp.functions.moveCards", TNone, 1, {
+    {"移牌信息列表", TStringList, false, {.s = NULL}},
+  }},
 
   /* array operations */
   {"__prepend", "fkp.functions.prepend", TNone, 2, {
@@ -209,50 +220,69 @@ static Proto builtin_func[] = {
     {"技能名", TString, true, {.s = ""}},
     {"是否交换", TBool, true, {.n = false}},
   }},
-  {"__askRespondForCard", "fkp.functions.askRespondForCard", TCard, 8, {
+  {"__askForCard", "fkp.functions.askForCard", TCard, 4, {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"选牌规则", TString, true, {.s = "."}},
     {"提示", TString, true, {.s = ""}},
-    {"相关数据", TString, true, {.s = "环境数据"}},
-    {"目标", TPlayer, false, {.s = NULL}},
-    {"是否为改判", TBool, true, {.n = false}},
     {"技能名", TString, true, {.s = ""}},
-    {"是否为临时", TBool, true, {.n = false}},
-    }},
-  {"__askForCard", "fkp.functions.askForCard", TCard, 9, {
-    {"玩家", TPlayer, false, {.s = NULL}},
-    {"选牌规则", TString, true, {.s = "."}},
-    {"提示", TString, true, {.s = ""}},
-    {"相关数据", TAny, true, {.s = "环境数据"}},
-    {"用途", TAny, true, {.s = "无用途"}},
-    {"目标", TPlayer, true, {.s = NULL}},
-    {"是否为改判", TBool, true, {.n = false}},
-    {"技能名", TString, true, {.s = ""}},
-    {"是否为临时", TBool, true, {.n = false}},
   }},
-  {"__askUseForCard", "fkp.functions.askUseForCard", TCard, 8, {
+  {"__askRespondForCard", "fkp.functions.askRespondForCard", TCard, 5, {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"选牌规则", TString, true, {.s = "."}},
     {"提示", TString, true, {.s = ""}},
-    {"相关数据", TAny, true, {.s = "环境数据"}},
-    {"目标", TPlayer, false, {.s = NULL}},
     {"是否为改判", TBool, true, {.n = false}},
     {"技能名", TString, true, {.s = ""}},
-    {"是否为临时", TBool, true, {.n = false}},
-    }},
-  {"__askForCardChosen", "fkp.functions.askForCardChosen", TCard, 7, {
+  }},
+  {"__askUseForCard", "fkp.functions.askUseForCard", TCard, 5, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"选牌规则", TString, true, {.s = "."}},
+    {"提示", TString, true, {.s = ""}},
+    {"目标", TPlayer, true, {.s = "nil"}},
+    {"技能名", TString, true, {.s = ""}},
+  }},
+  {"__askForCardChosen", "fkp.functions.askForCardChosen", TCard, 5, {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"被选牌者", TPlayer, false, {.s = NULL}},
-    {"位置", TString, true, {.s = "h"}},
+    {"位置", TNumberList, true, {.s = "nil"}},
     {"原因", TString, true, {.s = ""}},
     {"是否可见手牌", TBool, true, {.n = false}},
-    {"用途", TAny, true, {.s = "无用途"}},
-    {"禁止弃置列表", TCardList, true, {.s = "nil"}},
   }},
-  {"创建具体区域", "fkp.functions.buildArea", TString, 3, {
-    {"包含手牌区", TBool, true, {.n = false}},
-    {"包含装备区", TBool, true, {.n = false}},
-    {"包含判定区", TBool, true, {.n = false}},
+  {"__chat", "fkp.functions.chat", TNone, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"聊天句子", TAny, false, {.s = NULL}},
+  }},
+  {"__sendlog", "fkp.functions.sendlog", TNone, 7, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"战报", TString, false, {.s = NULL}},
+    {"%from", TPlayer, true, {.s = "nil"}},
+    {"%to", TPlayerList, true, {.s = "nil"}},
+    {"%card", TCard, true, {.s = "nil"}},
+    {"%arg", TAny, true, {.s = "nil"}},
+    {"%arg2", TAny, true, {.s = "nil"}},
+  }},
+  {"__throwCards", "fkp.functions.throwCards", TNone, 4, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"来源", TPlayer, true, {.s = "nil"}},
+    {"技能名", TString, true, {.s = ""}},
+    {"卡牌列表", TCardList, false, {.s = NULL}},
+  }},
+  {"__giveCards", "fkp.functions.giveCards", TNone, 5, {
+    {"目标", TPlayer, false, {.s = NULL}},
+    {"来源", TPlayer, false, {.s = NULL}},
+    {"卡牌列表", TCardList, false, {.s = NULL}},
+    {"技能名", TString, true, {.s = ""}},
+    {"公开", TBool, true, {.n = false}},
+  }},
+  {"__pindian", "fkp.functions.pindian", TPindian, 3, {
+    {"目标", TPlayer, false, {.s = NULL}},
+    {"来源", TPlayer, false, {.s = NULL}},
+    {"技能名", TString, true, {.s = ""}},
+  }},
+  {"__swapCards", "fkp.functions.swapCards", TNone, 4, {
+    {"目标", TPlayer, false, {.s = NULL}},
+    {"来源", TPlayer, false, {.s = NULL}},
+    {"技能名", TString, true, {.s = ""}},
+    {"区域", TNumber, true, {.n = 0}},  /* sgs.Player_PlaceHand */
   }},
   {NULL, NULL, TNone, 0, {}}
 };
@@ -370,14 +400,17 @@ static struct {
   {"顶部底部均放置", "sgs.Room_GuanxingBothSides", TNumber},
   {"只放置底部", "sgs.Room_GuanxingDownOnly", TNumber},
   {"判定结构体", "judge", TAny},
-  {"环境数据","data",TAny},
 
-  {"无用途", "sgs.Card_MethodNone",TNumber},
-  {"用于使用", "sgs.Card_MethodUse", TNumber},
-  {"用于响应", "sgs.Card_MethodResponse", TNumber},
-  {"用于弃牌", "sgs.Card_MethodDiscard", TNumber},
-  {"用于重铸", "sgs.Card_MethodRecast", TNumber},
-  {"用于拼点", "sgs.Card_MethodPindian", TNumber},
+  /* card move reasons */
+  {"因使用而移动", "sgs.CardMoveReason_S_REASON_USE", TNumber},
+  {"因打出而移动", "sgs.CardMoveReason_S_REASON_RESPONSE", TNumber},
+  {"因弃置而移动", "sgs.CardMoveReason_S_REASON_DISCARD", TNumber},
+  {"因重铸而移动", "sgs.CardMoveReason_S_REASON_RECAST", TNumber},
+  {"因拼点而移动", "sgs.CardMoveReason_S_REASON_PINDIAN", TNumber},
+  {"因摸牌而移动", "sgs.CardMoveReason_S_REASON_DRAW", TNumber},
+  {"因置入而移动", "sgs.CardMoveReason_S_REASON_PUT", TNumber},
+  {"因交给而移动", "sgs.CardMoveReason_S_REASON_GIVE", TNumber},
+  {"因换牌而移动", "sgs.CardMoveReason_S_REASON_SWAP", TNumber},
 
   {NULL, NULL, TNone}
 };

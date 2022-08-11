@@ -91,7 +91,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token TMD_RESIDUE TMD_DISTANCE TMD_EXTARGET ATKRANGE_EXTRA ATKRANGE_FIXED
 %token FUNCDEF
 %token <enum_v> EVENT
-%token LET EQ IF THEN ELSE END REPEAT UNTIL
+%token LET EQ IF THEN ELSEIF ELSE END REPEAT UNTIL
 %token <enum_v> TYPE
 %token RETURN CALL
 %token IN EVERY TOWARD PREPEND APPEND DELETE DI GE ELEMENT
@@ -110,7 +110,10 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token EXEC JUDGE
 %token GUANXINGTYPE GUANXING PILETOP
 %token JIANG RESULT FIX SELF AZHANG USE RESPOND
+%token SENDLOG
+%token GIVE PINDIAN SWAPCARD
 
+%type <list> eliflist
 %type <list> funcdefList defargs defarglist skillList packageList generalList
 %type <list> stringList skillspecs triggerSkill triggerspecs
 %type <list> statements arglist explist array
@@ -159,6 +162,8 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> askUseForCard
 %type <func_call> askResponseForCard
 %type <func_call> askForCardChosen
+%type <func_call> chat sendlog
+%type <func_call> throwCards giveCards pindian swapCards
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -405,9 +410,16 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
 assign_stat : LET var EQ exp { $$ = newAssign($2, $4); yycopyloc($$, &@$); }
             ;
 
-if_stat : IF exp THEN block END { $$ = newIf($2, $4, NULL); yycopyloc($$, &@$); }
-        | IF exp THEN block ELSE block END { $$ = newIf($2, $4, $6); yycopyloc($$, &@$); }
+if_stat : IF exp THEN block eliflist END { $$ = newIf($2, $4, $5, NULL); yycopyloc($$, &@$); }
+        | IF exp THEN block eliflist ELSE block END { $$ = newIf($2, $4, $5, $7); yycopyloc($$, &@$); }
         ;
+
+eliflist  : %empty  { $$ = list_new(); }
+          | eliflist ELSEIF exp THEN block {
+              $$ = $1;
+              list_append($$, cast(Object *, newIf($3, $5, list_new(), NULL)));
+            }
+          ;
 
 loop_stat : REPEAT block UNTIL exp { $$ = newLoop($2, $4); yycopyloc($$, &@$); }
           ;
@@ -570,6 +582,13 @@ action      : drawCards { $$ = $1; yycopyloc($$, &@$); }
             | askUseForCard { $$ = $1; yycopyloc($$, &@$); }
             | askResponseForCard { $$ = $1; yycopyloc($$, &@$); }
             | askForCardChosen { $$ = $1; yycopyloc($$, &@$); }
+            | chat
+            | sendlog
+            | throwCards
+            | giveCards
+            | pindian
+            | swapCards
+              { $$ = $1; }
             ;
 
 drawCards : exp DRAW exp ZHANG CARD {
@@ -850,26 +869,75 @@ askChooseForCard: exp SELECT SELF FIELD AZHANG CARD {
           );
         };
 
-askUseForCard: exp SELECT TO exp USE AZHANG CARD {
+askUseForCard: exp SELECT USE AZHANG CARD {
           $$ = newFunccall(
             strdup("__askUseForCard"),
-            newParams(2, "玩家", $1, "目标", $4)
+            newParams(1, "玩家", $1)
           );
         };
 
-askResponseForCard: exp SELECT TO exp RESPOND AZHANG CARD {
+askResponseForCard: exp SELECT RESPOND AZHANG CARD {
            $$ = newFunccall(
              strdup("__askRespondForCard"),
-             newParams(2, "玩家", $1, "目标", $4)
+             newParams(1, "玩家", $1)
            );
          };
 
-askForCardChosen: exp ACQUIRE exp AZHANG CARD {
+askForCardChosen: exp SELECT exp AZHANG CARD {
            $$ = newFunccall(
              strdup("__askForCardChosen"),
              newParams(2, "玩家", $1, "被选牌者", $3)
            );
          };
+
+chat  : exp SPEAK exp {
+          $$ = newFunccall(
+              strdup("__chat"),
+              newParams(2, "玩家", $1, "聊天句子", $3)
+            );
+        }
+      ;
+
+sendlog : exp SENDLOG exp {
+            $$ = newFunccall(
+              strdup("__sendlog"),
+              newParams(2, "玩家", $1, "战报", $3)
+            );
+          }
+          ;
+
+throwCards : exp THROW CARD exp {
+                $$ = newFunccall(
+                  strdup("__throwCards"),
+                  newParams(2, "玩家", $1, "卡牌列表", $4)
+                );
+              }
+            ;
+
+giveCards : exp GIVE exp CARD exp {
+              $$ = newFunccall(
+                strdup("__giveCards"),
+                newParams(3, "来源", $1, "目标", $3, "卡牌列表", $5)
+              );
+            }
+          ;
+
+pindian   : exp YU exp PINDIAN {
+              $$ = newFunccall(
+                strdup("__pindian"),
+                newParams(2, "来源", $1, "目标", $3)
+              );
+            }
+          ;
+
+swapCards : exp YU exp SWAPCARD {
+              $$ = newFunccall(
+                strdup("__swapCards"),
+                newParams(2, "来源", $1, "目标", $3)
+              );
+            }
+          ;
+
 %%
 
 static int yyreport_syntax_error(const yypcontext_t *ctx) {

@@ -5,6 +5,9 @@ sgs.LoadTranslationTable{
   ["#DiscardWithMin"] = "请弃置 %arg 张手牌，至少弃置 %arg2 张",
   ["#DiscardWithEquip"] = "请弃置 %arg 张牌（包括装备区）",
   ["#DiscardWithEquipMin"] = "请弃置 %arg 张牌，至少弃置 %arg2 张（包括装备区）",
+  ["#AskForChooseCard"] = "请选择自己的一张牌",
+  ["#AskForUseCard"] = "请使用一张牌",
+  ["#AskForRespCard"] = "请打出一张牌",
 }
 
 local string2suit = {
@@ -231,85 +234,44 @@ fkp.functions = {
 
 }
 
-fkp.functions.askForCard = function(player, pattern, prompt, data, method, to, isRetrial, skill_name, isProvision)
-  if isProvision == nil then
-    isProvision = false
-  end
-  if skill_name == nil then
-    skill_name = ''
-  end
-  if isRetrial == nil then
-    isRetrial = false
-  end
-  return player:getRoom():askForCard(player, pattern, prompt, data, method, to, isRetrial, skill_name, isProvision)
+fkp.functions.askForCard = function(player, pattern, prompt, skill_name)
+  if prompt == "" then prompt = "#AskForChooseCard" end
+  return player:getRoom():askForCard(player, pattern, prompt, sgs.QVariant(), sgs.Card_MethodNone, nil, false, skill_name, false)
 end
 
-fkp.functions.askUseForCard = function(player, pattern, prompt, data, to, isRetrial, skill_name, isProvision)
-  if isProvision == nil then
-    isProvision = false
+fkp.functions.askUseForCard = function(player, pattern, prompt, to, skill_name)
+  if prompt == "" then prompt = "#AskForUseCard" end
+  local room = player:getRoom()
+  if to == nil then
+    return room:askForUseCard(player, pattern, prompt)
   end
-  if skill_name == nil then
-    skill_name = ''
-  end
-  if isRetrial == nil then
-    isRetrial = false
-  end
-  return player:getRoom():askForCard(player, pattern, prompt, data, sgs.Card_MethodUse, to, isRetrial, skill_name, isProvision)
+  return player:getRoom():askForCard(player, pattern, prompt, sgs.QVariant(), sgs.Card_MethodUse, to, false, skill_name, false)
 end
 
-fkp.functions.askRespondForCard = function(player, pattern, prompt, data, to, isRetrial, skill_name, isProvision)
-  if isProvision == nil then
-    isProvision = false
-  end
-  if skill_name == nil then
-    skill_name = ''
-  end
-  if isRetrial == nil then
-    isRetrial = false
-  end
-  return player:getRoom():askForCard(player, pattern, prompt, data, sgs.Card_MethodResponse, to, isRetrial, skill_name, isProvision)
+fkp.functions.askRespondForCard = function(player, pattern, prompt, isRetrial, skill_name)
+  if prompt == "" then prompt = "#AskForRespCard" end
+  return player:getRoom():askForCard(player, pattern, prompt, sgs.QVariant(), sgs.Card_MethodResponse, nil, isRetrial, skill_name, false)
 end
 
-fkp.functions.askForCardChosen = function(player, who, flags, reason, handcard_visible, method, disabled_ids)
-  -- disabled_ids 传入时是TCardList，应该转化成TNumberList
-  local _disable_ids = sgs.IntList();
-  if disabled_ids == nil then
-    _disable_ids = nil
-  else
-    for _, card in sgs.list(disabled_ids) do
-      _disable_ids:append(card:getId())
+fkp.functions.askForCardChosen = function(player, who, pos, reason, handcard_visible)
+  if pos == nil then
+    pos = sgs.IntList()
+    pos:append(sgs.Player_PlaceHand)
+  end
+  local flags = ""
+  for _, i in sgs.list(pos) do
+    if i == sgs.Player_PlaceHand then
+      flags = flags .. "h"
+    elseif i == sgs.Player_PlaceEquip then
+      flags = flags .. "e"
+    elseif i == sgs.Player_PlaceJudge then
+      flags = flags .. "j"
     end
   end
-  if reason == nil then
-    reason = ''
-  end
-  if method == nil then
-    method = sgs.Card_MethodNone
-  end
-  if handcard_visible == nil then
-    handcard_visible = false
-  end
   local room = player:getRoom()
-  local _result = room:askForCardChosen(player, who, flags, reason, handcard_visible, method, _disable_ids)
+  local _result = room:askForCardChosen(player, who, flags, reason, handcard_visible, sgs.Card_MethodNone)
   -- askForCardChosen传出的是TNumber，应当转化为TCard
   return sgs.Sanguosha:getCard(_result)
-  end
-
-fkp.functions.buildArea = function(hasH, hasE, hasJ)
-  local res = ""
-  if hasE==nil and hasH==nil and hasJ==nil then
-    return "hej"
-  end
-  if hasH then
-    res = res .. "h"
-  end
-  if hasE then
-    res = res .. "e"
-  end
-  if hasJ then
-    res = res .. "j"
-  end
-  return res
 end
 
 fkp.functions.buildPrompt = function(base, src, dest, arg, arg2)
@@ -361,7 +323,11 @@ end
 fkp.functions.buildPattern = function(names, suits, numbers)
   if not names then names = {"."} end
   if not suits then suits = {"."} end
-  if not numbers then numbers = {"."} end
+  if not numbers then
+    numbers = {"."}
+  else
+    numbers = sgs.QList2Table(numbers)
+  end
 
   names = table.concat(names, ",")
   -- FIXME: write getters in lua
@@ -419,6 +385,120 @@ fkp.functions.patternMatch = function(pattern1, pattern2)
   return true
 end
 
+fkp.functions.chat = function(p, s) p:speak(s) end
+fkp.functions.sendlog = function(player, log_type, from, to, card, arg, arg2)
+  local room = player:getRoom()
+  local log = sgs.LogMessage()
+  log.type = log_type
+  log.from = from
+  log.to = to or sgs.SPlayerList()
+  log.card_str = card and card:toString() or ""
+  log.arg = arg or ""
+  log.arg2 = arg2 or ""
+  room:sendLog(log)
+end
+
+fkp.functions.newMoveInfo = function(cards, to_place, to, m_reason, skill_name, unhide)
+  local room = sgs.Sanguosha:currentRoom()
+  if cards:length() == 0 then return sgs.CardsMoveStruct() end
+  local card = cards:first()
+  local from_place = room:getCardPlace(card:getId())
+  local from = room:getCardOwner(card:getId())
+  local reason = sgs.CardMoveReason()
+  reason.m_reason = m_reason
+  reason.m_playerId = from and from:objectName() or ""
+  reason.m_targetId = to and to:objectName() or ""
+  reason.m_skillName = skill_name
+  reason.m_eventName = ""
+  local idlist = sgs.IntList()
+  for _, c in sgs.list(cards) do
+    idlist:append(c:getId())
+  end
+  return sgs.CardsMoveStruct(idlist, from, to, from_place, to_place, reason)
+end
+
+fkp.functions.moveCards = function(moves)
+  local room = sgs.Sanguosha:currentRoom()
+  room:moveCardsAtomic(moves, false)
+end
+
+fkp.functions.throwCards = function(player, thrower, skill_name, cards)
+  local room = player:getRoom()
+  local dummy = sgs.DummyCard()
+  dummy:addSubcards(cards)
+  room:throwCard(dummy, player, thrower)
+  dummy:deleteLater()
+end
+
+fkp.functions.giveCards = function(to, from, cards, skill, unhide)
+  local room = to:getRoom()
+  local dummy = sgs.DummyCard()
+  dummy:addSubcards(cards)
+  room:obtainCard(to, dummy,
+    sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, to:objectName(), from:objectName(), skill, ""), unhide)
+  dummy:deleteLater()
+end
+
+fkp.functions.pindian = function(to, from, skill_name)
+  local room = from:getRoom()
+  room:setTag("fkp_pindianing", sgs.QVariant(true))
+  from:pindian(to, skill_name)
+  local pindian_result = {
+    from = room:getTag("fkp_pindian_result_from"):toPlayer(),
+    to = room:getTag("fkp_pindian_result_to"):toPlayer(),
+    from_card = room:getTag("fkp_pindian_result_from_card"):toCard(),
+    to_card = room:getTag("fkp_pindian_result_to_card"):toCard(),
+    from_number = room:getTag("fkp_pindian_result_from_number"):toInt(),
+    to_number = room:getTag("fkp_pindian_result_to_number"):toInt(),
+    reason = room:getTag("fkp_pindian_result_reason"):toString(),
+  }
+  local from, to = pindian_result.from_number, pindian_result.to_number
+  if from > to then
+    pindian_result.winner = pindian_result.from
+  elseif from < to then
+    pindian_result.winner = pindian_result.to
+  -- by default it is nil, so not need add an else here
+  end
+  local times = room:getTag("fkp_pindian_times"):toInt() - 1
+  room:setTag("fkp_pindian_times", sgs.QVariant(times))
+  if times == 0 then
+    room:setTag("fkp_pindianing", sgs.QVariant(false))
+  end
+  return pindian_result
+end
+
+fkp.functions.swapCards = function(from, to, skill_name, place)
+  if from:objectName() == to:objectName() then return end
+  local room = from:getRoom()
+  if place == sgs.Player_PlaceHand then
+    -- copyed from dimeng in Lua handbook
+    local exchangeMove = sgs.CardsMoveList()
+    local move1 = sgs.CardsMoveStruct(from:handCards(), to, sgs.Player_PlaceHand, sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_SWAP, from:objectName(), to:objectName(), skill_name, ""))
+    local move2 = sgs.CardsMoveStruct(to:handCards(), from, sgs.Player_PlaceHand, sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_SWAP, to:objectName(), from:objectName(), skill_name, ""))
+    exchangeMove:append(move1)
+    exchangeMove:append(move2)
+    room:moveCardsAtomic(exchangeMove, false);
+  elseif place == sgs.Player_PlaceEquip then
+    -- copyed from ganlu in Lua handbook
+    local first, second = from, to
+    local equips1, equips2 = sgs.IntList(), sgs.IntList()
+    for _, equip in sgs.qlist(first:getEquips()) do
+      equips1:append(equip:getId())
+    end
+    for _, equip in sgs.qlist(second:getEquips()) do
+      equips2:append(equip:getId())
+    end
+    local exchangeMove = sgs.CardsMoveList()
+    local move1 = sgs.CardsMoveStruct(equips1, second, sgs.Player_PlaceEquip,
+      sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_SWAP, first:objectName(), second:objectName(), skill_name, ""))
+    local move2 = sgs.CardsMoveStruct(equips2, first, sgs.Player_PlaceEquip,
+      sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_SWAP, first:objectName(), second:objectName(), skill_name, ""))
+    exchangeMove:append(move2)
+    exchangeMove:append(move1)
+    room:moveCards(exchangeMove, false)
+  end
+end
+
 function fkp.newlist(t)
   local element_type = swig_type(t[1])
   local ret
@@ -428,6 +508,8 @@ function fkp.newlist(t)
     ret = sgs.PlayerList()
   elseif element_type == "Card *" then
     ret = sgs.CardList()
+  elseif element_type == "CardsMoveStruct *" then
+    ret = sgs.CardsMoveList()
   elseif element_type == "number" then
     ret = sgs.IntList()
   elseif element_type == "string" then
@@ -653,3 +735,49 @@ fkp.CreateDistanceSkill = sgs.CreateDistanceSkill
 fkp.CreateMaxCardsSkill = sgs.CreateMaxCardsSkill
 fkp.CreateTargetModSkill = sgs.CreateTargetModSkill
 fkp.CreateAttackRangeSkill = sgs.CreateAttackRangeSkill
+
+-- global skill used by fkparse
+local all_skills = sgs.SkillList()
+fkp_global = sgs.CreateTriggerSkill{
+  name = "fkp_global",
+  global = true,
+  priority = -1,
+  events = {sgs.Pindian},
+  can_trigger = function(self, target)
+    return target
+  end,
+  on_trigger = function(self, event, player, data)
+    local room = player:getRoom()
+    if event == sgs.Pindian then
+      if not room:getTag("fkp_pindianing"):toBool() then return end
+      -- data is in stack when cpp calls thread->trigger
+      -- so it will be deleted when pindian() call completes
+      -- but QSanguosha's skillcard:onUse and triggerskill:trigger is not
+      -- in the same lua_State (辣鸡神杀)
+      -- so we can't build a global table to save these data
+      local pindian = data:toPindian()
+      local v = sgs.QVariant()
+      v:setValue(pindian.from)
+      room:setTag("fkp_pindian_result_from", v)
+      v:setValue(pindian.to)
+      room:setTag("fkp_pindian_result_to", v)
+      v:setValue(pindian.from_card)
+      room:setTag("fkp_pindian_result_from_card", v)
+      v:setValue(pindian.to_card)
+      room:setTag("fkp_pindian_result_to_card", v)
+      v:setValue(pindian.from_number)
+      room:setTag("fkp_pindian_result_from_number", v)
+      v:setValue(pindian.to_number)
+      room:setTag("fkp_pindian_result_to_number", v)
+      room:setTag("fkp_pindian_result_reason", sgs.QVariant(pindian.reason))
+      if not room:getTag("fkp_pindian_times") then
+        room:setTag("fkp_pindian_times", sgs.QVariant(1))
+      else
+        local times = room:getTag("fkp_pindian_times"):toInt() + 1
+        room:setTag("fkp_pindian_times", sgs.QVariant(times))
+      end
+    end
+  end,
+}
+if not sgs.Sanguosha:getSkill('fkp_global') then all_skills:append(fkp_global) end
+sgs.Sanguosha:addSkills(all_skills)

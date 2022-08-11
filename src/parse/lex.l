@@ -55,6 +55,7 @@ static int yycolumn = 1;
 "为"    { return EQ; }
 "若"    { return IF; }
 "则"    { return THEN; }
+"否则若"  { return ELSEIF; }
 "否则"  { return ELSE; }
 "以上"  { return END; }
 "重复此流程:"   { return REPEAT; }
@@ -141,8 +142,12 @@ static int yycolumn = 1;
 
 "说出"    { return SPEAK; }
 "台词"    { return ACT_LINE; }
+"发送战报"  { return SENDLOG; }
 "进行"    { return EXEC; }
 "判定"    { return JUDGE; }
+"交给"    { return GIVE; }
+"拼点"    { return PINDIAN; }
+"换牌"    { return SWAPCARD; }
 
 "游戏开始时"     { yylval->enum_v = GameStart; return EVENT; }
 "回合即将开始时"   { yylval->enum_v = TurnStart; return EVENT; }
