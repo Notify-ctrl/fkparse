@@ -9,15 +9,21 @@
 Hash *strtab;
 List *restrtab;
 
-const char *translate(const char *orig) {
-  // return (const char *)hash_get(strtab, orig);
+const char *untranslate(const char *trans) {
+  List *node;
+  list_foreach(node, restrtab) {
+    str_value *v = cast(str_value *, node->data);
+    if (!strcmp(v->translated, trans)) {
+      return v->origtxt;
+    }
+  }
   return NULL;
 }
 
 void addTranslation(const char *orig, const char *translated) {
-  if (translate(orig)) {
+  //if (translate(orig)) {
     /* show warning here */
-  }
+  //}
   // hash_set(strtab, orig, cast(void *, translated));
   str_value *v = malloc(sizeof(str_value));
   v->origtxt = strdup(orig);

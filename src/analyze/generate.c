@@ -47,24 +47,35 @@ static void analyzeExp(ExpressionObj *e) {
   if ((e->exptype == ExpCalc || e->exptype == ExpCmp) && e->optype != 0) {
     if (e->optype == 3 || e->optype == 4) {
       if (e->varValue && strstr(e->varValue->name, "移动")
-        && strstr(e->varValue->name, "原因")) {
-          writestr("bit32.band(");
+      && strstr(e->varValue->name, "原因")) {
+        writestr("bit32.band(");
+        analyzeExp(e->oprand1);
+        writestr(", ");
+        analyzeExp(e->oprand2);
+        writestr(")");
+      } else {
+        writestr("(");
+        analyzeExp(e->oprand1);
+        if (e->oprand1->valuetype == TPlayer) {
+          writestr(" and ");
           analyzeExp(e->oprand1);
-          writestr(", ");
+          writestr(":objectName()");
+        }
+        writestr(")");
+
+        switch (e->optype) {
+          case 3: writestr(" ~= "); break;
+          case 4: writestr(" == "); break;
+        }
+
+        writestr("(");
+        analyzeExp(e->oprand2);
+        if (e->oprand2->valuetype == TPlayer) {
+          writestr(" and ");
           analyzeExp(e->oprand2);
-          writestr(")");
-        } else
-          analyzeExp(e->oprand1);
-      if (e->oprand1->valuetype == TPlayer) {
-        writestr(":objectName()");
-      }
-      switch (e->optype) {
-        case 3: writestr(" ~= "); break;
-        case 4: writestr(" == "); break;
-      }
-      analyzeExp(e->oprand2);
-      if (e->oprand1->valuetype == TPlayer && e->oprand2->valuetype == TPlayer) {
-        writestr(":objectName()");
+          writestr(":objectName()");
+        }
+        writestr(")");
       }
       t = TBool;
     } else {
@@ -168,13 +179,14 @@ static void analyzeExp(ExpressionObj *e) {
           writestr("'%s'", e->strvalue);
         }
       } else {
-        origtext = hash_get(other_string_table, e->strvalue);
+        origtext = untranslate(e->strvalue);
+        //origtext = hash_get(other_string_table, e->strvalue);
         if (!origtext) {
           sprintf(buf, "%s_str_%d", readfile_name, stringId);
           stringId++;
-          hash_set(other_string_table, e->strvalue, strdup(buf));
+          //hash_set(other_string_table, e->strvalue, strdup(buf));
           addTranslation(buf, e->strvalue);
-          origtext = hash_get(other_string_table, e->strvalue);
+          origtext = untranslate(e->strvalue);
         }
         writestr("'%s'", origtext);
       }

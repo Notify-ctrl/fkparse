@@ -126,7 +126,7 @@ typedef struct {
 } str_value;
 extern Hash *strtab;
 extern List *restrtab;
-const char *translate(const char *orig);
+const char *untranslate(const char *trans);
 void addTranslation(const char *orig, const char *translated);
 
 extern Hash *mark_table;
