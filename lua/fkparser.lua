@@ -5,6 +5,9 @@ sgs.LoadTranslationTable{
   ["#DiscardWithMin"] = "请弃置 %arg 张手牌，至少弃置 %arg2 张",
   ["#DiscardWithEquip"] = "请弃置 %arg 张牌（包括装备区）",
   ["#DiscardWithEquipMin"] = "请弃置 %arg 张牌，至少弃置 %arg2 张（包括装备区）",
+  ["#AskForChooseCard"] = "请选择自己的一张牌",
+  ["#AskForUseCard"] = "请使用一张牌",
+  ["#AskForRespCard"] = "请打出一张牌",
 }
 
 local string2suit = {
@@ -227,9 +230,49 @@ fkp.functions = {
   retrial = function(card, player, judge, skill_name, exchange)
     local room = player:getRoom()
     return room:retrial(card, player, judge, skill_name, exchange)
-  end
+  end,
 
 }
+
+fkp.functions.askForCard = function(player, pattern, prompt, skill_name)
+  if prompt == "" then prompt = "#AskForChooseCard" end
+  return player:getRoom():askForCard(player, pattern, prompt, sgs.QVariant(), sgs.Card_MethodNone, nil, false, skill_name, false)
+end
+
+fkp.functions.askUseForCard = function(player, pattern, prompt, to, skill_name)
+  if prompt == "" then prompt = "#AskForUseCard" end
+  local room = player:getRoom()
+  if to == nil then
+    return room:askForUseCard(player, pattern, prompt)
+  end
+  return player:getRoom():askForCard(player, pattern, prompt, sgs.QVariant(), sgs.Card_MethodUse, to, false, skill_name, false)
+end
+
+fkp.functions.askRespondForCard = function(player, pattern, prompt, isRetrial, skill_name)
+  if prompt == "" then prompt = "#AskForRespCard" end
+  return player:getRoom():askForCard(player, pattern, prompt, sgs.QVariant(), sgs.Card_MethodResponse, nil, isRetrial, skill_name, false)
+end
+
+fkp.functions.askForCardChosen = function(player, who, pos, reason, handcard_visible)
+  if pos == nil then
+    pos = sgs.IntList()
+    pos:append(sgs.Player_PlaceHand)
+  end
+  local flags = ""
+  for _, i in sgs.list(pos) do
+    if i == sgs.Player_PlaceHand then
+      flags = flags .. "h"
+    elseif i == sgs.Player_PlaceEquip then
+      flags = flags .. "e"
+    elseif i == sgs.Player_PlaceJudge then
+      flags = flags .. "j"
+    end
+  end
+  local room = player:getRoom()
+  local _result = room:askForCardChosen(player, who, flags, reason, handcard_visible, sgs.Card_MethodNone)
+  -- askForCardChosen传出的是TNumber，应当转化为TCard
+  return sgs.Sanguosha:getCard(_result)
+end
 
 fkp.functions.buildPrompt = function(base, src, dest, arg, arg2)
   if src == nil then

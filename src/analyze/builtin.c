@@ -220,6 +220,33 @@ static Proto builtin_func[] = {
     {"技能名", TString, true, {.s = ""}},
     {"是否交换", TBool, true, {.n = false}},
   }},
+  {"__askForCard", "fkp.functions.askForCard", TCard, 4, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"选牌规则", TString, true, {.s = "."}},
+    {"提示", TString, true, {.s = ""}},
+    {"技能名", TString, true, {.s = ""}},
+  }},
+  {"__askRespondForCard", "fkp.functions.askRespondForCard", TCard, 5, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"选牌规则", TString, true, {.s = "."}},
+    {"提示", TString, true, {.s = ""}},
+    {"是否为改判", TBool, true, {.n = false}},
+    {"技能名", TString, true, {.s = ""}},
+  }},
+  {"__askUseForCard", "fkp.functions.askUseForCard", TCard, 5, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"选牌规则", TString, true, {.s = "."}},
+    {"提示", TString, true, {.s = ""}},
+    {"目标", TPlayer, true, {.s = "nil"}},
+    {"技能名", TString, true, {.s = ""}},
+  }},
+  {"__askForCardChosen", "fkp.functions.askForCardChosen", TCard, 5, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"被选牌者", TPlayer, false, {.s = NULL}},
+    {"位置", TNumberList, true, {.s = "nil"}},
+    {"原因", TString, true, {.s = ""}},
+    {"是否可见手牌", TBool, true, {.n = false}},
+  }},
   {"__chat", "fkp.functions.chat", TNone, 2, {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"聊天句子", TAny, false, {.s = NULL}},

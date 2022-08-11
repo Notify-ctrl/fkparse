@@ -111,6 +111,10 @@ static int yycolumn = 1;
 "将" { return JIANG; }
 "结果" { return RESULT; }
 "修改" { return FIX; }
+"自己" { return SELF; }
+"一张" { return AZHANG; }
+"使用" { return USE; }
+"打出" { return RESPOND; }
 
 "主动技"   { return ACTIVE; }
 "选牌规则:" { return CARD_FILTER; }
