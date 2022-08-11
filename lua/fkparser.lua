@@ -5,6 +5,9 @@ sgs.LoadTranslationTable{
   ["#DiscardWithMin"] = "请弃置 %arg 张手牌，至少弃置 %arg2 张",
   ["#DiscardWithEquip"] = "请弃置 %arg 张牌（包括装备区）",
   ["#DiscardWithEquipMin"] = "请弃置 %arg 张牌，至少弃置 %arg2 张（包括装备区）",
+  ["#AskForChooseCard"] = "请选择自己的一张牌",
+  ["#AskForUseCard"] = "请使用一张牌",
+  ["#AskForRespCard"] = "请打出一张牌",
 }
 
 local string2suit = {
@@ -231,43 +234,23 @@ fkp.functions = {
 
 }
 
-fkp.functions.askForCard = function(player, pattern, prompt, data, method, to, isRetrial, skill_name, isProvision)
-  if isProvision == nil then
-    isProvision = false
-  end
-  if skill_name == nil then
-    skill_name = ''
-  end
-  if isRetrial == nil then
-    isRetrial = false
-  end
-  return player:getRoom():askForCard(player, pattern, prompt, data, method, to, isRetrial, skill_name, isProvision)
+fkp.functions.askForCard = function(player, pattern, prompt, skill_name)
+  if prompt == "" then prompt = "#AskForChooseCard" end
+  return player:getRoom():askForCard(player, pattern, prompt, sgs.QVariant(), sgs.Card_MethodNone, nil, false, skill_name, false)
 end
 
-fkp.functions.askUseForCard = function(player, pattern, prompt, data, to, isRetrial, skill_name, isProvision)
-  if isProvision == nil then
-    isProvision = false
+fkp.functions.askUseForCard = function(player, pattern, prompt, to, skill_name)
+  if prompt == "" then prompt = "#AskForUseCard" end
+  local room = player:getRoom()
+  if to == nil then
+    return room:askForUseCard(player, pattern, prompt)
   end
-  if skill_name == nil then
-    skill_name = ''
-  end
-  if isRetrial == nil then
-    isRetrial = false
-  end
-  return player:getRoom():askForCard(player, pattern, prompt, data, sgs.Card_MethodUse, to, isRetrial, skill_name, isProvision)
+  return player:getRoom():askForCard(player, pattern, prompt, sgs.QVariant(), sgs.Card_MethodUse, to, false, skill_name, false)
 end
 
-fkp.functions.askRespondForCard = function(player, pattern, prompt, data, to, isRetrial, skill_name, isProvision)
-  if isProvision == nil then
-    isProvision = false
-  end
-  if skill_name == nil then
-    skill_name = ''
-  end
-  if isRetrial == nil then
-    isRetrial = false
-  end
-  return player:getRoom():askForCard(player, pattern, prompt, data, sgs.Card_MethodResponse, to, isRetrial, skill_name, isProvision)
+fkp.functions.askRespondForCard = function(player, pattern, prompt, isRetrial, skill_name)
+  if prompt == "" then prompt = "#AskForRespCard" end
+  return player:getRoom():askForCard(player, pattern, prompt, sgs.QVariant(), sgs.Card_MethodResponse, nil, isRetrial, skill_name, false)
 end
 
 fkp.functions.askForCardChosen = function(player, who, pos, reason, handcard_visible)

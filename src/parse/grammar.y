@@ -850,17 +850,17 @@ askChooseForCard: exp SELECT SELF FIELD AZHANG CARD {
           );
         };
 
-askUseForCard: exp SELECT TO exp USE AZHANG CARD {
+askUseForCard: exp SELECT USE AZHANG CARD {
           $$ = newFunccall(
             strdup("__askUseForCard"),
-            newParams(2, "玩家", $1, "目标", $4)
+            newParams(1, "玩家", $1)
           );
         };
 
-askResponseForCard: exp SELECT TO exp RESPOND AZHANG CARD {
+askResponseForCard: exp SELECT RESPOND AZHANG CARD {
            $$ = newFunccall(
              strdup("__askRespondForCard"),
-             newParams(2, "玩家", $1, "目标", $4)
+             newParams(1, "玩家", $1)
            );
          };
 
