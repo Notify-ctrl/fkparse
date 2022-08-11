@@ -46,8 +46,16 @@ static void analyzeExp(ExpressionObj *e) {
 
   if ((e->exptype == ExpCalc || e->exptype == ExpCmp) && e->optype != 0) {
     if (e->optype == 3 || e->optype == 4) {
-      analyzeExp(e->oprand1);
-      if (e->oprand1->valuetype == TPlayer) {
+      if (e->varValue && strstr(e->varValue->name, "移动")
+        && strstr(e->varValue->name, "原因")) {
+          writestr("bit32.band(");
+          analyzeExp(e->oprand1);
+          writestr(", ");
+          analyzeExp(e->oprand2);
+          writestr(")");
+        } else
+          analyzeExp(e->oprand1);
+      if (e->oprand1->valuetype == TPlayer && e->oprand2->valuetype == TPlayer) {
         writestr(":objectName()");
       }
       switch (e->optype) {
@@ -55,7 +63,7 @@ static void analyzeExp(ExpressionObj *e) {
         case 4: writestr(" == "); break;
       }
       analyzeExp(e->oprand2);
-      if (e->oprand2->valuetype == TPlayer) {
+      if (e->oprand1->valuetype == TPlayer && e->oprand2->valuetype == TPlayer) {
         writestr(":objectName()");
       }
       t = TBool;
@@ -116,11 +124,15 @@ static void analyzeExp(ExpressionObj *e) {
     case ExpStr:
       if (e->param_name != NULL) {
         if (strstr(e->param_name, "原因") || strstr(e->param_name, "技能")) {
-          origtext = hash_get(skill_table, e->strvalue);
-          if (origtext) {
-            writestr("'%s'", origtext);
-          } else {
-            writestr("'%s'", e->strvalue);
+          if (strlen(e->strvalue) == 0 && !strcmp(e->param_name, "技能名"))
+            writestr("self:objectName()");
+          else {
+            origtext = hash_get(skill_table, e->strvalue);
+            if (origtext) {
+              writestr("'%s'", origtext);
+            } else {
+              writestr("'%s'", e->strvalue);
+            }
           }
         } else if (!strcmp(e->param_name, "标记")) {
           origtext = hash_get(mark_table, e->strvalue);
@@ -136,6 +148,16 @@ static void analyzeExp(ExpressionObj *e) {
           origtext = hash_get(other_string_table, e->strvalue);
           if (!origtext) {
             sprintf(buf, "%s_str_%d", readfile_name, stringId);
+            stringId++;
+            hash_set(other_string_table, e->strvalue, strdup(buf));
+            addTranslation(buf, e->strvalue);
+            origtext = hash_get(other_string_table, e->strvalue);
+          }
+          writestr("'%s'", origtext);
+        } else if (!strcmp(e->param_name, "战报")) {
+          origtext = hash_get(other_string_table, e->strvalue);
+          if (!origtext) {
+            sprintf(buf, "#%s_str_%d", readfile_name, stringId);
             stringId++;
             hash_set(other_string_table, e->strvalue, strdup(buf));
             addTranslation(buf, e->strvalue);
@@ -186,11 +208,13 @@ static void analyzeVar(VarObj *v) {
       analyzeExp(v->obj);
       checktype(v->obj, v->obj->valuetype, TCard);
       writestr(":getId())");
+      t = TNumber;
     } else if (!strcmp(name, "持有者")) {
       writestr("room:getCardOwner(");
       analyzeExp(v->obj);
       checktype(v->obj, v->obj->valuetype, TCard);
       writestr(":getId())");
+      t = TPlayer;
     } else {
       analyzeExp(v->obj);
       switch (v->obj->valuetype) {
@@ -263,6 +287,36 @@ static void analyzeVar(VarObj *v) {
             t = TNone;
           }
           break;
+        case TPindian:
+          if (!strcmp(name, "来源")) {
+            writestr(".from");
+            t = TPlayer;
+          } else if (!strcmp(name, "目标")) {
+            writestr(".to");
+            t = TPlayer;
+          } else if (!strcmp(name, "获胜者")) {
+            writestr(".winner");
+            t = TPlayer;
+          } else if (!strcmp(name, "来源卡牌")) {
+            writestr(".from_card");
+            t = TCard;
+          } else if (!strcmp(name, "目标卡牌")) {
+            writestr(".to_card");
+            t = TCard;
+          } else if (!strcmp(name, "来源点数")) {
+            writestr(".from_number");
+            t = TCard;
+          } else if (!strcmp(name, "目标点数")) {
+            writestr(".to_number");
+            t = TCard;
+          } else if (!strcmp(name, "原因")) {
+            writestr(".reason");
+            t = TString;
+          } else {
+            yyerror(cast(YYLTYPE *, v), "无法获取 拼点结果 的属性 '%s'\n", name);
+            t = TNone;
+          }
+          break;
         default:
           yyerror(cast(YYLTYPE *, v), "不能获取类型为%d的对象的属性\n", v->obj->valuetype);
           t = TNone;
@@ -316,6 +370,18 @@ static void analyzeIf(IfObj *i) {
   writestr(" then\n");
   indent_level++;
   analyzeBlock(i->then);
+  
+  List *node;
+  list_foreach(node, i->elif) {
+    IfObj *i2 = cast(IfObj *, node->data);
+    indent_level--;
+    print_indent();
+    writestr("elseif ");
+    analyzeExp(i2->cond);
+    writestr(" then\n");
+    indent_level++;
+    analyzeBlock(i2->then);
+  }
   if (i->el) {
     indent_level--;
     writeline("else");
@@ -708,7 +774,7 @@ static void initData(int event) {
       defineLocal("目的地牌堆", "move.to_pile_name", TString);
       defineLocal("移动的来源", "move.from", TPlayer);
       defineLocal("移动的目标", "move.to", TPlayer);
-      defineLocal("移动的原因", "move.reason", TString);
+      defineLocal("移动的原因", "move.reason.m_reason", TString);
       defineLocal("是打开的", "move.open", TBool);
       defineLocal("是最后的手牌", "move.is_last_handcard", TBool);
       break;
@@ -930,7 +996,7 @@ static void clearData(int event) {
       clearLocal("目的地牌堆", "move.to_pile_name", rewrite);
       clearLocal("移动的来源", "move.from", rewrite);
       clearLocal("移动的目标", "move.to", rewrite);
-      clearLocal("移动的原因", "move.reason", rewrite);
+      clearLocal("移动的原因", "move.reason.m_reason", rewrite);
       clearLocal("是打开的", "move.open", rewrite);
       clearLocal("是最后的手牌", "move.is_last_handcard", rewrite);
       if (rewrite) writeline("data:setValue(move)");
