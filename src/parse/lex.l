@@ -46,28 +46,49 @@ static int yycolumn = 1;
     return INTERID;
     }
 
-"拓展包" { return PKGSTART; }
-"触发技" { return TRIGGER; }
-"时机:" { return EVENTI; }
-"条件:" { return COND; }
-"效果:" { return EFFECT; }
-"令"    { return LET; }
-"为"    { return EQ; }
-"若"    { return IF; }
-"则"    { return THEN; }
-"否则若"  { return ELSEIF; }
-"否则"  { return ELSE; }
-"以上"  { return END; }
-"重复此流程:"   { return REPEAT; }
-"直到"  { return UNTIL; }
-"的"    { return FIELD; }
-"返回"  { return RET; }
-"->"    { return RETURN; }
-"假"  { return FALSE; }
-"真"  { return TRUE; }
-"中止此流程"    { return BREAK; }
-"定义函数"  { return FUNCDEF; }
-"调用"    { return CALL; }
+"拓展包" |
+"Package"       { return PKGSTART; }
+"触发技" |
+"TriggerSkill"  { return TRIGGER; }
+"时机:" |
+"Event:"        { return EVENTI; }
+"条件:" |
+"Condition:"    { return COND; }
+"效果:" |
+"Effect:"       { return EFFECT; }
+"令" |
+"let"           { return LET; }
+"为" |
+"equal"         { return EQ; }
+"若" |
+"if"            { return IF; }
+"则" |
+"then"          { return THEN; }
+"否则若" |
+"elseif"        { return ELSEIF; }
+"否则" |
+"else"          { return ELSE; }
+"以上" |
+"end"           { return END; }
+"重复此流程:" |
+"repeat"        { return REPEAT; }
+"直到" |
+"until"         { return UNTIL; }
+"的" |
+"."             { return FIELD; }
+"返回" |
+"return"        { return RET; }
+"->"            { return RETURN; }
+"假" |
+"false"         { return FALSE; }
+"真" |
+"true"          { return TRUE; }
+"中止此流程" |
+"break"         { return BREAK; }
+"定义函数" |
+"def"           { return FUNCDEF; }
+"调用" |
+"call"          { return CALL; }
 
 "摸"    { return DRAW; }
 "张"    { return ZHANG; }
@@ -116,25 +137,44 @@ static int yycolumn = 1;
 "使用" { return USE; }
 "打出" { return RESPOND; }
 
-"主动技"   { return ACTIVE; }
-"选牌规则:" { return CARD_FILTER; }
-"选目标规则:" { return TARGET_FILTER; }
-"可以点确定:"    { return FEASIBLE; }
-"使用后:"    { return ON_USE; }
-"视为技"   { return VIEWAS; }
-"视为规则:" { return VSRULE; }
-"响应条件:" { return RESPONSECOND; }
-"响应规则:" { return RESPONSABLE; }
-"状态技"   { return STATUSSKILL; }
-"禁止指定目标:"   { return IS_PROHIBITED; }
-"距离修正:" { return DISTANCE_CORRECT; }
-"手牌上限修正:"   { return MAX_EXTRA; }
-"手牌上限固定:"   { return MAX_FIXED; }
-"出牌次数修正:"   { return TMD_RESIDUE; }
-"出牌距离修正:"   { return TMD_DISTANCE; }
-"出牌目标数量修正:" { return TMD_EXTARGET; }
-"攻击范围修正:"   { return ATKRANGE_EXTRA; }
-"攻击范围固定:"   { return ATKRANGE_FIXED; }
+"主动技" |
+"ActiveSkill"   { return ACTIVE; }
+"选牌规则:" |
+"CardFilter:"   { return CARD_FILTER; }
+"选目标规则:" |
+"TargetFilter:" { return TARGET_FILTER; }
+"可以点确定:" |
+"Feasible:"     { return FEASIBLE; }
+"使用后:" |
+"AfterUse:"     { return ON_USE; }
+"视为技" |
+"ViewAsSkill"   { return VIEWAS; }
+"视为规则:" |
+"ViewAsRule:"   { return VSRULE; }
+"响应条件:" |
+"Responsable:"  { return RESPONSECOND; }
+"响应规则:" |
+"ResponseRule:" { return RESPONSABLE; }
+"状态技" |
+"StatusSkill"   { return STATUSSKILL; }
+"禁止指定目标:" |
+"Prohibited:"   { return IS_PROHIBITED; }
+"距离修正:" |
+"DistanceCorrect:"  { return DISTANCE_CORRECT; }
+"手牌上限修正:" |
+"Maxcards Extra:"   { return MAX_EXTRA; }
+"手牌上限固定:" |
+"Maxcards Fixed:"   { return MAX_FIXED; }
+"出牌次数修正:" |
+"Residue:"      { return TMD_RESIDUE; }
+"出牌距离修正:" |
+"DistanceLimit:"    { return TMD_DISTANCE; }
+"出牌目标数量修正:" |
+"ExtraTarget:"      { return TMD_EXTARGET; }
+"攻击范围修正:" |
+"AtkRange Extra:"   { return ATKRANGE_EXTRA; }
+"攻击范围固定:" |
+"AtkRange Fixed:"   { return ATKRANGE_FIXED; }
 
 "因" { return BECAUSE; }
 "弃置"    { return THROW; }
@@ -248,28 +288,64 @@ static int yycolumn = 1;
 "." |
 ":" { return yytext[0]; }
 
-"数字类型"  { yylval->enum_v = TNumber; return TYPE; }
-"布尔类型"  { yylval->enum_v = TBool; return TYPE; }
-"字符串类型" { yylval->enum_v = TString; return TYPE; }
-"玩家类型"  { yylval->enum_v = TPlayer; return TYPE; }
-"卡牌类型"  { yylval->enum_v = TCard; return TYPE; }
-"数字数组"  { yylval->enum_v = TNumberList; return TYPE; }
-"字符串数组" { yylval->enum_v = TStringList; return TYPE; }
-"玩家数组"  { yylval->enum_v = TPlayerList; return TYPE; }
-"卡牌数组"  { yylval->enum_v = TCardList; return TYPE; }
+ /* Type identifiers */
+"数字类型"  |
+"TNumber"   { yylval->enum_v = TNumber; return TYPE; }
 
-"大于"     { yylval->enum_v = 1; return CMP; }
-"小于"     { yylval->enum_v = 2; return CMP; }
-"不是"    { yylval->enum_v = 3; return CMP; }
-"是"    { yylval->enum_v = 4; return CMP; }
-"不小于"    { yylval->enum_v = 5; return CMP; }
-"不大于"    { yylval->enum_v = 6; return CMP; }
+"布尔类型"  |
+"TBool"     { yylval->enum_v = TBool; return TYPE; }
 
-"且"    { yylval->enum_v = 7; return LOGICOP; }
-"或"    { yylval->enum_v = 8; return LOGICOP; }
+"字符串类型"  |
+"TString"     { yylval->enum_v = TString; return TYPE; }
+
+"玩家类型"  |
+"TPlayer"   { yylval->enum_v = TPlayer; return TYPE; }
+
+"卡牌类型"  |
+"TCard"     { yylval->enum_v = TCard; return TYPE; }
+
+"数字数组"    |
+"TNumberList" { yylval->enum_v = TNumberList; return TYPE; }
+
+"字符串数组"  |
+"TStringList" { yylval->enum_v = TStringList; return TYPE; }
+
+"玩家数组"    |
+"TPlayerList" { yylval->enum_v = TPlayerList; return TYPE; }
+
+"卡牌数组"  |
+"TCardList" { yylval->enum_v = TCardList; return TYPE; }
+
+ /* Logic OP */
+"大于"  |
+">"     { yylval->enum_v = 1; return CMP; }
+
+"小于"  |
+"<"     { yylval->enum_v = 2; return CMP; }
+
+"不是"  |
+"~="    |
+"!="    { yylval->enum_v = 3; return CMP; }
+
+"是" |
+"==" { yylval->enum_v = 4; return CMP; }
+
+"不小于"  |
+">="      { yylval->enum_v = 5; return CMP; }
+
+"不大于"  |
+"<="      { yylval->enum_v = 6; return CMP; }
+
+"且"  |
+"&&" { yylval->enum_v = 7; return LOGICOP; }
+
+"或"  |
+"||"  { yylval->enum_v = 8; return LOGICOP; }
 
  /* Below are ignored */
 "注：".*
+"//".*
+"--".*
 "然后"
 "立即"
 "，"
