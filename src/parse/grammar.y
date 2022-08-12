@@ -435,16 +435,18 @@ func_call : CALL IDENTIFIER args { $$ = newFunccall($2, $3); yycopyloc($$, &@$);
 args : '{' arglist '}' {
           $$ = hash_new();
           list_foreach(iter, $2) {
-            hash_set($$, cast(ArgObj *, iter->data)->name, cast(ArgObj *, iter->data)->exp);
-            free(iter->data);
+            ArgObj *a = cast(ArgObj *, iter->data);
+            hash_set($$, a->name, a->exp);
+            free(a);
           }
           list_free($2, NULL);
         }
      | '{' arglist ',' '}' {
           $$ = hash_new();
           list_foreach(iter, $2) {
-            hash_set($$, cast(ArgObj *, iter->data)->name, cast(ArgObj *, iter->data)->exp);
-            free(iter->data);
+            ArgObj *a = cast(ArgObj *, iter->data);
+            hash_set($$, a->name, a->exp);
+            free(a);
           }
           list_free($2, NULL);
         }
