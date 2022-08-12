@@ -6,6 +6,11 @@ static BuiltinVar v[] = {
   {"吴", "'wu'", TNumber},
   {"群", "'qun'", TNumber},
   {"神", "'god'", TNumber},
+  {"Wei", "'wei'", TNumber},
+  {"Shu", "'shu'", TNumber},
+  {"Wu", "'wu'", TNumber},
+  {"Qun", "'qun'", TNumber},
+  {"God", "'god'", TNumber},
 
   {"黑桃", "'spade'", TString},
   {"红桃", "'heart'", TString},
@@ -36,6 +41,11 @@ static BuiltinVar v[] = {
   {"默认技", "sgs.Skill_Frequent", TNumber},
   {"觉醒技", "sgs.Skill_Wake", TNumber},
   {"限定技", "sgs.Skill_Limited", TNumber},
+  {"Compulsory", "sgs.Skill_Compulsory", TNumber},
+  {"NotFrequent", "sgs.Skill_NotFrequent", TNumber},
+  {"Frequent", "sgs.Skill_Frequent", TNumber},
+  {"Wake", "sgs.Skill_Wake", TNumber},
+  {"Limited", "sgs.Skill_Limited", TNumber},
 
   {"开始阶段", "sgs.Player_RoundStart", TNumber},
   {"准备阶段", "sgs.Player_Start", TNumber},
@@ -54,6 +64,9 @@ static BuiltinVar v[] = {
   {"男性", "sgs.General_Male", TNumber},
   {"女性", "sgs.General_Female", TNumber},
   {"中性", "sgs.General_Neuter", TNumber},
+  {"Male", "sgs.General_Male", TNumber},
+  {"Female", "sgs.General_Female", TNumber},
+  {"Neuter", "sgs.General_Neuter", TNumber},
 
   {"只放置顶部", "sgs.Room_GuanxingUpOnly", TNumber},
   {"顶部底部均放置", "sgs.Room_GuanxingBothSides", TNumber},

@@ -207,6 +207,7 @@ funcdef : FUNCDEF IDENTIFIER defargs block
         ;
 
 defargs : '{' defarglist '}' { $$ = $2; }
+        | '{' defarglist ',' '}' { $$ = $2; }
         | '{' '}' { $$ = list_new(); }
         ;
 
@@ -222,7 +223,7 @@ defarglist  : defarglist ',' defarg {
 
 defarg : IDENTIFIER ':' TYPE
          { $$ = newDefarg($1, $3, NULL); yycopyloc($$, &@$); }
-       | IDENTIFIER ':' TYPE '=' exp
+       | IDENTIFIER ':' TYPE EQ exp
          { $$ = newDefarg($1, $3, $5); yycopyloc($$, &@$); }
        ;
 
@@ -434,8 +435,20 @@ func_call : CALL IDENTIFIER args { $$ = newFunccall($2, $3); yycopyloc($$, &@$);
 args : '{' arglist '}' {
           $$ = hash_new();
           list_foreach(iter, $2) {
-            hash_set($$, cast(ArgObj *, iter->data)->name, cast(ArgObj *, iter->data)->exp);
-            free(iter->data);
+            ArgObj *a = cast(ArgObj *, iter->data);
+            hash_set($$, a->name, a->exp);
+            free((void *)a->name);
+            free(a);
+          }
+          list_free($2, NULL);
+        }
+     | '{' arglist ',' '}' {
+          $$ = hash_new();
+          list_foreach(iter, $2) {
+            ArgObj *a = cast(ArgObj *, iter->data);
+            hash_set($$, a->name, a->exp);
+            free((void *)a->name);
+            free(a);
           }
           list_free($2, NULL);
         }
@@ -447,7 +460,7 @@ arglist : arglist ',' arg { $$ = $1; list_append($$, cast(Object *, $3)); }
         ;
 
 arg : IDENTIFIER ':' exp {
-        $3->param_name = $1;
+        $3->param_name = strdup($1);
         $$ = newArg($1, $3);
       }
     ;
@@ -487,6 +500,7 @@ explist : exp { $$ = list_new(); list_append($$, cast(Object *, $1)); }
 
 array : '[' ']' { $$ = list_new(); }
       | '[' explist ']' { $$ = $2; }
+      | '[' explist ',' ']' { $$ = $2; }
       ;
 
 var : IDENTIFIER { $$ = newVar($1, NULL); yycopyloc($$, &@$); }

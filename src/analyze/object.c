@@ -211,7 +211,7 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
 
   ret->id = id;
   ret->description = desc;
-  ret->frequency = frequency ? frequency : strdup("普通技");
+  ret->frequency = frequency ? frequency : strdup("NotFrequent");
   ret->interid = interid;
   addTranslation(interid, id);
   hash_set(skill_table, id, strdup(interid));
@@ -276,7 +276,7 @@ GeneralObj *newGeneral(const char *id, const char *kingdom, long long hp,
   ret->kingdom = kingdom;
   ret->hp = hp;
   ret->nickname = nickname;
-  ret->gender = gender ? gender : strdup("男性");
+  ret->gender = gender ? gender : strdup("Male");
 
   char buf[64];
   sprintf(buf, "%s_g_%d", readfile_name, ret->internal_id);
