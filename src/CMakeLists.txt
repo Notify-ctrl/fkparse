@@ -9,6 +9,14 @@ set(fkparse_SRCS
   "analyze/object.c"
   "analyze/builtin.c"
   "analyze/generate.c"
+
+  "analyze/builtin/action.c"
+  "analyze/builtin/cards.c"
+  "analyze/builtin/enum.c"
+  "analyze/builtin/func.c"
+  "analyze/builtin/getter.c"
+  "analyze/builtin/interaction.c"
+  "analyze/builtin/util.c"
 )
 
 add_custom_command(
