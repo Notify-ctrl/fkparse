@@ -293,14 +293,22 @@ static int yycolumn = 1;
 "普通技" |
 "默认技" |
 "觉醒技" |
-"限定技" {
+"限定技" |
+"Compulsory" |
+"NotFrequent" |
+"Frequent" |
+"Wake" |
+"Limited" {
     yylval->s = strdup(yytext);
     return FREQUENCY;
     }
 
 "男性" |
 "女性" |
-"中性" {
+"中性" |
+"Male" |
+"Female" |
+"Neuter" {
     yylval->s = strdup(yytext);
     return GENDER;
     }
@@ -316,7 +324,12 @@ static int yycolumn = 1;
 "蜀" |
 "吴" |
 "群" |
-"神" {
+"神" |
+"Wei" |
+"Shu" |
+"Wu" |
+"Qun" |
+"God" {
     yylval->s = strdup(yytext);
     return KINGDOM;
     }
