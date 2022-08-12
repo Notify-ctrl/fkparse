@@ -207,6 +207,7 @@ funcdef : FUNCDEF IDENTIFIER defargs block
         ;
 
 defargs : '{' defarglist '}' { $$ = $2; }
+        | '{' defarglist ',' '}' { $$ = $2; }
         | '{' '}' { $$ = list_new(); }
         ;
 
@@ -439,6 +440,14 @@ args : '{' arglist '}' {
           }
           list_free($2, NULL);
         }
+     | '{' arglist ',' '}' {
+          $$ = hash_new();
+          list_foreach(iter, $2) {
+            hash_set($$, cast(ArgObj *, iter->data)->name, cast(ArgObj *, iter->data)->exp);
+            free(iter->data);
+          }
+          list_free($2, NULL);
+        }
      | '{' '}' { $$ = hash_new(); }
      ;
 
@@ -487,6 +496,7 @@ explist : exp { $$ = list_new(); list_append($$, cast(Object *, $1)); }
 
 array : '[' ']' { $$ = list_new(); }
       | '[' explist ']' { $$ = $2; }
+      | '[' explist ',' ']' { $$ = $2; }
       ;
 
 var : IDENTIFIER { $$ = newVar($1, NULL); yycopyloc($$, &@$); }
