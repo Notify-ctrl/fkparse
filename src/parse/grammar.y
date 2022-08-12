@@ -222,7 +222,7 @@ defarglist  : defarglist ',' defarg {
 
 defarg : IDENTIFIER ':' TYPE
          { $$ = newDefarg($1, $3, NULL); yycopyloc($$, &@$); }
-       | IDENTIFIER ':' TYPE '=' exp
+       | IDENTIFIER ':' TYPE EQ exp
          { $$ = newDefarg($1, $3, $5); yycopyloc($$, &@$); }
        ;
 

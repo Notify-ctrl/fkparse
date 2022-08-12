@@ -59,6 +59,7 @@ static int yycolumn = 1;
 "令" |
 "let"           { return LET; }
 "为" |
+"=" |
 "equal"         { return EQ; }
 "若" |
 "if"            { return IF; }
@@ -283,9 +284,7 @@ static int yycolumn = 1;
 "-" |
 "*" |
 "/" |
-"=" |
 "," |
-"." |
 ":" { return yytext[0]; }
 
  /* Type identifiers */
@@ -316,6 +315,9 @@ static int yycolumn = 1;
 "卡牌数组"  |
 "TCardList" { yylval->enum_v = TCardList; return TYPE; }
 
+"无类型"  |
+"TNone" { yylval->enum_v = TNone; return TYPE; }
+
  /* Logic OP */
 "大于"  |
 ">"     { yylval->enum_v = 1; return CMP; }
@@ -337,9 +339,11 @@ static int yycolumn = 1;
 "<="      { yylval->enum_v = 6; return CMP; }
 
 "且"  |
+"and" |
 "&&" { yylval->enum_v = 7; return LOGICOP; }
 
 "或"  |
+"or" |
 "||"  { yylval->enum_v = 8; return LOGICOP; }
 
  /* Below are ignored */
