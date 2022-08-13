@@ -1,18 +1,18 @@
 #include "object.h"
+#include "generate.h"
+#include "action.h"
 #include "enums.h"
-#include "main.h"
 #include <stdarg.h>
-#include "error.h"
 
-static PackageObj *currentpack;
-static int indent_level = 0;
+PackageObj *currentpack;
+int indent_level = 0;
 
-static void print_indent() {
+void print_indent() {
   for (int i = 0; i < indent_level; i++)
     fprintf(yyout, "  ");
 }
 
-static void writestr(const char *msg, ...) {
+void writestr(const char *msg, ...) {
   va_list ap;
   va_start(ap, msg);
 
@@ -20,7 +20,7 @@ static void writestr(const char *msg, ...) {
   va_end(ap);
 }
 
-static void writeline(const char *msg, ...) {
+void writeline(const char *msg, ...) {
   print_indent();
   va_list ap;
   va_start(ap, msg);
@@ -30,57 +30,44 @@ static void writeline(const char *msg, ...) {
   va_end(ap);
 }
 
+void outputError(const char *msg, ...) {
+  va_list ap;
+  va_start(ap, msg);
+
+  fprintf(error_output, "错误: ");
+  vfprintf(error_output, msg, ap);
+  fprintf(error_output, "\n");
+  va_end(ap);
+}
+
 static void analyzeVar(VarObj *v);
 static void analyzeBlock(BlockObj *bl);
 static void analyzeFunccall(FunccallObj *f);
 
-static void analyzeExp(ExpressionObj *e) {
+void analyzeExp(ExpressionObj *e) {
   if (e->bracketed) writestr("(");
-  ExpVType t = TNone;
+  ExpVType t = TNone, t2 = TNone;
   List *node;
   ExpressionObj *array_item;
-  static int markId = 0;
-  static int stringId = 0;
-  char buf[64];
-  const char *origtext;
 
   if ((e->exptype == ExpCalc || e->exptype == ExpCmp) && e->optype != 0) {
     if (e->optype == 3 || e->optype == 4) {
-      if (e->varValue && strstr(e->varValue->name, "移动")
-      && strstr(e->varValue->name, "原因")) {
-        writestr("bit32.band(");
-        analyzeExp(e->oprand1);
-        writestr(", ");
-        analyzeExp(e->oprand2);
-        writestr(")");
-      } else {
-        writestr("(");
-        analyzeExp(e->oprand1);
-        if (e->oprand1->valuetype == TPlayer) {
-          writestr(" and ");
-          analyzeExp(e->oprand1);
-          writestr(":objectName()");
-        }
-        writestr(")");
-
-        switch (e->optype) {
-          case 3: writestr(" ~= "); break;
-          case 4: writestr(" == "); break;
-        }
-
-        writestr("(");
-        analyzeExp(e->oprand2);
-        if (e->oprand2->valuetype == TPlayer) {
-          writestr(" and ");
-          analyzeExp(e->oprand2);
-          writestr(":objectName()");
-        }
-        writestr(")");
+      analyzeExp(e->oprand1);
+      if (e->oprand1->valuetype == TPlayer) {
+        writestr(":objectName()");
+      }
+      switch (e->optype) {
+        case 3: writestr(" ~= "); break;
+        case 4: writestr(" == "); break;
+      }
+      analyzeExp(e->oprand2);
+      if (e->oprand2->valuetype == TPlayer) {
+        writestr(":objectName()");
       }
       t = TBool;
     } else {
       analyzeExp(e->oprand1);
-      checktype(e->oprand1, e->oprand1->valuetype, TNumber);
+      checktype(e->oprand1->valuetype, TNumber);
       switch (e->optype) {
         case 1: writestr(" > "); t = TBool; break;
         case 2: writestr(" < "); t = TBool; break;
@@ -89,7 +76,7 @@ static void analyzeExp(ExpressionObj *e) {
         default: writestr(" %c ", e->optype); t = TNumber; break;
       }
       analyzeExp(e->oprand2);
-      checktype(e->oprand2, e->oprand2->valuetype, TNumber);
+      checktype(e->oprand2->valuetype, TNumber);
     }
   } else if (e->exptype == ExpLogic) {
     analyzeExp(e->oprand1);
@@ -106,7 +93,7 @@ static void analyzeExp(ExpressionObj *e) {
       analyzeExp(array_item);
       writestr(", ");
       if (t != TNone && t != array_item->valuetype) {
-        yyerror(cast(YYLTYPE *, e), "数组中不能有类别不同的元素(预期类型%d，实际得到%d)", t, array_item->valuetype);
+        outputError("数组中不能有类别不同的元素(预期类型%d，实际得到%d)", t, array_item->valuetype);
         t = TNone;
         break;
       }
@@ -120,7 +107,7 @@ static void analyzeExp(ExpressionObj *e) {
       case TString: t = TStringList; break;
       case TNone: t = TEmptyList; break;
       default:
-        yyerror(cast(YYLTYPE *, e), "未知的数组元素类型%d\n", t);
+        outputError("未知的数组元素类型%d\n", t);
         break;
     }
   } else switch (e->exptype) {
@@ -133,63 +120,7 @@ static void analyzeExp(ExpressionObj *e) {
       t = TBool;
       break;
     case ExpStr:
-      if (e->param_name != NULL) {
-        if (strstr(e->param_name, "原因") || strstr(e->param_name, "技能")) {
-          if (strlen(e->strvalue) == 0 && !strcmp(e->param_name, "技能名"))
-            writestr("self:objectName()");
-          else {
-            origtext = hash_get(skill_table, e->strvalue);
-            if (origtext) {
-              writestr("'%s'", origtext);
-            } else {
-              writestr("'%s'", e->strvalue);
-            }
-          }
-        } else if (!strcmp(e->param_name, "标记")) {
-          origtext = hash_get(mark_table, e->strvalue);
-          if (!origtext) {
-            sprintf(buf, "@%s_mark_%d", readfile_name, markId);
-            markId++;
-            hash_set(mark_table, e->strvalue, strdup(buf));
-            addTranslation(buf, e->strvalue);
-            origtext = hash_get(mark_table, e->strvalue);
-          }
-          writestr("'%s'", origtext);
-        } else if (!strcmp(e->param_name, "文本")) {
-          origtext = hash_get(other_string_table, e->strvalue);
-          if (!origtext) {
-            sprintf(buf, "%s_str_%d", readfile_name, stringId);
-            stringId++;
-            hash_set(other_string_table, e->strvalue, strdup(buf));
-            addTranslation(buf, e->strvalue);
-            origtext = hash_get(other_string_table, e->strvalue);
-          }
-          writestr("'%s'", origtext);
-        } else if (!strcmp(e->param_name, "战报")) {
-          origtext = hash_get(other_string_table, e->strvalue);
-          if (!origtext) {
-            sprintf(buf, "#%s_str_%d", readfile_name, stringId);
-            stringId++;
-            hash_set(other_string_table, e->strvalue, strdup(buf));
-            addTranslation(buf, e->strvalue);
-            origtext = hash_get(other_string_table, e->strvalue);
-          }
-          writestr("'%s'", origtext);
-        } else {
-          writestr("'%s'", e->strvalue);
-        }
-      } else {
-        origtext = untranslate(e->strvalue);
-        //origtext = hash_get(other_string_table, e->strvalue);
-        if (!origtext) {
-          sprintf(buf, "%s_str_%d", readfile_name, stringId);
-          stringId++;
-          //hash_set(other_string_table, e->strvalue, strdup(buf));
-          addTranslation(buf, e->strvalue);
-          origtext = untranslate(e->strvalue);
-        }
-        writestr("'%s'", origtext);
-      }
+      writestr("'%s'", e->strvalue);
       t = TString;
       break;
     case ExpVar:
@@ -199,9 +130,13 @@ static void analyzeExp(ExpressionObj *e) {
     case ExpFunc:
       analyzeFunccall(e->func);
       t = e->func->rettype;
+      return;
+    case ExpAction:
+      analyzeAction(e->action);
+      t = e->action->valuetype;
       break;
     default:
-      yyerror(cast(YYLTYPE *, e), "unknown exptype %d\n", e->exptype);
+      outputError("unknown exptype %d\n", e->exptype);
       break;
   }
 
@@ -218,15 +153,13 @@ static void analyzeVar(VarObj *v) {
       /* 在客户端用这个属性的人还是后果自负罢 */
       writestr("room:getCardPlace(");
       analyzeExp(v->obj);
-      checktype(v->obj, v->obj->valuetype, TCard);
+      checktype(v->obj->valuetype, TCard);
       writestr(":getId())");
-      t = TNumber;
     } else if (!strcmp(name, "持有者")) {
       writestr("room:getCardOwner(");
       analyzeExp(v->obj);
-      checktype(v->obj, v->obj->valuetype, TCard);
+      checktype(v->obj->valuetype, TCard);
       writestr(":getId())");
-      t = TPlayer;
     } else {
       analyzeExp(v->obj);
       switch (v->obj->valuetype) {
@@ -246,20 +179,8 @@ static void analyzeVar(VarObj *v) {
           } else if (!strcmp(name, "身份")) {
             writestr(":getRoleEnum()");
             t = TNumber;
-          } else if (!strcmp(name, "性别")) {
-            writestr(":getGender()");
-            t = TNumber;
-          } else if (!strcmp(name, "手牌上限")) {
-            writestr(":getMaxCards()");
-            t = TNumber;
-          } else if (!strcmp(name, "势力")) {
-            writestr(":getKingdom()");
-            t = TString;
-          } else if (!strcmp(name, "座位号")) {
-            writestr(":getSeat()");
-            t = TNumber;
           } else {
-            yyerror(cast(YYLTYPE *, v), "无法获取 玩家 的属性 '%s'\n", name);
+            outputError("无法获取 玩家 的属性 \"%s\"\n", name);
             t = TNone;
           }
           break;
@@ -268,22 +189,16 @@ static void analyzeVar(VarObj *v) {
             writestr(":getNumber()");
             t = TNumber;
           } else if (!strcmp(name, "花色")) {
-            writestr(":getSuitString()");
-            t = TString;
+            writestr(":getSuit()");
+            t = TNumber;
           } else if (!strcmp(name, "类别")) {
-            writestr(":getType()");
-            t = TString;
+            writestr(":getTypeId()");
+            t = TNumber;
           } else if (!strcmp(name, "牌名")) {
             writestr(":objectName()");
-            t = TString;
-          } else if (!strcmp(name, "编号")) {
-            writestr(":getId()");
             t = TNumber;
-          } else if (!strcmp(name, "是否被装备")) {
-            writestr(":isEquipped()");
-            t = TBool;
           } else {
-            yyerror(cast(YYLTYPE *, v), "无法获取 卡牌 的属性 '%s'\n", name);
+            outputError("无法获取 卡牌 的属性 \"%s\"\n", name);
             t = TNone;
           }
           break;
@@ -295,42 +210,12 @@ static void analyzeVar(VarObj *v) {
             writestr(":length()");
             t = TNumber;
           } else {
-            yyerror(cast(YYLTYPE *, v), "无法获取 数组 的属性 '%s'\n", name);
-            t = TNone;
-          }
-          break;
-        case TPindian:
-          if (!strcmp(name, "来源")) {
-            writestr(".from");
-            t = TPlayer;
-          } else if (!strcmp(name, "目标")) {
-            writestr(".to");
-            t = TPlayer;
-          } else if (!strcmp(name, "获胜者")) {
-            writestr(".winner");
-            t = TPlayer;
-          } else if (!strcmp(name, "来源卡牌")) {
-            writestr(".from_card");
-            t = TCard;
-          } else if (!strcmp(name, "目标卡牌")) {
-            writestr(".to_card");
-            t = TCard;
-          } else if (!strcmp(name, "来源点数")) {
-            writestr(".from_number");
-            t = TCard;
-          } else if (!strcmp(name, "目标点数")) {
-            writestr(".to_number");
-            t = TCard;
-          } else if (!strcmp(name, "原因")) {
-            writestr(".reason");
-            t = TString;
-          } else {
-            yyerror(cast(YYLTYPE *, v), "无法获取 拼点结果 的属性 '%s'\n", name);
+            outputError("无法获取 数组 的属性 \"%s\"\n", name);
             t = TNone;
           }
           break;
         default:
-          yyerror(cast(YYLTYPE *, v), "不能获取类型为%d的对象的属性\n", v->obj->valuetype);
+          outputError("不能获取类型为%d的对象的属性\n", v->obj->valuetype);
           t = TNone;
       }
     }
@@ -338,13 +223,13 @@ static void analyzeVar(VarObj *v) {
   } else {
     symtab_item *i = sym_lookup(name);
     if (!i || i->type == TNone) {
-      yyerror(cast(YYLTYPE *, v), "标识符'%s'尚未定义", name);
+      outputError("标识符\"%s\"尚未定义", name);
     } else {
       v->type = i->type;
       if (i->origtext)
         writestr("%s", i->origtext);
       else
-        writestr("locals['%s']", name);
+        writestr("locals[\"%s\"]", name);
     }
   }
 }
@@ -367,7 +252,7 @@ static void analyzeAssign(AssignObj *a) {
     symtab_item *i = sym_lookup(a->var->name);
     if (i) {
       if (i->reserved) {
-        yyerror(cast(YYLTYPE *, a->var), "不允许重定义标识符 '%s'", a->var->name);
+        outputError("不允许重定义标识符 \"%s\"", a->var->name);
       } else {
         i->type = a->value->valuetype;
       }
@@ -382,18 +267,6 @@ static void analyzeIf(IfObj *i) {
   writestr(" then\n");
   indent_level++;
   analyzeBlock(i->then);
-  
-  List *node;
-  list_foreach(node, i->elif) {
-    IfObj *i2 = cast(IfObj *, node->data);
-    indent_level--;
-    print_indent();
-    writestr("elseif ");
-    analyzeExp(i2->cond);
-    writestr(" then\n");
-    indent_level++;
-    analyzeBlock(i2->then);
-  }
   if (i->el) {
     indent_level--;
     writeline("else");
@@ -424,7 +297,7 @@ static void analyzeTraverse(TraverseObj *t) {
   if (type != TCardList && type != TNumberList
     && type != TPlayerList && type != TStringList && type != TEmptyList
   ) {
-    yyerror(cast(YYLTYPE *, t->array), "只能对数组进行遍历操作");
+    outputError("只能对数组进行遍历操作");
     return;
   }
 
@@ -439,7 +312,7 @@ static void analyzeTraverse(TraverseObj *t) {
     case TNumberList: vtype = TNumberList; break;
     case TPlayerList: vtype = TPlayer; break;
     case TStringList: vtype = TString; break;
-    case TEmptyList: yyerror(cast(YYLTYPE *, t->array), "不允许遍历空数组"); break;
+    case TEmptyList: outputError("不允许遍历空数组"); break;
     default: break;
   }
   sym_new_entry(t->expname, vtype, s, false);
@@ -466,7 +339,7 @@ static void analyzeTraverse(TraverseObj *t) {
 static void analyzeFunccall(FunccallObj *f) {
   symtab_item *i = sym_lookup(f->name);
   if (!i) {
-    yyerror(cast(YYLTYPE *, f), "调用了未定义的函数“%s”", f->name);
+    outputError("调用了未定义的函数“%s”", f->name);
     return;
   }
   FuncdefObj *d = cast(FuncdefObj *, i->origtext);
@@ -474,7 +347,6 @@ static void analyzeFunccall(FunccallObj *f) {
 
   List *node;
   bool start = true;
-  bool errored = false;
   list_foreach(node, d->params) {
     if (!start) {
       writestr(", ");
@@ -487,96 +359,18 @@ static void analyzeFunccall(FunccallObj *f) {
     ExpressionObj *e = hash_get(f->params, a->name);
     if (!e) {
       if (!a->d) {
-        yyerror(cast(YYLTYPE *, f), "调用函数“%s”时：", f->name);
-        yyerror(cast(YYLTYPE *, a), "函数“%s”的参数“%s”没有默认值，调用时必须传入值", f->name, name);
-        errored = true;
+        outputError("函数“%s”的参数“%s”没有默认值，调用时必须传入值", f->name, name);
       } else {
         analyzeExp(a->d);
       }
     } else {
       analyzeExp(e);
-      checktype(e, e->valuetype, a->type);
+      checktype(e->valuetype, a->type);
     }
   }
 
   writestr(")");
   f->rettype = d->rettype;
-
-  /* 因为没有函数重载，所以要对数组操作耦合一下
-     TAny用多了容易翻车 */
-  if (errored) return;
-  if (!strcmp(f->name, "__prepend") || !strcmp(f->name, "__append")) {
-    ExpressionObj *array = hash_get(f->params, "array");
-    ExpressionObj *value = hash_get(f->params, "value");
-
-    if (array->valuetype == TEmptyList) {
-      switch (value->valuetype) {
-      case TNumber:
-        array->valuetype = TNumberList;
-        break;
-      case TString:
-        array->valuetype = TStringList;
-        break;
-      case TCard:
-        array->valuetype = TCardList;
-        break;
-      case TPlayer:
-        array->valuetype = TPlayerList;
-        break;
-      default:
-        yyerror(cast(YYLTYPE *, f), "不能把类型 %d 添加到数组中");
-        break;
-      }
-      if (array->exptype == ExpVar && array->varValue) {
-        symtab_item *i = sym_lookup(array->varValue->name);
-        if (i) i->type = array->valuetype;
-      }
-    } else {
-      ExpVType t = TNone;
-      switch (array->valuetype) {
-      case TNumberList:
-        t = TNumber;
-        break;
-      case TStringList:
-        t = TString;
-        break;
-      case TPlayerList:
-        t = TPlayer;
-        break;
-      case TCardList:
-        t = TCard;
-        break;
-      case TEmptyList:
-        t = TAny;
-        break;
-      default:
-        yyerror(cast(YYLTYPE *, f), "未知的数组类型");
-        break;
-      }
-
-      checktype(value, value->valuetype, t);
-    }
-
-  } else if (!strcmp(f->name, "__at")) {
-    ExpressionObj *array = hash_get(f->params, "array");
-    switch (array->valuetype) {
-    case TNumberList:
-      f->rettype = TNumber;
-      break;
-    case TStringList:
-      f->rettype = TString;
-      break;
-    case TPlayerList:
-      f->rettype = TPlayer;
-      break;
-    case TCardList:
-      f->rettype = TCard;
-      break;
-    default:
-      yyerror(cast(YYLTYPE *, f), "试图对不是数组或者空数组根据下标取值");
-      break;
-    }
-  }
 }
 
 void analyzeBlock(BlockObj *bl) {
@@ -586,9 +380,6 @@ void analyzeBlock(BlockObj *bl) {
   stack_push(symtab_stack, cast(Object *, current_tab));
 
   list_foreach(node, bl->statements) {
-    if (!node->data)  /* maybe error token */
-      continue;
-
     switch (node->data->objtype) {
     case Obj_Assign:
       analyzeAssign(cast(AssignObj *, node->data));
@@ -604,6 +395,9 @@ void analyzeBlock(BlockObj *bl) {
       break;
     case Obj_Break:
       writeline("break");
+      break;
+    case Obj_Action:
+      analyzeAction(cast(ActionObj *, node->data));
       break;
     case Obj_Funccall:
       print_indent();
@@ -628,7 +422,7 @@ void analyzeBlock(BlockObj *bl) {
 }
 
 static void defineLocal(char *k, char *v, int type) {
-  writeline("locals['%s'] = %s", k, v);
+  writeline("locals[\"%s\"] = %s", k, v);
   if (!sym_lookup(k)) {
     sym_new_entry(k, TNone, NULL, false);
   }
@@ -786,7 +580,7 @@ static void initData(int event) {
       defineLocal("目的地牌堆", "move.to_pile_name", TString);
       defineLocal("移动的来源", "move.from", TPlayer);
       defineLocal("移动的目标", "move.to", TPlayer);
-      defineLocal("移动的原因", "move.reason.m_reason", TString);
+      defineLocal("移动的原因", "move.reason", TString);
       defineLocal("是打开的", "move.open", TBool);
       defineLocal("是最后的手牌", "move.is_last_handcard", TBool);
       break;
@@ -824,7 +618,7 @@ static void initData(int event) {
 static void clearLocal(char *k, char *v, int rewrite) {
   sym_lookup(k)->type = TNone;
   if (rewrite) {
-    writeline("%s = locals['%s']", v, k);
+    writeline("%s = locals[\"%s\"]", v, k);
   }
 }
 
@@ -1008,7 +802,7 @@ static void clearData(int event) {
       clearLocal("目的地牌堆", "move.to_pile_name", rewrite);
       clearLocal("移动的来源", "move.from", rewrite);
       clearLocal("移动的目标", "move.to", rewrite);
-      clearLocal("移动的原因", "move.reason.m_reason", rewrite);
+      clearLocal("移动的原因", "move.reason", rewrite);
       clearLocal("是打开的", "move.open", rewrite);
       clearLocal("是最后的手牌", "move.is_last_handcard", rewrite);
       if (rewrite) writeline("data:setValue(move)");
@@ -1046,12 +840,6 @@ static void clearData(int event) {
 }
 
 static void analyzeTriggerSpec(TriggerSpecObj *t) {
-  Hash *param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "player", true);
-  sym_new_entry("当前目标", TPlayer, "target", true);
-
   writeline("[%s] = {", event_table[t->event]);
   indent_level++;
   writeline("-- can_trigger");
@@ -1063,7 +851,7 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
     writeline("global_self = self\n");
     initData(t->event);
     analyzeBlock(t->can_trigger);
-    if (t->can_trigger->ret == NULL) clearData(t->event);
+    clearData(t->event);
   } else {
     writeline("return target and player == target and player:hasSkill(self:objectName())");
   }
@@ -1079,579 +867,51 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
   writeline("global_self = self\n");
   initData(t->event);
   analyzeBlock(t->on_trigger);
-  if (t->on_trigger->ret == NULL) clearData(t->event);
+  clearData(t->event);
   indent_level--;
   writeline("end,");
 
   indent_level--;
   writeline("},");
-
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-  current_tab = cast(Hash *, stack_gettop(symtab_stack));
-}
-
-static void analyzeActiveSpec(ActiveSpecObj *a) {
-  Hash *param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "player", true);
-
-  writeline("can_use = function(self, player)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
-  analyzeBlock(a->cond);
-  indent_level--;
-  writeline("end,\n");
-
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "sgs.Self", true);
-  sym_new_entry("已选卡牌", TCardList, "selected", true);
-  sym_new_entry("备选卡牌", TCard, "to_select", true);
-
-  writeline("card_filter = function(self, selected, to_select)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
-  analyzeBlock(a->card_filter);
-  indent_level--;
-  writeline("end,\n");
-
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "sgs.Self", true);
-  sym_new_entry("已选目标", TPlayerList, "targets", true);
-  sym_new_entry("备选目标", TPlayer, "to_select", true);
-  sym_new_entry("已选卡牌", TCardList, "selected", true);
-
-  writeline("target_filter = function(self, targets, to_select, selected)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
-  analyzeBlock(a->target_filter);
-  indent_level--;
-  writeline("end,\n");
-
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "sgs.Self", true);
-  sym_new_entry("已选目标", TPlayerList, "targets", true);
-  sym_new_entry("已选卡牌", TCardList, "cards", true);
-
-  writeline("feasible = function(self, targets, cards)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
-  analyzeBlock(a->feasible);
-  indent_level--;
-  writeline("end,\n");
-
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "player", true);
-  sym_new_entry("选择的目标", TPlayerList, "targets", true);
-  sym_new_entry("选择的卡牌", TCardList, "cards", true);
-
-  writeline("on_use = function(self, player, targets, cards)");
-  indent_level++;
-  writeline("local room = player:getRoom()");
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
-  analyzeBlock(a->on_use);
-  indent_level--;
-  writeline("end,\n");
-
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  if (a->on_effect) {
-    param_symtab = hash_new();
-    current_tab = param_symtab;
-    stack_push(symtab_stack, cast(Object *, param_symtab));
-    sym_new_entry("你", TPlayer, "effect.from", true);
-    sym_new_entry("目标", TPlayer, "effect.to", true);
-    sym_new_entry("卡牌列表", TCardList, "self:getSubCards()", true);
-
-    writeline("on_effect = function(self, effect)");
-    indent_level++;
-    writeline("local room = effect.from:getRoom()");
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
-    analyzeBlock(a->on_effect);
-    indent_level--;
-    writeline("end,");
-
-    stack_pop(symtab_stack);
-    sym_free(param_symtab);
-  }
-
-  current_tab = cast(Hash *, stack_gettop(symtab_stack));
-}
-
-static void analyzeViewAsSpec(ViewAsSpecObj *v) {
-  Hash *param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "player", true);
-
-  writeline("can_use = function(self, player)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
-  analyzeBlock(v->cond);
-  indent_level--;
-  writeline("end,\n");
-
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "sgs.Self", true);
-  sym_new_entry("已选卡牌", TCardList, "selected", true);
-  sym_new_entry("备选卡牌", TCard, "to_select", true);
-
-  writeline("card_filter = function(self, selected, to_select)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
-  analyzeBlock(v->card_filter);
-  indent_level--;
-  writeline("end,\n");
-
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "sgs.Self", true);
-  sym_new_entry("已选卡牌", TCardList, "cards", true);
-
-  writeline("feasible = function(self, cards)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
-  analyzeBlock(v->feasible);
-  indent_level--;
-  writeline("end,\n");
-
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "sgs.Self", true);
-  sym_new_entry("选择的卡牌", TCardList, "cards", true);
-
-  writeline("view_as = function(self, cards)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
-  analyzeBlock(v->view_as);
-  indent_level--;
-  writeline("end,\n");
-
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  if (v->can_response) {
-    param_symtab = hash_new();
-    current_tab = param_symtab;
-    stack_push(symtab_stack, cast(Object *, param_symtab));
-    sym_new_entry("你", TPlayer, "player", true);
-
-    writeline("can_response = function(self, player)");
-    indent_level++;
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
-    analyzeBlock(v->can_response);
-    indent_level--;
-    writeline("end,\n");
-
-    stack_pop(symtab_stack);
-    sym_free(param_symtab);
-  }
-
-  if (v->responsable) {
-    print_indent();
-    writestr("response_patterns = ");
-    analyzeExp(v->responsable);
-    checktype(v->responsable, v->responsable->valuetype, TStringList);
-    writestr("\n");
-  }
-
-  current_tab = cast(Hash *, stack_gettop(symtab_stack));
-}
-
-static void analyzeStatusSpec(const char *name, const char *trans, StatusSpecObj *s) {
-  Hash *param_symtab;
-  char buf[64];
-  /* prohibit skill */
-  if (s->is_prohibited) {
-    sprintf(buf, "#%s_pr", name);
-    addTranslation(buf, trans);
-    writeline("%s_pr = fkp.CreateProhibitSkill{", name);
-    indent_level++;
-    writeline("name = '#%s_pr',", name);
-
-    param_symtab = hash_new();
-    current_tab = param_symtab;
-    stack_push(symtab_stack, cast(Object *, param_symtab));
-    sym_new_entry("来源", TPlayer, "from", true);
-    sym_new_entry("目标", TPlayer, "to", true);
-    sym_new_entry("卡牌", TCard, "card", true);
-    writeline("is_prohibited = function(self, from, to, card)");
-    indent_level++;
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
-    analyzeBlock(s->is_prohibited);
-    indent_level--;
-    writeline("end,\n");
-    stack_pop(symtab_stack);
-    sym_free(param_symtab);
-
-    indent_level--;
-    writeline("}");
-    writeline("if not sgs.Sanguosha:getSkill('#%s_pr') then \
-all_skills:append(%s_pr) end", name, name);
-    writeline("extension0:insertRelatedSkills('%s', '#%s_pr')\n", name, name);
-  }
-
-  /* filter skill */
-  if (s->card_filter && s->vsrule) {
-    sprintf(buf, "#%s_fi", name);
-    addTranslation(buf, trans);
-    writeline("%s_fi = fkp.CreateFilterSkill{", name);
-    indent_level++;
-    writeline("name = '#%s_fi',", name);
-
-    param_symtab = hash_new();
-    current_tab = param_symtab;
-    stack_push(symtab_stack, cast(Object *, param_symtab));
-    sym_new_entry("你", TPlayer, "sgs.Self", true);
-    sym_new_entry("备选卡牌", TCard, "to_select", true);
-    writeline("card_filter = function(self, to_select)");
-    indent_level++;
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
-    analyzeBlock(s->card_filter);
-    indent_level--;
-    writeline("end,\n");
-    stack_pop(symtab_stack);
-    sym_free(param_symtab);
-
-    param_symtab = hash_new();
-    current_tab = param_symtab;
-    stack_push(symtab_stack, cast(Object *, param_symtab));
-    sym_new_entry("你", TPlayer, "sgs.Self", true);
-    sym_new_entry("备选卡牌", TCard, "to_select", true);
-    writeline("view_as = function(self, to_select)");
-    indent_level++;
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
-    analyzeBlock(s->vsrule);
-    indent_level--;
-    writeline("end,\n");
-    stack_pop(symtab_stack);
-    sym_free(param_symtab);
-
-    indent_level--;
-    writeline("}");
-    writeline("if not sgs.Sanguosha:getSkill('#%s_fi') then \
-all_skills:append(%s_fi) end", name, name);
-    writeline("extension0:insertRelatedSkills('%s', '#%s_fi')\n", name, name);
-  }
-
-  /* distance skill */
-  if (s->distance_correct) {
-    sprintf(buf, "#%s_di", name);
-    addTranslation(buf, trans);
-    writeline("%s_di = fkp.CreateDistanceSkill{", name);
-    indent_level++;
-    writeline("name = '#%s_di',", name);
-
-    param_symtab = hash_new();
-    current_tab = param_symtab;
-    stack_push(symtab_stack, cast(Object *, param_symtab));
-    sym_new_entry("来源", TPlayer, "from", true);
-    sym_new_entry("目标", TPlayer, "to", true);
-    writeline("correct_func = function(self, from, to)");
-    indent_level++;
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
-    analyzeBlock(s->distance_correct);
-    indent_level--;
-    writeline("end,\n");
-    stack_pop(symtab_stack);
-    sym_free(param_symtab);
-
-    indent_level--;
-    writeline("}");
-    writeline("if not sgs.Sanguosha:getSkill('#%s_di') then \
-all_skills:append(%s_di) end", name, name);
-    writeline("extension0:insertRelatedSkills('%s', '#%s_di')\n", name, name);
-  }
-
-  /* maxcard skill */
-  if (s->max_extra || s->max_fixed) {
-    sprintf(buf, "#%s_ex", name);
-    addTranslation(buf, trans);
-    writeline("%s_ex = fkp.CreateMaxCardsSkill{", name);
-    indent_level++;
-    writeline("name = '#%s_ex',", name);
-
-    if (s->max_extra) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
-      writeline("extra_func = function(self, target)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
-      analyzeBlock(s->max_extra);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
-    }
-
-    if (s->max_fixed) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
-      writeline("fixed_func = function(self, target)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
-      analyzeBlock(s->max_fixed);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
-    }
-
-    indent_level--;
-    writeline("}");
-    writeline("if not sgs.Sanguosha:getSkill('#%s_ex') then \
-all_skills:append(%s_ex) end", name, name);
-    writeline("extension0:insertRelatedSkills('%s', '#%s_ex')\n", name, name);
-  }
-
-  /* tmd skill */
-  if (s->tmd_distance || s->tmd_extarget || s->tmd_residue) {
-    sprintf(buf, "#%s_tm", name);
-    addTranslation(buf, trans);
-    writeline("%s_tm = fkp.CreateTargetModSkill{", name);
-    indent_level++;
-    writeline("name = '#%s_tm',", name);
-    writeline("pattern = '.',");
-
-    if (s->tmd_distance) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
-      sym_new_entry("卡牌", TCard, "card", true);
-      writeline("distance_limit_func = function(self, target, card)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
-      analyzeBlock(s->tmd_distance);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
-    }
-
-    if (s->tmd_extarget) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
-      sym_new_entry("卡牌", TCard, "card", true);
-      writeline("extra_target_func = function(self, target, card)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
-      analyzeBlock(s->tmd_extarget);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
-    }
-
-    if (s->tmd_residue) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
-      sym_new_entry("卡牌", TCard, "card", true);
-      writeline("residue_func = function(self, target, card)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
-      analyzeBlock(s->tmd_residue);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
-    }
-
-    indent_level--;
-    writeline("}");
-    writeline("if not sgs.Sanguosha:getSkill('#%s_tm') then \
-all_skills:append(%s_tm) end", name, name);
-    writeline("extension0:insertRelatedSkills('%s', '#%s_tm')\n", name, name);
-  }
-
-  /* atkrange skill */
-  if (s->atkrange_extra || s->atkrange_fixed) {
-    sprintf(buf, "#%s_at", name);
-    addTranslation(buf, trans);
-    writeline("%s_at = fkp.CreateAttackRangeSkill{", name);
-    indent_level++;
-    writeline("name = '#%s_at',", name);
-
-    if (s->atkrange_extra) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
-      writeline("extra_func = function(self, target)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
-      analyzeBlock(s->atkrange_extra);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
-    }
-
-    if (s->atkrange_fixed) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
-      writeline("fixed_func = function(self, target)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
-      analyzeBlock(s->atkrange_fixed);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
-    }
-
-    indent_level--;
-    writeline("}");
-    writeline("if not sgs.Sanguosha:getSkill('#%s_at') then \
-all_skills:append(%s_at) end", name, name);
-    writeline("extension0:insertRelatedSkills('%s', '#%s_at')\n", name, name);
-  }
-
-  current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
 static void analyzeSkill(SkillObj *s) {
   List *node;
 
-  if (s->activeSpec) {
-    writeline("%s_ac = fkp.CreateActiveSkill{", s->interid);
-    indent_level++;
-    writeline("name = '%s',", s->interid);
-    analyzeActiveSpec(s->activeSpec);
-    indent_level--;
-    writeline("}");
-  }
-
-  if (s->vsSpec) {
-    writeline("%s_vs = fkp.CreateViewAsSkill{", s->interid);
-    indent_level++;
-    writeline("name = '%s',", s->interid);
-    analyzeViewAsSpec(s->vsSpec);
-    indent_level--;
-    writeline("}");
-  }
-
-  if (s->statusSpec) {
-    analyzeStatusSpec(s->interid, s->id, s->statusSpec);
-  }
-
   writeline("%s = fkp.CreateTriggerSkill{", s->interid);
   indent_level++;
-  writeline("name = '%s',", s->interid);
+  writeline("name = \"%s\",", s->interid);
   writeline("frequency = %s,", sym_lookup(s->frequency)->origtext);
-  if (s->activeSpec)
-    writeline("view_as_skill = %s_ac,", s->interid);
-  else if (s->vsSpec)
-    writeline("view_as_skill = %s_vs,", s->interid);
   writeline("specs = {");
   indent_level++;
-  if (s->triggerSpecs)
-    list_foreach(node, s->triggerSpecs) {
-      analyzeTriggerSpec(cast(TriggerSpecObj *, node->data));
-    }
+  list_foreach(node, s->triggerSpecs) {
+    analyzeTriggerSpec(cast(TriggerSpecObj *, node->data));
+  }
   indent_level--;
   writeline("}");
   indent_level--;
-  writeline("}");
-  writeline("if not sgs.Sanguosha:getSkill('%s') then \
-all_skills:append(%s) end\n", s->interid, s->interid);
+  writeline("}\n");
 }
 
 static void analyzeGeneral(GeneralObj *g) {
   const char *orig = sym_lookup(g->id)->origtext;
-  writestr("%s = sgs.General(extension%d, '%s', %s, %lld)\n",
+  writestr("%s = sgs.General(extension%d, \"%s\", %s, %lld)\n",
            orig, currentpack->internal_id, orig,
            sym_lookup(g->kingdom)->origtext, g->hp);
   writestr("%s:setGender(%s)\n", orig, sym_lookup(g->gender)->origtext);
 
   List *node;
   list_foreach(node, g->skills) {
-    const char *skill_orig = cast(const char *, node->data);
-    const char *skill = hash_get(skill_table, skill_orig);
-    if (!skill) {
-      /* yyerror(cast(YYLTYPE *, g), "只能为武将添加文件内的自定义技能！"); */
-      /* 还是允许添加别的技能算了，假设用户知道内部名字 */
-      fprintf(error_output, "警告：为武将“%s”添加的技能 “%s” 不是文件内定义的。如果你\
-输入的技能名称不是游戏内部已经自带的技能的内部名称的话，\
-游戏将会在开始时崩溃！\n\n", g->id, skill_orig);
-      skill = skill_orig;
-    }
-    writestr("%s:addSkill('%s')\n", orig, skill);
+    writestr("%s:addSkill(%s)\n",
+             orig, sym_lookup(cast(const char *, node->data))->origtext);
   }
   writestr("\n");
 }
 
 static void analyzePackage(PackageObj *p) {
   currentpack = p;
-  writestr("local extension%d = sgs.Package('%s')\n",
-           p->internal_id, p->id);
+  writestr("local extension%d = sgs.Package(\"%sp%d\")\n",
+           p->internal_id, readfile_name, p->internal_id);
   writestr("\n");
 
   List *node;
@@ -1667,7 +927,7 @@ static void loadTranslations() {
   indent_level++;
   list_foreach(node, restrtab) {
     str_value *v = cast(str_value *, node->data);
-    writeline("['%s'] = '%s',", v->origtxt, v->translated);
+    writeline("[\"%s\"] = \"%s\",", v->origtxt, v->translated);
   }
   indent_level--;
   writeline("}\n");
@@ -1699,7 +959,6 @@ static void analyzeFuncdef(FuncdefObj *f) {
   indent_level++;
 
   argId = 0;
-  bool roomDefined = false;
   list_foreach(node, f->params) {
     /* type check should done by fkparse */
     d = cast(DefargObj *, node->data);
@@ -1709,35 +968,29 @@ static void analyzeFuncdef(FuncdefObj *f) {
       analyzeExp(d->d);
       writestr(" end\n");
     }
-    if (d->type == TPlayer && !roomDefined) {
-      writeline("local room = arg%d:getRoom()", argId);
-      roomDefined = true;
-    }
     argId++;
   }
   writeline("local self = global_self");
-  writeline("local locals = {}\n");
 
   analyzeBlock(f->funcbody);
   indent_level--;
   writestr("end\n\n");
 
-  list_free(param_gclist, free);
+  list_foreach(node, param_gclist) {
+    free(node->data);
+  }
+  list_free(param_gclist);
   stack_pop(symtab_stack);
   sym_free(param_symtab);
   current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
 void analyzeExtension(ExtensionObj *e) {
-  writeline("require 'fkparser'\n\nlocal global_self\n");
-  writeline("local all_skills = sgs.SkillList()\n");
+  writeline("require \"fkparser\"\n\nlocal global_self\n");
+
+  loadTranslations();
 
   List *node;
-
-  list_foreach(node, e->packages) {
-    analyzePackage(cast(PackageObj *, node->data));
-  }
-
   list_foreach(node, e->funcdefs) {
     analyzeFuncdef(cast(FuncdefObj *, node->data));
   }
@@ -1746,8 +999,9 @@ void analyzeExtension(ExtensionObj *e) {
     analyzeSkill(cast(SkillObj *, node->data));
   }
 
-  loadTranslations();
-  writeline("sgs.Sanguosha:addSkills(all_skills)");
+  list_foreach(node, e->packages) {
+    analyzePackage(cast(PackageObj *, node->data));
+  }
 
   writestr("return {");
   list_foreach(node, e->packages) {

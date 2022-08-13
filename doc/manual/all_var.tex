@@ -4,62 +4,28 @@
 
 表中的数字类型可能指的是枚举值。请自行判断。
 
-\section{为了方便而用的变量}
 \begin{center}
 \begin{longtable}{|c|c|}
 \hline \textbf{变量名} & \textbf{类型} \\
-\hline \verb|你| & 玩家类型 \\
-\hline \verb|不存在的| & 任意类型 \\
-\hline \verb|'其他角色'| & 数组（玩家类型） \\
-\hline
-\end{longtable}
-\end{center}
+\hline \verb|'你'| & 玩家类型 \\
 
-\section{势力}
-
-\begin{center}
-\begin{longtable}{|c|c|}
-\hline \textbf{变量名} & \textbf{类型} \\
 \hline \verb|'魏'| & 数字类型 \\
 \hline \verb|'蜀'| & 数字类型 \\
 \hline \verb|'吴'| & 数字类型 \\
 \hline \verb|'群'| & 数字类型 \\
 \hline \verb|'神'| & 数字类型 \\
-\hline
-\end{longtable}
-\end{center}
 
-\section{花色}
+\hline \verb|'黑桃'| & 数字类型 \\
+\hline \verb|'红桃'| & 数字类型 \\
+\hline \verb|'梅花'| & 数字类型 \\
+\hline \verb|'方块'| & 数字类型 \\
+\hline \verb|'无花色'| & 数字类型 \\
 
-\begin{center}
-\begin{longtable}{|c|c|}
-\hline \textbf{变量名} & \textbf{类型} \\
-\hline \verb|'黑桃'| & 字符串类型 \\
-\hline \verb|'红桃'| & 字符串类型 \\
-\hline \verb|'梅花'| & 字符串类型 \\
-\hline \verb|'方块'| & 字符串类型 \\
-\hline \verb|'无花色'| & 字符串类型 \\
-\hline
-\end{longtable}
-\end{center}
-
-\section{卡牌类型}
-
-\begin{center}
-\begin{longtable}{|c|c|}
-\hline \textbf{变量名} & \textbf{类型} \\
 \hline \verb|'基本牌'| & 数字类型 \\
 \hline \verb|'装备牌'| & 数字类型 \\
 \hline \verb|'锦囊牌'| & 数字类型 \\
-\hline
-\end{longtable}
-\end{center}
+\hline \verb|'技能卡'| & 数字类型 \\
 
-\section{卡牌区域}
-
-\begin{center}
-\begin{longtable}{|c|c|}
-\hline \textbf{变量名} & \textbf{类型} \\
 \hline \verb|'手牌区'| & 数字类型 \\
 \hline \verb|'装备区'| & 数字类型 \\
 \hline \verb|'判定区'| & 数字类型 \\
@@ -67,27 +33,17 @@
 \hline \verb|'弃牌堆'| & 数字类型 \\
 \hline \verb|'牌堆'| & 数字类型 \\
 \hline \verb|'处理区'| & 数字类型 \\
-\hline
-\end{longtable}
-\end{center}
 
-\section{伤害属性}
-
-\begin{center}
-\begin{longtable}{|c|c|}
-\hline \textbf{变量名} & \textbf{类型} \\
 \hline \verb|'无属性'| & 数字类型 \\
 \hline \verb|'火属性'| & 数字类型 \\
 \hline \verb|'雷属性'| & 数字类型 \\
-\hline
-\end{longtable}
-\end{center}
 
-\section{玩家的当前阶段}
+\hline \verb|'锁定技'| & 数字类型 \\
+\hline \verb|'普通技'| & 数字类型 \\
+\hline \verb|'默认技'| & 数字类型 \\
+\hline \verb|'觉醒技'| & 数字类型 \\
+\hline \verb|'限定技'| & 数字类型 \\
 
-\begin{center}
-\begin{longtable}{|c|c|}
-\hline \textbf{变量名} & \textbf{类型} \\
 \hline \verb|'开始阶段'| & 数字类型 \\
 \hline \verb|'准备阶段'| & 数字类型 \\
 \hline \verb|'判定阶段'| & 数字类型 \\
@@ -96,28 +52,12 @@
 \hline \verb|'弃牌阶段'| & 数字类型 \\
 \hline \verb|'结束阶段'| & 数字类型 \\
 \hline \verb|'回合外'| & 数字类型 \\
-\hline
-\end{longtable}
-\end{center}
 
-\section{身份}
-
-\begin{center}
-\begin{longtable}{|c|c|}
-\hline \textbf{变量名} & \textbf{类型} \\
 \hline \verb|'主公'| & 数字类型 \\
 \hline \verb|'忠臣'| & 数字类型 \\
 \hline \verb|'反贼'| & 数字类型 \\
 \hline \verb|'内奸'| & 数字类型 \\
-\hline
-\end{longtable}
-\end{center}
 
-\section{预定义牌名}
-
-\begin{center}
-\begin{longtable}{|c|c|}
-\hline \textbf{变量名} & \textbf{类型} \\
 \hline \verb|'杀'| & 字符串类型 \\
 \hline \verb|'闪'| & 字符串类型 \\
 \hline \verb|'桃'| & 字符串类型 \\
@@ -161,48 +101,12 @@
 \hline \verb|'火攻'| & 字符串类型 \\
 \hline \verb|'朱雀羽扇'| & 字符串类型 \\
 \hline \verb|'骅骝'| & 字符串类型 \\
-\hline
-\end{longtable}
-\end{center}
 
-\section{性别}
-
-\begin{center}
-\begin{longtable}{|c|c|}
-\hline \textbf{变量名} & \textbf{类型} \\
 \hline \verb|'男性'| & 数字类型 \\
 \hline \verb|'女性'| & 数字类型 \\
 \hline \verb|'中性'| & 数字类型 \\
-\hline
-\end{longtable}
-\end{center}
 
-\section{观星用}
-
-\begin{center}
-\begin{longtable}{|c|c|}
-\hline \textbf{变量名} & \textbf{类型} \\
-\hline \verb|'只放置顶部'| & 数字类型 \\
-\hline \verb|'顶部底部均放置'| & 数字类型 \\
-\hline \verb|'只放置底部'| & 数字类型 \\
-\hline
-\end{longtable}
-\end{center}
-
-\section{移牌原因}
-
-\begin{center}
-\begin{longtable}{|c|c|}
-\hline \textbf{变量名} & \textbf{类型} \\
-\hline \verb|'因使用而移动'| & 数字类型 \\
-\hline \verb|'因打出而移动'| & 数字类型 \\
-\hline \verb|'因弃置而移动'| & 数字类型 \\
-\hline \verb|'因重铸而移动'| & 数字类型 \\
-\hline \verb|'因拼点而移动'| & 数字类型 \\
-\hline \verb|'因摸牌而移动'| & 数字类型 \\
-\hline \verb|'因置入而移动'| & 数字类型 \\
-\hline \verb|'因交给而移动'| & 数字类型 \\
-\hline \verb|'因换牌而移动'| & 数字类型 \\
+\hline \verb|'其他角色'| & 数组（玩家类型） \\
 \hline
 \end{longtable}
 \end{center}

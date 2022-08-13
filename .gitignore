@@ -7,5 +7,3 @@ lex.c
 *.kdev4
 doc/manual/*
 !doc/manual/*.tex
-.idea/
-!doc/manual/Makefile
