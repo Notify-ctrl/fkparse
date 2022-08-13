@@ -1,12 +1,4 @@
-set(fkparse_SRCS
-  "main.c"
-  "parse/lex.c"
-  "parse/grammar.c"
-  "parse/error.c"
-  "fundamental/hash.c"
-  "fundamental/list.c"
-  "fundamental/symtab.c"
-  "fundamental/object.c"
+set(fkparse_qsan_SRCS
   "analyze/builtin.c"
   "analyze/generate.c"
 
@@ -17,6 +9,19 @@ set(fkparse_SRCS
   "analyze/builtin/getter.c"
   "analyze/builtin/interaction.c"
   "analyze/builtin/util.c"
+)
+
+set(fkparse_SRCS
+  "main.c"
+  "parse/lex.c"
+  "parse/grammar.c"
+  "parse/error.c"
+  "fundamental/hash.c"
+  "fundamental/list.c"
+  "fundamental/symtab.c"
+  "fundamental/object.c"
+
+  ${fkparse_qsan_SRCS}
 )
 
 add_custom_command(
