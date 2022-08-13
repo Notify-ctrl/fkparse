@@ -570,27 +570,6 @@ function fkp.CreateTriggerSkill(spec)
     table.insert(eve, event)
   end
 
-  local not_triggable_func = {
-    [sgs.Dying] = function(player, data)
-      return player:objectName() ~= data:toDying().who:objectName()
-    end,
-    [sgs.Death] = function(player, data)
-      return player:objectName() ~= data:toDeath().who:objectName()
-    end,
-    [sgs.AskForRetrial] = function(player, data)
-      return player:objectName() ~= data:toJudge().who:objectName()
-    end,
-    [sgs.BeforeCardsMove] = function(player, data)
-      return player:objectName() ~= player:getRoom():getCurrent():objectName()
-    end,
-    [sgs.CardsMoveOneTime] = function(player, data)
-      return player:objectName() ~= player:getRoom():getCurrent():objectName()
-    end,
-    [sgs.TargetConfirmed] = function(player, data)
-      return player:objectName() ~= player:getRoom():getCurrent():objectName()
-    end,
-  }
-
   return sgs.CreateTriggerSkill{
     name = spec.name,
     frequency = freq,
@@ -600,9 +579,6 @@ function fkp.CreateTriggerSkill(spec)
     on_trigger = function(self, event, player, data)
       local room = player:getRoom()
       if not specs[event] then return end
-      if not_triggable_func[event] and not_triggable_func[event](player, data) then
-        return false
-      end
       for _, p in sgs.qlist(room:getAlivePlayers()) do
         if specs[event][1](self, player, p, data) then
           return specs[event][2](self, player, p, data)
