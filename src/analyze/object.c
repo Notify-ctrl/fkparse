@@ -6,7 +6,6 @@
 #include <string.h>
 #include <stdarg.h>
 
-Hash *strtab;
 List *restrtab;
 
 const char *untranslate(const char *trans) {
@@ -24,7 +23,6 @@ void addTranslation(const char *orig, const char *translated) {
   //if (translate(orig)) {
     /* show warning here */
   //}
-  // hash_set(strtab, orig, cast(void *, translated));
   str_value *v = malloc(sizeof(str_value));
   v->origtxt = strdup(orig);
   v->translated = strdup(translated);

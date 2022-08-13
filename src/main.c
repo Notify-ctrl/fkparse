@@ -46,7 +46,6 @@ void parse(char *filename) {
   global_symtab = hash_new();
   stack_push(symtab_stack, cast(Object *, global_symtab));
   current_tab = global_symtab;
-  strtab = hash_new();
   restrtab = list_new();
   mark_table = hash_new();
   skill_table = hash_new();
@@ -90,7 +89,6 @@ void parse(char *filename) {
   free(readfile_name);
   stack_pop(symtab_stack);
   sym_free(global_symtab);
-  hash_free(strtab, NULL);
   list_free(restrtab, freeTranslation);
   hash_free(other_string_table, free);
   hash_free(mark_table, free);

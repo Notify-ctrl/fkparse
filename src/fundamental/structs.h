@@ -124,7 +124,6 @@ typedef struct {
   const char *origtxt;
   const char *translated;
 } str_value;
-extern Hash *strtab;
 extern List *restrtab;
 const char *untranslate(const char *trans);
 void addTranslation(const char *orig, const char *translated);
