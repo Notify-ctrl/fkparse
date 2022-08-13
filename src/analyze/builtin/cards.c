@@ -1,0 +1,52 @@
+#include "builtin.h"
+
+static BuiltinVar v[] = {
+  {"杀", "'slash'", TString},
+  {"闪", "'jink'", TString},
+  {"桃", "'peach'", TString},
+  {"酒", "'analeptic'", TString},
+  {"过河拆桥", "'dismantlement'", TString},
+  {"顺手牵羊", "'snatch'", TString},
+  {"决斗", "'duel'", TString},
+  {"借刀杀人", "'collateral'", TString},
+  {"无中生有", "'ex_nihilo'", TString},
+  {"无懈可击", "'nullification'", TString},
+  {"南蛮入侵", "'savage_assault'", TString},
+  {"万箭齐发", "'archery_attack'", TString},
+  {"桃园结义", "'god_salvation'", TString},
+  {"五谷丰登", "'amazing_grace'", TString},
+  {"闪电", "'lightning'", TString},
+  {"乐不思蜀", "'indulgence'", TString},
+  {"诸葛连弩", "'crossbow'", TString},
+  {"青釭剑", "'qinggang_sword'", TString},
+  {"寒冰剑", "'ice_sword'", TString},
+  {"雌雄双股剑", "'double_sword'", TString},
+  {"青龙偃月刀", "'blade'", TString},
+  {"丈八蛇矛", "'spear'", TString},
+  {"贯石斧", "'axe'", TString},
+  {"方天画戟", "'halberd'", TString},
+  {"麒麟弓", "'kylin_bow'", TString},
+  {"八卦阵", "'eight_diagram'", TString},
+  {"仁王盾", "'renwang_shield'", TString},
+  {"的卢", "'dilu'", TString},
+  {"绝影", "'jueying'", TString},
+  {"爪黄飞电", "'zhuahuangfeidian'", TString},
+  {"赤兔", "'chitu'", TString},
+  {"大宛", "'dayuan'", TString},
+  {"紫骍", "'zixing'", TString},
+  {"雷杀", "'thunder_slash'", TString},
+  {"火杀", "'fire_slash'", TString},
+  {"古锭刀", "'guding_blade'", TString},
+  {"藤甲", "'vine'", TString},
+  {"兵粮寸断", "'supply_shortage'", TString},
+  {"铁索连环", "'iron_chain'", TString},
+  {"白银狮子", "'sliver_lion'", TString},
+  {"火攻", "'fire_attack'", TString},
+  {"朱雀羽扇", "'fan'", TString},
+  {"骅骝", "'hualiu'", TString},
+  {NULL, NULL, TNone}
+};
+
+void load_builtin_cards() {
+  loadmodule(NULL, v);
+}

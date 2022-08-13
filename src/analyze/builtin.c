@@ -1,223 +1,111 @@
-#include "structs.h"
-#include "ast.h"
-#include <stdlib.h>
+#include "builtin.h"
 
-static struct {
-  char *dst;
-  char *src;
-  int type;
-} reserved[] = {
-  {"你", "player", TPlayer},
+static void loadfuncdef(Proto *p) {
+  FuncdefObj *def = malloc(sizeof(FuncdefObj));
+  def->objtype = Obj_Funcdef;
+  def->funcname = strdup(p->src);
+  sym_new_entry(p->dst, TFunc, cast(const char *, def), true);
+  def->rettype = p->rettype;
+  def->funcbody = NULL;
 
-  {"魏", "\"wei\"", TNumber},
-  {"蜀", "\"shu\"", TNumber},
-  {"吴", "\"wu\"", TNumber},
-  {"群", "\"qun\"", TNumber},
-  {"神", "\"god\"", TNumber},
+  List *l = list_new();
+  for (int i = 0; i < p->argcount; i++) {
+    struct ProtoArg *arg = &p->args[i];
+    DefargObj *defarg = malloc(sizeof(DefargObj));
+    defarg->first_line = -1;
+    defarg->objtype = Obj_Defarg;
+    defarg->name = strdup(arg->name);
+    defarg->type = arg->argtype;
 
-  {"黑桃", "sgs.Card_Spade", TNumber},
-  {"红桃", "sgs.Card_Heart", TNumber},
-  {"梅花", "sgs.Card_Club", TNumber},
-  {"方块", "sgs.Card_Diamond", TNumber},
-  {"无花色", "sgs.Card_NoSuit", TNumber},
+    if (!arg->have_default) {
+      defarg->d = NULL;
+    } else {
+      ExpressionObj *e = malloc(sizeof(ExpressionObj));
+      e->objtype = Obj_Expression;
+      e->valuetype = arg->argtype;
+      e->optype = 0;
+      e->strvalue = NULL;
+      e->varValue = NULL;
+      e->func = NULL;
+      e->array = NULL;
+      e->oprand1 = NULL;
+      e->oprand2 = NULL;
+      e->bracketed = false;
+      e->param_name = strdup(arg->name);
 
-  {"基本牌", "sgs.Card_TypeBasic", TNumber},
-  {"装备牌", "sgs.Card_TypeEquip", TNumber},
-  {"锦囊牌", "sgs.Card_TypeTrick", TNumber},
-  {"技能卡", "sgs.Card_TypeSkill", TNumber},
+      VarObj *v;
+      switch (arg->argtype) {
+      case TNumber:
+        e->exptype = ExpNum;
+        e->value = arg->d.n;
+        break;
+      case TString:
+        e->exptype = ExpStr;
+        e->strvalue = strdup(arg->d.s);
+        break;
+      case TBool:
+        e->exptype = ExpBool;
+        e->value = arg->d.n;
+        break;
+      default:
+        e->exptype = ExpVar;
+        v = malloc(sizeof(VarObj));
+        v->objtype = Obj_Var;
+        v->name = strdup(arg->d.s);
+        v->type = arg->argtype;
+        v->obj = NULL;
+        e->varValue = v;
+        break;
+      }
+      defarg->d = e;
+    }
+    list_append(l, cast(Object *, defarg));
+  }
+  def->params = l;
+}
 
-  {"手牌区", "sgs.Player_PlaceHand", TNumber},
-  {"装备区", "sgs.Player_PlaceEquip", TNumber},
-  {"判定区", "sgs.Player_PlaceDelayedTrick", TNumber},
-  {"武将牌上", "sgs.Player_PlaceSpecial", TNumber},
-  {"弃牌堆", "sgs.Player_DiscardPile", TNumber},
-  {"牌堆", "sgs.Player_DrawPile", TNumber},
-  {"处理区", "sgs.Player_PlaceTable", TNumber},
+static void loadvar(BuiltinVar *v) {
+  sym_new_entry(v->dst, v->type, v->src, true);
+}
 
-  {"无属性", "sgs.DamageStruct_Normal", TNumber},
-  {"火属性", "sgs.DamageStruct_Fire", TNumber},
-  {"雷属性", "sgs.DamageStruct_Thunder", TNumber},
+void loadmodule(Proto *ps, BuiltinVar *vs) {
+  if (ps != NULL)
+    for (int i = 0; ; i++) {
+      Proto *p = &ps[i];
+      if (p->dst == NULL) break;
+      loadfuncdef(p);
+    }
 
-  {"锁定技", "sgs.Skill_Compulsory", TNumber},
-  {"普通技", "sgs.Skill_NotFrequent", TNumber},
-  {"默认技", "sgs.Skill_Frequent", TNumber},
-  {"觉醒技", "sgs.Skill_Wake", TNumber},
-  {"限定技", "sgs.Skill_Limited", TNumber},
+  if (vs != NULL)
+    for (int i = 0; ; i++) {
+      if (vs[i].dst == NULL) break;
+      loadvar(&vs[i]);
+    }
+}
 
-  {"开始阶段", "sgs.Player_RoundStart", TNumber},
-  {"准备阶段", "sgs.Player_Start", TNumber},
-  {"判定阶段", "sgs.Player_Judge", TNumber},
-  {"摸牌阶段", "sgs.Player_Draw", TNumber},
-  {"出牌阶段", "sgs.Player_Play", TNumber},
-  {"弃牌阶段", "sgs.Player_Discard", TNumber},
-  {"结束阶段", "sgs.Player_Finish", TNumber},
-  {"回合外", "sgs.Player_NotActive", TNumber},
-
-  {"主公", "sgs.Player_Lord", TNumber},
-  {"忠臣", "sgs.Player_Loyalist", TNumber},
-  {"反贼", "sgs.Player_Rebel", TNumber},
-  {"内奸", "sgs.Player_Renegade", TNumber},
-
-  {"杀", "\"slash\"", TString},
-  {"闪", "\"jink\"", TString},
-  {"桃", "\"peach\"", TString},
-  {"酒", "\"analeptic\"", TString},
-  {"过河拆桥", "\"dismantlement\"", TString},
-  {"顺手牵羊", "\"snatch\"", TString},
-  {"决斗", "\"duel\"", TString},
-  {"借刀杀人", "\"collateral\"", TString},
-  {"无中生有", "\"ex_nihilo\"", TString},
-  {"无懈可击", "\"nullification\"", TString},
-  {"南蛮入侵", "\"savage_assault\"", TString},
-  {"万箭齐发", "\"archery_attack\"", TString},
-  {"桃园结义", "\"god_salvation\"", TString},
-  {"五谷丰登", "\"amazing_grace\"", TString},
-  {"闪电", "\"lightning\"", TString},
-  {"乐不思蜀", "\"indulgence\"", TString},
-  {"诸葛连弩", "\"crossbow\"", TString},
-  {"青釭剑", "\"qinggang_sword\"", TString},
-  {"寒冰剑", "\"ice_sword\"", TString},
-  {"雌雄双股剑", "\"double_sword\"", TString},
-  {"青龙偃月刀", "\"blade\"", TString},
-  {"丈八蛇矛", "\"spear\"", TString},
-  {"贯石斧", "\"axe\"", TString},
-  {"方天画戟", "\"halberd\"", TString},
-  {"麒麟弓", "\"kylin_bow\"", TString},
-  {"八卦阵", "\"eight_diagram\"", TString},
-  {"仁王盾", "\"renwang_shield\"", TString},
-  {"的卢", "\"dilu\"", TString},
-  {"绝影", "\"jueying\"", TString},
-  {"爪黄飞电", "\"zhuahuangfeidian\"", TString},
-  {"赤兔", "\"chitu\"", TString},
-  {"大宛", "\"dayuan\"", TString},
-  {"紫骍", "\"zixing\"", TString},
-  {"雷杀", "\"thunder_slash\"", TString},
-  {"火杀", "\"fire_slash\"", TString},
-  {"古锭刀", "\"guding_blade\"", TString},
-  {"藤甲", "\"vine\"", TString},
-  {"兵粮寸断", "\"supply_shortage\"", TString},
-  {"铁索连环", "\"iron_chain\"", TString},
-  {"白银狮子", "\"sliver_lion\"", TString},
-  {"火攻", "\"fire_attack\"", TString},
-  {"朱雀羽扇", "\"fan\"", TString},
-  {"骅骝", "\"hualiu\"", TString},
-
-  {"男性", "sgs.General_Male", TNumber},
-  {"女性", "sgs.General_Female", TNumber},
-  {"中性", "sgs.General_Neuter", TNumber},
-
-  {"其他角色", "room:getOtherPlayers(player)", TPlayerList},
-
-  {NULL, NULL, TNone}
+typedef void (*InitFunc)();
+static InitFunc init_funcs[] = {
+  load_builtin_action,
+  load_builtin_cards,
+  load_builtin_enum,
+  load_builtin_func,
+  load_builtin_getter,
+  load_builtin_interaction,
+  load_builtin_util,
+  NULL
 };
 
 void sym_init() {
-  global_symtab = hash_new();
+  if (builtin_symtab != NULL) return;
+  builtin_symtab = hash_new();
   symtab_stack = stack_new();
-  stack_push(symtab_stack, cast(Object *, global_symtab));
-  current_tab = global_symtab;
+  stack_push(symtab_stack, cast(Object *, builtin_symtab));
+  current_tab = builtin_symtab;
   last_lookup_tab = NULL;
 
-  symtab_item *v;
-  for (int i=0; ; i++) {
-    if (reserved[i].dst == NULL) break;
-    sym_new_entry(reserved[i].dst, reserved[i].type, reserved[i].src, true);
+  for (int i = 0; ; i++) {
+    if (init_funcs[i] == NULL)
+      break;
+    init_funcs[i]();
   }
 }
-
-char *event_table[] = {
-  "sgs.NonTrigger",
-
-  "sgs.GameStart",
-  "sgs.TurnStart",
-  "sgs.EventPhaseStart",
-  "sgs.EventPhaseProceeding",
-  "sgs.EventPhaseEnd",
-  "sgs.EventPhaseChanging",
-  "sgs.EventPhaseSkipping",
-
-  "sgs.DrawNCards",
-  "sgs.AfterDrawNCards",
-  "sgs.DrawInitialCards",
-  "sgs.AfterDrawInitialCards",
-
-  "sgs.PreHpRecover",
-  "sgs.HpRecover",
-  "sgs.PreHpLost",
-  "sgs.HpLost",
-  "sgs.HpChanged",
-  "sgs.MaxHpChanged",
-
-  "sgs.EventLoseSkill",
-  "sgs.EventAcquireSkill",
-
-  "sgs.StartJudge",
-  "sgs.AskForRetrial",
-  "sgs.FinishRetrial",
-  "sgs.FinishJudge",
-
-  "sgs.PindianVerifying",
-  "sgs.Pindian",
-
-  "sgs.TurnedOver",
-  "sgs.ChainStateChanged",
-
-  "sgs.ConfirmDamage",
-  "sgs.Predamage",
-  "sgs.DamageForseen",
-  "sgs.DamageCaused",
-  "sgs.DamageInflicted",
-  "sgs.PreDamageDone",
-  "sgs.DamageDone",
-  "sgs.Damage",
-  "sgs.Damaged",
-  "sgs.DamageComplete",
-
-  "sgs.EnterDying",
-  "sgs.Dying",
-  "sgs.QuitDying",
-  "sgs.AskForPeaches",
-  "sgs.AskForPeachesDone",
-  "sgs.Death",
-  "sgs.BuryVictim",
-  "sgs.BeforeGameOverJudge",
-  "sgs.GameOverJudge",
-  "sgs.GameFinished",
-
-  "sgs.SlashEffected",
-  "sgs.SlashProceed",
-  "sgs.SlashHit",
-  "sgs.SlashMissed",
-
-  "sgs.JinkEffect",
-  "sgs.NullificationEffect",
-
-  "sgs.CardAsked",
-  "sgs.PreCardResponded",
-  "sgs.CardResponded",
-  "sgs.BeforeCardsMove",
-  "sgs.CardsMoveOneTime",
-
-  "sgs.PreCardUsed",
-  "sgs.CardUsed",
-  "sgs.TargetSpecifying",
-  "sgs.TargetConfirming",
-  "sgs.TargetSpecified",
-  "sgs.TargetConfirmed",
-  "sgs.CardEffect",
-  "sgs.CardEffected",
-  "sgs.PostCardEffected",
-  "sgs.CardFinished",
-  "sgs.TrickCardCanceling",
-  "sgs.TrickEffect",
-
-  "sgs.ChoiceMade",
-
-  "sgs.StageChange",
-  "sgs.FetchDrawPileCard",
-  "sgs.Debut",
-
-  "sgs.TurnBroken",
-
-  "sgs.NumOfEvents"
-};

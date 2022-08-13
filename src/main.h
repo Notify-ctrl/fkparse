@@ -4,16 +4,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "object.h"
 
-extern int yylineno;
+extern FILE *in_file;
 extern FILE *yyin;
 extern FILE *yyout;
-int yylex();
-void yyerror(const char *msg, ...);
+extern int error_occured;
+int yylex_destroy();
 int yyparse();
 
 extern char *readfile_name;
 extern FILE *error_output;
+extern ExtensionObj *extension;
 
 #endif // _MAIN_H
 
