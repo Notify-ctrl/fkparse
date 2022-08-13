@@ -499,6 +499,18 @@ fkp.functions.swapCards = function(from, to, skill_name, place)
   end
 end
 
+fkp.functions.turnOver = function(player)
+  player:turnOver()
+end
+
+fkp.functions.playExtraTurn = function(player)
+  player:gainAnExtraTurn()
+end
+
+fkp.functions.skipPhase = function(player, phase)
+  player:skip(phase)
+end
+
 function fkp.newlist(t)
   local element_type = swig_type(t[1])
   local ret

@@ -138,6 +138,16 @@ static Proto f[] = {
     {"技能名", TString, true, {.s = ""}},
     {"区域", TNumber, true, {.n = 0}},  /* sgs.Player_PlaceHand */
   }},
+  {"__turnOver", "fkp.functions.turnOver", TNone, 1, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+  }},
+  {"__playExtraTurn", "fkp.functions.playExtraTurn", TNone, 1, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+  }},
+  {"__skipPhase", "fkp.functions.skipPhase", TNone, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"阶段", TNumber, false, {.s = NULL}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 

@@ -112,6 +112,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token JIANG RESULT FIX SELF AZHANG USE RESPOND
 %token SENDLOG
 %token GIVE PINDIAN SWAPCARD
+%token TURNOVER EXTRATURN SKIP
 
 %type <list> eliflist
 %type <list> funcdefList defargs defarglist skillList packageList generalList
@@ -164,6 +165,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> askForCardChosen
 %type <func_call> chat sendlog
 %type <func_call> throwCards giveCards pindian swapCards
+%type <func_call> turnOver playExtraTurn skipPhase
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -602,6 +604,9 @@ action      : drawCards
             | giveCards
             | pindian
             | swapCards
+            | turnOver
+            | playExtraTurn
+            | skipPhase
               { $$ = $1; }
             ;
 
@@ -948,6 +953,31 @@ swapCards : exp YU exp SWAPCARD {
               $$ = newFunccall(
                 strdup("__swapCards"),
                 newParams(2, "来源", $1, "目标", $3)
+              );
+            }
+          ;
+
+turnOver  : exp TURNOVER {
+              $$ = newFunccall(
+                strdup("__turnOver"),
+                newParams(1, "玩家", $1)
+              );
+
+            }
+          ;
+
+playExtraTurn : exp EXEC EXTRATURN {
+                  $$ = newFunccall(
+                    strdup("__playExtraTurn"),
+                    newParams(1, "玩家", $1)
+                  );
+                }
+              ;
+
+skipPhase : exp SKIP exp {
+              $$ = newFunccall(
+                strdup("__skipPhase"),
+                newParams(2, "玩家", $1, "阶段", $3)
               );
             }
           ;
