@@ -189,6 +189,9 @@ static int yycolumn = 1;
 "交给"    { return GIVE; }
 "拼点"    { return PINDIAN; }
 "换牌"    { return SWAPCARD; }
+"翻面"    { return TURNOVER; }
+"额外回合"  { return EXTRATURN; }
+"跳过"    { return SKIP; }
 
 "游戏开始时" |
 "GameStart"         { yylval->enum_v = GameStart; return EVENT; }
