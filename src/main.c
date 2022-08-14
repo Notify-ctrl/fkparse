@@ -97,6 +97,10 @@ void parse(char *filename) {
   yylex_destroy();
 }
 
+int fkp_parse(const char *filename, char **buffer) {
+  return 0;
+}
+
 int main(int argc, char **argv) {
   sym_init();
   if (argc > 1) {

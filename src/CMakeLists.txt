@@ -40,4 +40,9 @@ add_custom_command(
   COMMAND ${FLEX} -o ${PROJECT_SOURCE_DIR}/src/parse/lex.c ${PROJECT_SOURCE_DIR}/src/parse/lex.l
 )
 
-add_executable(fkparse ${fkparse_SRCS})
+add_library(fkparse SHARED ${fkparse_SRCS})
+
+set_target_properties(fkparse
+  PROPERTIES
+  C_VISIBILITY_PRESET hidden
+)

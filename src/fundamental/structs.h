@@ -6,6 +6,11 @@
 extern char *strdup(const char *s);
 #include <stdbool.h>
 
+/* Note: by default, all symbols are hidden by the make system
+ * so we need a macro like this to make API func visible in
+ * the compiled library file */
+#define FKP_API __attribute__ ((visibility ("default")))
+
 /**
  * 所有元素的第一个成员都是objtype
  * 这个结构体用来代表所有可能的成员
@@ -133,5 +138,9 @@ extern Hash *skill_table;
 extern Hash *other_string_table;
 
 extern char *event_table[];
+
+/* ------------------------- */
+
+FKP_API int fkp_parse(const char *filename, char **buffer);
 
 #endif
