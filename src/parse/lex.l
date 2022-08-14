@@ -23,6 +23,13 @@ static int yycolumn = 1;
     return IDENTIFIER;
     }
 
+ /* ‘[^’]+’ */
+"‘"([^\xe2]|\xe2[^\x80]|\xe2\x80[^\x99])+"’" {
+    yylval->s = strdup(yytext + 3);
+    yylval->s[strlen(yylval->s) - 3] = 0;
+    return IDENTIFIER;
+    }
+
  /* Frequently used IDENTIFIER */
 "你" |
 "X" |
@@ -35,6 +42,13 @@ static int yycolumn = 1;
 \"[^\"\n]*\" {
     yylval->s = strdup(yytext + 1);
     yylval->s[strlen(yylval->s) - 1] = 0;
+    return STRING;
+    }
+
+ /* “[^”]+” */
+"“"([^\xe2]|\xe2[^\x80]|\xe2\x80[^\x9d])+"”" {
+    yylval->s = strdup(yytext + 3);
+    yylval->s[strlen(yylval->s) - 3] = 0;
     return STRING;
     }
 
@@ -51,10 +65,13 @@ static int yycolumn = 1;
 "触发技" |
 "TriggerSkill"  { return TRIGGER; }
 "时机:" |
+"时机："   |
 "Event:"        { return EVENTI; }
 "条件:" |
+"条件："   |
 "Condition:"    { return COND; }
 "效果:" |
+"效果："   |
 "Effect:"       { return EFFECT; }
 "令" |
 "let"           { return LET; }
@@ -72,6 +89,7 @@ static int yycolumn = 1;
 "以上" |
 "end"           { return END; }
 "重复此流程:" |
+"重复此流程：" |
 "repeat"        { return REPEAT; }
 "直到" |
 "until"         { return UNTIL; }
@@ -141,40 +159,56 @@ static int yycolumn = 1;
 "主动技" |
 "ActiveSkill"   { return ACTIVE; }
 "选牌规则:" |
+"选牌规则：" |
 "CardFilter:"   { return CARD_FILTER; }
 "选目标规则:" |
+"选目标规则：" |
 "TargetFilter:" { return TARGET_FILTER; }
 "可以点确定:" |
+"可以点确定：" |
 "Feasible:"     { return FEASIBLE; }
 "使用后:" |
+"使用后：" |
 "AfterUse:"     { return ON_USE; }
 "视为技" |
 "ViewAsSkill"   { return VIEWAS; }
 "视为规则:" |
+"视为规则：" |
 "ViewAsRule:"   { return VSRULE; }
 "响应条件:" |
+"响应条件：" |
 "Responsable:"  { return RESPONSECOND; }
 "响应规则:" |
+"响应规则：" |
 "ResponseRule:" { return RESPONSABLE; }
 "状态技" |
 "StatusSkill"   { return STATUSSKILL; }
 "禁止指定目标:" |
+"禁止指定目标：" |
 "Prohibited:"   { return IS_PROHIBITED; }
 "距离修正:" |
+"距离修正：" |
 "DistanceCorrect:"  { return DISTANCE_CORRECT; }
 "手牌上限修正:" |
+"手牌上限修正：" |
 "Maxcards Extra:"   { return MAX_EXTRA; }
 "手牌上限固定:" |
+"手牌上限固定：" |
 "Maxcards Fixed:"   { return MAX_FIXED; }
 "出牌次数修正:" |
+"出牌次数修正：" |
 "Residue:"      { return TMD_RESIDUE; }
 "出牌距离修正:" |
+"出牌距离修正：" |
 "DistanceLimit:"    { return TMD_DISTANCE; }
 "出牌目标数量修正:" |
+"出牌目标数量修正：" |
 "ExtraTarget:"      { return TMD_EXTARGET; }
 "攻击范围修正:" |
+"攻击范围修正：" |
 "AtkRange Extra:"   { return ATKRANGE_EXTRA; }
 "攻击范围固定:" |
+"攻击范围固定：" |
 "AtkRange Fixed:"   { return ATKRANGE_FIXED; }
 
 "因" { return BECAUSE; }
@@ -352,6 +386,12 @@ static int yycolumn = 1;
 "," |
 ":" { return yytext[0]; }
 
+"（"   { return '('; }
+"）"   { return ')'; }
+"｛"   { return '{'; }
+"｝"   { return '}'; }
+"："   { return ':'; }
+
  /* Type identifiers */
 "数字类型"  |
 "TNumber"   { yylval->enum_v = TNumber; return TYPE; }
@@ -412,6 +452,7 @@ static int yycolumn = 1;
 "||"  { yylval->enum_v = 8; return LOGICOP; }
 
  /* Below are ignored */
+"注:".*
 "注：".*
 "//".*
 "--".*
