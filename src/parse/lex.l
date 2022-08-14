@@ -388,6 +388,8 @@ static int yycolumn = 1;
 
 "（"   { return '('; }
 "）"   { return ')'; }
+"｛"   { return '{'; }
+"｝"   { return '}'; }
 "："   { return ':'; }
 
  /* Type identifiers */
