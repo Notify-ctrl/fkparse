@@ -1,4 +1,5 @@
 #include "main.h"
+#include "fkparse.h"
 #include <stdarg.h>
 
 char *readfile_name;
@@ -100,7 +101,15 @@ void parse(const char *filename) {
   yylex_destroy();
 }
 
-int fkp_parse(const char *filename) {
+fkp_parser *fkp_new_parser() {
+  fkp_parser *ret = malloc(sizeof(fkp_parser));
+  ret->generals = (fkp_hash *)hash_new();
+  ret->skills = (fkp_hash *)hash_new();
+  ret->marks = (fkp_hash *)hash_new();
+  return ret;
+}
+
+int fkp_parse(fkp_parser *p, const char *filename) {
   sym_init();
 
   parse(filename);
@@ -109,6 +118,13 @@ int fkp_parse(const char *filename) {
   list_free(symtab_stack, NULL);
 
   return error_occured;
+}
+
+void fkp_close(fkp_parser *p) {
+  hash_free((Hash *)p->generals, free);
+  hash_free((Hash *)p->skills, free);
+  hash_free((Hash *)p->marks, free);
+  free(p);
 }
 
 int main(int argc, char **argv) {
