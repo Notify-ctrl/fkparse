@@ -29,8 +29,16 @@ typedef struct {
   fkp_hash *marks;
 } fkp_parser;
 
+typedef enum {
+  FKP_QSAN_LUA,
+  FKP_QSAN_HEG_LUA,
+  FKP_NONAME_JS,
+  FKP_DSGS_TS,
+  FKP_FK_LUA,
+} fkp_analyze_type;
+
 FKP_API fkp_parser *fkp_new_parser();
-FKP_API int fkp_parse(fkp_parser *p, const char *filename);
+FKP_API int fkp_parse(fkp_parser *p, const char *filename, fkp_analyze_type type);
 FKP_API void fkp_close(fkp_parser *p);
 
 #ifdef __cplusplus

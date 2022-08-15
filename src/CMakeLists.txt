@@ -1,16 +1,3 @@
-set(fkparse_qsan_SRCS
-  "analyze/builtin.c"
-  "analyze/generate.c"
-
-  "analyze/builtin/action.c"
-  "analyze/builtin/cards.c"
-  "analyze/builtin/enum.c"
-  "analyze/builtin/func.c"
-  "analyze/builtin/getter.c"
-  "analyze/builtin/interaction.c"
-  "analyze/builtin/util.c"
-)
-
 set(fkparse_SRCS
   "main.c"
   "parse/lex.c"
@@ -20,9 +7,14 @@ set(fkparse_SRCS
   "fundamental/list.c"
   "fundamental/symtab.c"
   "fundamental/object.c"
-
-  ${fkparse_qsan_SRCS}
 )
+
+target_sources(fkparse PRIVATE ${fkparse_SRCS})
+target_include_directories(fkparse PRIVATE .)
+target_include_directories(fkparse PRIVATE parse)
+target_include_directories(fkparse PRIVATE fundamental)
+
+add_subdirectory(analyze_qsan)
 
 add_custom_command(
   PRE_BUILD
@@ -39,8 +31,6 @@ add_custom_command(
   COMMENT "Generating lex.c"
   COMMAND ${FLEX} -o ${PROJECT_SOURCE_DIR}/src/parse/lex.c ${PROJECT_SOURCE_DIR}/src/parse/lex.l
 )
-
-add_library(fkparse SHARED ${fkparse_SRCS})
 
 set_target_properties(fkparse
   PROPERTIES

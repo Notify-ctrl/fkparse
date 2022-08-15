@@ -28,7 +28,7 @@ static void freeTranslation(void *ptr) {
   free(s);
 }
 
-void parse(const char *filename) {
+void parse(const char *filename, fkp_analyze_type type) {
   yyin = fopen(filename, "r");
   if (!yyin) {
     error_occured = 1;
@@ -59,7 +59,12 @@ void parse(const char *filename) {
 #endif
 
   if (yyparse() == 0) {
-    analyzeExtension(extension);
+    switch (type) {
+    case FKP_QSAN_LUA:
+      analyzeExtensionQSan(extension);
+    default:
+      break;
+    }
     freeObject(extension);
   } else {
     fprintf(error_output, "发生不可恢复的语法错误，编译中断。\n");
@@ -105,7 +110,7 @@ static void fkp_reset(fkp_parser *p) {
   p->marks = (fkp_hash *)hash_new();
 }
 
-int fkp_parse(fkp_parser *p, const char *filename) {
+int fkp_parse(fkp_parser *p, const char *filename, fkp_analyze_type type) {
   global_symtab = hash_new();
   stack_push(symtab_stack, cast(Object *, global_symtab));
   current_tab = global_symtab;
@@ -115,7 +120,7 @@ int fkp_parse(fkp_parser *p, const char *filename) {
   skill_table = hash_new();
   other_string_table = hash_new();
 
-  parse(filename);
+  parse(filename, type);
 
   if (!error_occured) {
     fkp_reset(p);
@@ -148,7 +153,7 @@ int main(int argc, char **argv) {
   fkp_parser *p = fkp_new_parser();
   if (argc > 1) {
     for (int i = 2; i <= argc; i++) {
-      fkp_parse(p, argv[i - 1]);
+      fkp_parse(p, argv[i - 1], FKP_QSAN_LUA);
     }
     fkp_close(p);
     return 0;

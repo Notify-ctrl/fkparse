@@ -15,9 +15,5 @@ else ()
   set(BISON bison)
 endif ()
 
-include_directories(src)
-include_directories(src/analyze)
-include_directories(src/parse)
-include_directories(src/fundamental)
-
+add_library(fkparse SHARED)
 add_subdirectory(src)

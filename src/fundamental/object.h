@@ -11,7 +11,7 @@ typedef struct {
 } ExtensionObj;
 
 ExtensionObj *newExtension(List *funcs, List *skills, List *packs);
-void analyzeExtension(ExtensionObj *e);
+void analyzeExtensionQSan(ExtensionObj *e);
 
 typedef struct {
   ObjectHeader;
