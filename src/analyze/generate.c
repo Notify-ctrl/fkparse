@@ -800,7 +800,7 @@ static void initData(int event) {
       writeline("local use = data:toCardUse()");
       defineLocal("使用的牌", "use.card", TCard);
       defineLocal("使用者", "use.from", TPlayer);
-      defineLocal("目标", "use.to", TPlayer);
+      defineLocal("目标", "use.to", TPlayerList);
       defineLocal("持有者是使用者", "use.m_isOwnerUse", TBool);
       defineLocal("计入使用次数", "use.m_addHistory", TBool);
       defineLocal("是手牌", "use.m_isHandcard", TBool);
