@@ -141,6 +141,6 @@ extern char *event_table[];
 
 /* ------------------------- */
 
-FKP_API int fkp_parse(const char *filename, char **buffer);
+FKP_API int fkp_parse(const char *filename);
 
 #endif

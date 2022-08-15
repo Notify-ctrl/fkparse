@@ -7,14 +7,14 @@ FILE *error_output;
 int error_occured = 0;
 ExtensionObj *extension;
 
-static char *getFileName(char *path, int include_ext) {
-  char *retVal = path, *p;
+static char *getFileName(const char *path, int include_ext) {
+  const char *p;
   for (p = path; *p; p++) {
     if (*p == '/' || *p == '\\' || *p == ':') {
-      retVal = p + 1;
+      path = p + 1;
     }
   }
-  retVal = strdup(retVal);
+  char *retVal = strdup(path);
   if (!include_ext)
     retVal[strlen(retVal) - 4] = 0;
   return retVal;
@@ -27,20 +27,23 @@ static void freeTranslation(void *ptr) {
   free(s);
 }
 
-void parse(char *filename) {
-  if (strlen(filename) > 40) {
-    fprintf(stderr, "filename %s is too long, max length 40\n", filename);
-    return;
-  }
+void parse(const char *filename) {
   yyin = fopen(filename, "r");
   if (!yyin) {
-    fprintf(stderr, "cannot open file %s\n", filename);
+    error_occured = 1;
+    fprintf(error_output, "cannot open file %s\n", filename);
     return;
   }
   in_file = fopen(filename, "r");
   char f[64];
   memset(f, 0, sizeof(f));
   readfile_name = getFileName(filename, 0);
+  if (strlen(readfile_name) > 40) {
+    error_occured = 1;
+    fprintf(error_output, "filename %s is too long, max length 40\n", readfile_name);
+    free(readfile_name);
+    return;
+  }
   sprintf(f, "%s.lua", readfile_name);
 
   global_symtab = hash_new();
@@ -97,8 +100,15 @@ void parse(char *filename) {
   yylex_destroy();
 }
 
-int fkp_parse(const char *filename, char **buffer) {
-  return 0;
+int fkp_parse(const char *filename) {
+  sym_init();
+
+  parse(filename);
+
+  sym_free(builtin_symtab);
+  list_free(symtab_stack, NULL);
+
+  return error_occured;
 }
 
 int main(int argc, char **argv) {
