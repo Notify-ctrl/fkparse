@@ -113,7 +113,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token SENDLOG
 %token GIVE PINDIAN SWAPCARD
 %token TURNOVER EXTRATURN SKIP
-%token DAO DISTANCE ATTACK INSIDE AT ALIVE DEAD
+%token DAO DISTANCE ATTACK INSIDE AT ALIVE DEAD STATUS
 
 %type <list> eliflist
 %type <list> funcdefList defargs defarglist skillList packageList generalList
@@ -1014,14 +1014,14 @@ distanceTo : exp DAO exp DISTANCE {
              }
             ;
 
-isAlive: exp ALIVE {
+isAlive: exp ALIVE STATUS {
                 $$ = newFunccall(
                   strdup("__isAlive"),
                   newParams(1, "玩家", $1)
                 );
              }
             ;
-isDead: exp DEAD {
+isDead: exp DEAD STATUS {
                 $$ = newFunccall(
                   strdup("__isDead"),
                   newParams(1, "玩家", $1)
