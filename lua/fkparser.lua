@@ -232,6 +232,25 @@ fkp.functions = {
     return room:retrial(card, player, judge, skill_name, exchange)
   end,
 
+  getAttackRange = function(player,include_weapon)
+    return player:getAttackRange(include_weapon)
+  end,
+
+  inMyAttackRange = function(player, other, distance_fix)
+    return player:inMyAttackRange(other, distance_fix)
+  end,
+
+  distanceTo = function(player, other, distance_fix)
+    return player:distanceTo(other,distance_fix)
+  end,
+
+  isAlive = function(player)
+    return player:isAlive()
+  end,
+
+  isDead = function(player)
+    return player:isDead()
+  end
 }
 
 fkp.functions.askForCard = function(player, pattern, prompt, skill_name)

@@ -113,6 +113,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token SENDLOG
 %token GIVE PINDIAN SWAPCARD
 %token TURNOVER EXTRATURN SKIP
+%token DAO DISTANCE ATTACK INSIDE AT ALIVE DEAD
 
 %type <list> eliflist
 %type <list> funcdefList defargs defarglist skillList packageList generalList
@@ -166,6 +167,8 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> chat sendlog
 %type <func_call> throwCards giveCards pindian swapCards
 %type <func_call> turnOver playExtraTurn skipPhase
+%type <func_call> getAttackRange inMyAttackRange distanceTo
+%type <func_call> isAlive isDead
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -607,6 +610,11 @@ action      : drawCards
             | turnOver
             | playExtraTurn
             | skipPhase
+            | getAttackRange
+            | inMyAttackRange
+            | distanceTo
+            | isAlive
+            | isDead
               { $$ = $1; }
             ;
 
@@ -982,6 +990,44 @@ skipPhase : exp SKIP exp {
             }
           ;
 
+getAttackRange : exp ATTACK DISTANCE {
+               $$ = newFunccall(
+                 strdup("__getAttackRange"),
+                 newParams(1, "玩家", $1)
+               );
+             }
+           ;
+
+inMyAttackRange : exp AT exp ATTACK DISTANCE INSIDE {
+                $$ = newFunccall(
+                  strdup("__inMyAttackRange"),
+                  newParams(2, "玩家", $3, "目标", $1)
+                );
+             }
+            ;
+
+distanceTo : exp DAO exp DISTANCE {
+                $$ = newFunccall(
+                  strdup("__distanceTo"),
+                  newParams(2, "玩家", $1, "目标", $3)
+                );
+             }
+            ;
+
+isAlive: exp ALIVE {
+                $$ = newFunccall(
+                  strdup("__isAlive"),
+                  newParams(1, "玩家", $1)
+                );
+             }
+            ;
+isDead: exp DEAD {
+                $$ = newFunccall(
+                  strdup("__isDead"),
+                  newParams(1, "玩家", $1)
+                );
+             }
+            ;
 %%
 
 static int yyreport_syntax_error(const yypcontext_t *ctx) {

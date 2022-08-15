@@ -155,6 +155,13 @@ static int yycolumn = 1;
 "一张" { return AZHANG; }
 "使用" { return USE; }
 "打出" { return RESPOND; }
+"距离" { return DISTANCE; }
+"攻击" { return ATTACK; }
+"内" { return INSIDE; }
+"在" { return AT; }
+"存活" { return ALIVE; }
+"死亡" { return DEAD; }
+"到" { return DAO; }
 
 "主动技" |
 "ActiveSkill"   { return ACTIVE; }

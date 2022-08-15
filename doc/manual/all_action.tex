@@ -539,3 +539,56 @@
 玩家类型；要跳过的阶段
 
 注意：跳过阶段的语句只能用在自己回合内，且需要跳过的阶段还没有开始的情况下。我个人建议在上个阶段即将结束时去跳过想要跳过的阶段，不然战报会显得很奇怪。
+
+\section{获得攻击距离}
+
+\begin{verbatim}
+  <表达式> 攻击距离
+\end{verbatim}
+
+玩家类型，返回数字类型。
+
+额外参数:
+\begin{itemize}
+  \item \verb|'考虑武器'|，布尔类型，是否考虑持有武器的攻击距离，默认为真。
+\end{itemize}
+
+\section{检测在攻击范围内}
+
+\begin{verbatim}
+  <表达式> 在 <表达式> 攻击范围内
+\end{verbatim}
+
+两个参数均为玩家类型，返回布尔类型：前者是否在后者攻击范围内。
+
+额外参数:
+\begin{itemize}
+  \item \verb|'距离修正'|，数字类型，对距离结果的修正值，默认为0。
+\end{itemize}
+
+\section{两人距离}
+
+\begin{verbatim}
+  <表达式> 到 <表达式> 距离
+\end{verbatim}
+
+两个参数均为玩家类型，返回数字类型：前者到后者的距离。
+
+额外参数:
+\begin{itemize}
+  \item \verb|'距离修正'|，数字类型，对距离结果的修正值，默认为0。
+\end{itemize}
+
+\section{检测存活/死亡}
+
+检查存活：
+\begin{verbatim}
+  <表达式> 存活
+\end{verbatim}
+
+检查死亡：
+\begin{verbatim}
+  <表达式> 死亡
+\end{verbatim}
+
+参数均为玩家类型，两者均返回布尔类型。
