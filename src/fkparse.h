@@ -23,6 +23,7 @@ typedef struct {
   int capacity_level;
 } fkp_hash;
 
+/* Note: just provide hash tables to 3rd app */
 typedef struct {
   fkp_hash *generals;
   fkp_hash *skills;
