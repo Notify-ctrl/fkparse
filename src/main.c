@@ -47,14 +47,6 @@ void parse(const char *filename) {
   }
   sprintf(f, "%s.lua", readfile_name);
 
-  global_symtab = hash_new();
-  stack_push(symtab_stack, cast(Object *, global_symtab));
-  current_tab = global_symtab;
-  restrtab = list_new();
-  mark_table = hash_new();
-  skill_table = hash_new();
-  other_string_table = hash_new();
-
   yyout = fopen(f, "w+");
 
 #ifndef FK_DEBUG
@@ -91,17 +83,12 @@ void parse(const char *filename) {
   }
 
   free(readfile_name);
-  stack_pop(symtab_stack);
-  sym_free(global_symtab);
-  list_free(restrtab, freeTranslation);
-  hash_free(other_string_table, free);
-  hash_free(mark_table, free);
-  hash_free(skill_table, free);
 
   yylex_destroy();
 }
 
 fkp_parser *fkp_new_parser() {
+  sym_init();
   fkp_parser *ret = malloc(sizeof(fkp_parser));
   ret->generals = (fkp_hash *)hash_new();
   ret->skills = (fkp_hash *)hash_new();
@@ -109,18 +96,48 @@ fkp_parser *fkp_new_parser() {
   return ret;
 }
 
+static void fkp_reset(fkp_parser *p) {
+  hash_free((Hash *)p->generals, free);
+  hash_free((Hash *)p->skills, free);
+  hash_free((Hash *)p->marks, free);
+  p->generals = (fkp_hash *)hash_new();
+  p->skills = (fkp_hash *)hash_new();
+  p->marks = (fkp_hash *)hash_new();
+}
+
 int fkp_parse(fkp_parser *p, const char *filename) {
-  sym_init();
+  global_symtab = hash_new();
+  stack_push(symtab_stack, cast(Object *, global_symtab));
+  current_tab = global_symtab;
+  restrtab = list_new();
+  general_table = hash_new();
+  mark_table = hash_new();
+  skill_table = hash_new();
+  other_string_table = hash_new();
 
   parse(filename);
 
-  sym_free(builtin_symtab);
-  list_free(symtab_stack, NULL);
+  if (!error_occured) {
+    fkp_reset(p);
+    hash_copy_all((Hash *)p->generals, general_table);
+    hash_copy_all((Hash *)p->skills, skill_table);
+    hash_copy_all((Hash *)p->marks, mark_table);
+  }
 
+  stack_pop(symtab_stack);
+  sym_free(global_symtab);
+  list_free(restrtab, freeTranslation);
+  hash_free(other_string_table, free);
+  hash_free(mark_table, free);
+  hash_free(skill_table, free);
+  hash_free(general_table, free);
   return error_occured;
 }
 
 void fkp_close(fkp_parser *p) {
+  sym_free(builtin_symtab);
+  builtin_symtab = NULL;
+  list_free(symtab_stack, NULL);
   hash_free((Hash *)p->generals, free);
   hash_free((Hash *)p->skills, free);
   hash_free((Hash *)p->marks, free);
@@ -128,15 +145,16 @@ void fkp_close(fkp_parser *p) {
 }
 
 int main(int argc, char **argv) {
-  sym_init();
+  fkp_parser *p = fkp_new_parser();
   if (argc > 1) {
-    for (int i = 2; i <= argc; i++)
-      parse(argv[i - 1]);
-    sym_free(builtin_symtab);
-    list_free(symtab_stack, NULL);
+    for (int i = 2; i <= argc; i++) {
+      fkp_parse(p, argv[i - 1]);
+    }
+    fkp_close(p);
     return 0;
   } else {
     printf("usage: %s <filename>\n", argv[0]);
+    fkp_close(p);
     exit(0);
   }
 }

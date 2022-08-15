@@ -45,6 +45,7 @@ ArgObj *newArg(const char *name, ExpressionObj *exp) {
   return ret;
 }
 
+Hash *general_table;
 Hash *mark_table;
 Hash *skill_table;
 Hash *other_string_table;
@@ -284,6 +285,7 @@ GeneralObj *newGeneral(const char *id, const char *kingdom, long long hp,
 
   addTranslation(interid, id);
   sym_new_entry(ret->id, TGeneral, interid, false);
+  hash_set(general_table, id, strdup(interid));
 
   sprintf(buf, "#%s", interid);
   addTranslation(buf, nickname);

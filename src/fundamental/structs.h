@@ -98,6 +98,7 @@ Hash *hash_new();
 void *hash_get(Hash *h, const char* k);
 void hash_set(Hash *h, const char* k, void *v);
 void hash_copy(Hash *dst, Hash *src);
+void hash_copy_all(Hash *dst, Hash *src);
 void hash_free(Hash *h, void (*freefunc)(void *));
 
 /* ------------------------- */
@@ -130,6 +131,7 @@ void addTranslation(const char *orig, const char *translated);
 
 extern Hash *mark_table;
 extern Hash *skill_table;
+extern Hash *general_table;
 extern Hash *other_string_table;
 
 extern char *event_table[];
