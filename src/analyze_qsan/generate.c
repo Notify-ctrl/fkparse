@@ -39,8 +39,6 @@ static void analyzeExp(ExpressionObj *e) {
   ExpVType t = TNone;
   List *node;
   ExpressionObj *array_item;
-  static int markId = 0;
-  static int stringId = 0;
   char buf[64];
   const char *origtext;
 

@@ -279,4 +279,11 @@ Hash *newParams(int param_count, ...);
 
 void freeObject(void *p);
 
+extern int skill_id;
+extern int general_id;
+extern int package_id;
+extern int funcId;
+extern int markId;
+extern int stringId;
+
 #endif

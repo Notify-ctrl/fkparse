@@ -124,6 +124,13 @@ int fkp_parse(fkp_parser *p, const char *filename, fkp_analyze_type type) {
   skill_table = hash_new();
   other_string_table = hash_new();
 
+  skill_id = 0;
+  general_id = 0;
+  package_id = 0;
+  funcId = 0;
+  markId = 0;
+  stringId = 0;
+
   parse(filename, type);
 
   if (!error_occured) {

@@ -50,6 +50,13 @@ Hash *mark_table;
 Hash *skill_table;
 Hash *other_string_table;
 
+int skill_id;
+int general_id;
+int package_id;
+int funcId;
+int markId;
+int stringId;
+
 ExpressionObj *newExpression(int exptype, long long value, int optype,
                              ExpressionObj *l, ExpressionObj *r) {
   ExpressionObj *ret = malloc(sizeof(ExpressionObj));
@@ -199,7 +206,6 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
                    const char *interid, List *specs) {
   SkillObj *ret = malloc(sizeof(SkillObj));
   ret->objtype = Obj_Skill;
-  static int skill_id = 0;
   ret->internal_id = skill_id++;
 
   char buf[64];
@@ -268,7 +274,6 @@ GeneralObj *newGeneral(const char *id, const char *kingdom, long long hp,
                        const char *interid, List *skills) {
   GeneralObj *ret = malloc(sizeof(GeneralObj));
   ret->objtype = Obj_General;
-  static int general_id = 0;
   ret->internal_id = general_id++;
 
   ret->id = id;
@@ -299,7 +304,6 @@ GeneralObj *newGeneral(const char *id, const char *kingdom, long long hp,
 PackageObj *newPackage(const char *name, List *generals) {
   PackageObj *ret = malloc(sizeof(PackageObj));
   ret->objtype = Obj_Package;
-  static int package_id = 0;
   ret->internal_id = package_id++;
 
   char buf[64];
@@ -327,7 +331,6 @@ FuncdefObj *newFuncdef(const char *name, List *params, int rettype,
   FuncdefObj *ret = malloc(sizeof(FuncdefObj));
   ret->objtype = Obj_Funcdef;
 
-  static int funcId = 0;
   char buf[64];
   sprintf(buf, "%s_func_%d", readfile_name, funcId);
   funcId++;
