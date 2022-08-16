@@ -148,10 +148,6 @@ static Proto f[] = {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"阶段", TNumber, false, {.s = NULL}},
   }},
-  {"__getAttackRange", "fkp.functions.getAttackRange", TNumber, 2, {
-    {"玩家", TPlayer, false, {.s = NULL}},
-    {"考虑武器", TBool, true, {.n = true}},
-  }},
   {"__inMyAttackRange", "fkp.functions.inMyAttackRange", TBool, 3, {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"目标", TPlayer, false, {.s = NULL}},
@@ -162,11 +158,9 @@ static Proto f[] = {
     {"目标", TPlayer, false, {.s = NULL}},
     {"距离修正", TNumber, true, {.n = 0}},
   }},
-  {"__isAlive", "fkp.functions.isAlive", TBool, 1, {
+  {"__isAdjacentTo", "fkp.functions.isAdjacentTo", TBool, 2, {
     {"玩家", TPlayer, false, {.s = NULL}},
-  }},
-  {"__isDead", "fkp.functions.isAlive", TBool, 1, {
-    {"玩家", TPlayer, false, {.s = NULL}},
+    {"目标", TPlayer, false, {.s = NULL}},
   }},
   {NULL, NULL, TNone, 0, {}}
 };
