@@ -169,6 +169,7 @@ void MainWindow::packQSan() {
   dir.mkpath("image/fullskin/generals/full");
   dir.mkpath("image/generals/avatar");
   dir.mkpath("image/generals/card");
+  dir.mkpath("image/mark");
   dir.mkpath("audio/death");
   dir.mkpath("audio/skill");
 

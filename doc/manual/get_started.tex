@@ -4,9 +4,8 @@
 
 \begin{itemize}
  \item \textbf{manual.pdf}: 本手册
- \item \textbf{fkparse.exe}: 主程序
- \item \textbf{fkparser.lua}: 让生成的代码运行起来所必需的文件
- \item \textbf{example.txt}: 一个示例文本
+ \item \textbf{fkparse_qt.exe}: 主程序
+ \item \textbf{example/}: 包含示例文本和示例素材的文件夹
  \item \textbf{LICENSE}: GPLv3许可证文件
 \end{itemize}
 
@@ -14,15 +13,11 @@
 
 \section{编译运行示例文件}
 
-fkparse是一个命令行程序，运行方式为：
+首先打开fkparse_qt.exe，看到如下界面（补个插图）
 
-\begin{verbatim}
- $ fkparse <input file>
-\end{verbatim}
+然后先点击Choose File...，选择example文件夹下面的example.txt，然后点击Compile按钮进行编译。如果编译出错，错误将出现在下方，否则下面会告诉你编译成功了。
 
-当然你无需打开命令行进行操作，只需要将输入文件拖动到fkparse.exe上即可。现在请将example.txt拖动到fkparse.exe上，然后你会发现文件夹中生成了example.lua。
-
-现在让生成的代码运行起来吧，首先把自带的fkparser.lua复制到太阳神三国杀游戏目录的lua/lib文件夹下。然后再把生成的example.lua复制到太阳神三国杀游戏文件夹下的extensions文件夹下面。接下来启动QSanguosha.exe，你就可以在武将一览中找到新武将“曹孟德”了。\\
+编译成功后点击一下Pack按钮，程序就会自动整合所有素材，然后在输入的txt的所在文件夹下面生成一个新的文件夹。将新文件夹下面的四个文件夹直接复制到太阳神三国杀的根目录下面，然后启动神杀即可。
 
 至此，你已经知道如何使用fkparse了，接下来说明example.txt这种文件所要求的语法格式。
 
@@ -65,4 +60,4 @@ fkparse是一个命令行程序，运行方式为：
 
 \section{错误处理}
 
-因为是命令行程序，fkparse不会给你弹出一个对话框提示哪里出错了，它会把报错的信息写入<文件名>-error.txt里面去。如果你没能生成lua，请仔细检查报错内容并修改自己的输入文件。
+如果编译出错，错误信息将显示在窗口内部。请根据报错信息仔细检查出错或者咨询作者吧。
