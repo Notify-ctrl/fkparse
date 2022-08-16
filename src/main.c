@@ -49,20 +49,23 @@ void parse(const char *filename, fkp_analyze_type type) {
 
   yyout = fopen(f, "w+");
 
-#ifndef FK_DEBUG
+// #ifndef FK_DEBUG
   char f2[64];
   memset(f2, 0, sizeof(f2));
   sprintf(f2, "%s-error.txt", readfile_name);
   error_output = fopen(f2, "w+");
-#else
-  error_output = stderr;
-#endif
+// #else
+//   error_output = stderr;
+// #endif
 
   if (yyparse() == 0) {
     switch (type) {
     case FKP_QSAN_LUA:
       analyzeExtensionQSan(extension);
+      break;
     default:
+      error_occured = 1;
+      fprintf(error_output, "此编译功能未完成，敬请期待\n");
       break;
     }
     freeObject(extension);
@@ -76,15 +79,15 @@ void parse(const char *filename, fkp_analyze_type type) {
 
   if (error_occured) {
     fprintf(error_output, "在编译期间有错误产生，请检查您的输入文件。\n");
-#ifndef FK_DEBUG
+// #ifndef FK_DEBUG
     fclose(error_output);
-#endif
+// #endif
     remove(f);
   } else {
-#ifndef FK_DEBUG
+// #ifndef FK_DEBUG
     fclose(error_output);
     remove(f2);
-#endif
+// #endif
   }
 
   free(readfile_name);
@@ -111,6 +114,7 @@ static void fkp_reset(fkp_parser *p) {
 }
 
 int fkp_parse(fkp_parser *p, const char *filename, fkp_analyze_type type) {
+  error_occured = 0;
   global_symtab = hash_new();
   stack_push(symtab_stack, cast(Object *, global_symtab));
   current_tab = global_symtab;
