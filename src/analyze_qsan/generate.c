@@ -1737,7 +1737,7 @@ static void analyzeFuncdef(FuncdefObj *f) {
   current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
-void analyzeExtension(ExtensionObj *e) {
+void analyzeExtensionQSan(ExtensionObj *e) {
   writeline("require 'fkparser'\n\nlocal global_self\n");
   writeline("local all_skills = sgs.SkillList()\n");
 

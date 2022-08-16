@@ -124,6 +124,14 @@ void hash_copy(Hash *dst, Hash *src) {
   }
 }
 
+void hash_copy_all(Hash *dst, Hash *src) {
+  for (int i = 0; i < src->capacity; i++) {
+    if (src->entries[i].key != NULL) {
+      hash_set(dst, src->entries[i].key, strdup(src->entries[i].value));
+    }
+  }
+}
+
 void hash_free(Hash *h, void (*freefunc)(void *)) {
   for (size_t i = 0; i < h->capacity; i++) {
     free((void *)h->entries[i].key);

@@ -6,7 +6,6 @@
 #include <string.h>
 #include <stdarg.h>
 
-Hash *strtab;
 List *restrtab;
 
 const char *untranslate(const char *trans) {
@@ -24,7 +23,6 @@ void addTranslation(const char *orig, const char *translated) {
   //if (translate(orig)) {
     /* show warning here */
   //}
-  // hash_set(strtab, orig, cast(void *, translated));
   str_value *v = malloc(sizeof(str_value));
   v->origtxt = strdup(orig);
   v->translated = strdup(translated);
@@ -47,6 +45,7 @@ ArgObj *newArg(const char *name, ExpressionObj *exp) {
   return ret;
 }
 
+Hash *general_table;
 Hash *mark_table;
 Hash *skill_table;
 Hash *other_string_table;
@@ -286,6 +285,7 @@ GeneralObj *newGeneral(const char *id, const char *kingdom, long long hp,
 
   addTranslation(interid, id);
   sym_new_entry(ret->id, TGeneral, interid, false);
+  hash_set(general_table, id, strdup(interid));
 
   sprintf(buf, "#%s", interid);
   addTranslation(buf, nickname);

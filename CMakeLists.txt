@@ -15,9 +15,11 @@ else ()
   set(BISON bison)
 endif ()
 
-include_directories(src)
-include_directories(src/analyze)
-include_directories(src/parse)
-include_directories(src/fundamental)
-
+add_library(fkparse SHARED)
 add_subdirectory(src)
+
+find_package(Qt5 REQUIRED COMPONENTS Gui Widgets)
+set(CMAKE_AUTOMOC ON)
+add_executable(fkparse_qt)
+add_subdirectory(gui)
+target_link_libraries(fkparse_qt PRIVATE fkparse Qt5::Gui Qt5::Widgets)
