@@ -73,8 +73,10 @@ int list_length(List *l) {
   return i;
 }
 
-void list_free(List *l) {
+void list_free(List *l, void (*freefunc)(void *)) {
   if (!l) return;
-  list_free(l->next);
+  list_free(l->next, freefunc);
+  if (freefunc && l->data)
+    freefunc(cast(void *, l->data));
   free(l);
 }

@@ -12,29 +12,27 @@ extern char *strdup(const char *s);
  **/
 
 enum ObjType {
-  Obj_Integer,
-  Obj_Double,
-  Obj_String,
-
   Obj_Extension,
   Obj_Defarg,
   Obj_Funcdef,
   Obj_Package,
   Obj_General,
   Obj_Skill,
+  Obj_SkillSpec,
   Obj_Card,
-  Obj_Player,
 
   Obj_Block,
   Obj_TriggerSpec,
+  Obj_ActiveSpec,
+  Obj_ViewAsSpec,
+  Obj_StatusSpec,
   Obj_If,
   Obj_Loop,
   Obj_Traverse,
   Obj_Break,
   Obj_Funccall,
+  Obj_Arg,
   Obj_Assign,
-  Obj_Action,
-  Obj_ActionBody,
 
   Obj_Expression,
   Obj_Var
@@ -42,8 +40,14 @@ enum ObjType {
 
 typedef enum ObjType ObjType;
 
+#define ObjectHeader int first_line; \
+  int first_column; \
+  int last_line; \
+  int last_column; \
+  ObjType objtype
+
 typedef struct {
-  ObjType objtype;
+  ObjectHeader;
 } Object;
 
 /* ------------------------- */
@@ -66,7 +70,7 @@ void list_removeOne(List *l, Object *o);
 Object *list_at(List *l, int index);
 int list_length(List *l);
 #define list_empty(l) (list_length(l) == 0)
-void list_free(List *l);
+void list_free(List *l, void (*freefunc)(void *));
 
 /* stack */
 typedef List Stack;
@@ -85,14 +89,17 @@ typedef struct {
 
 typedef struct {
   hash_entry *entries;
-  int capacity;
-  int length;
+  unsigned capacity;
+  unsigned length;
+  int capacity_level;
 } Hash;
 
 Hash *hash_new();
 void *hash_get(Hash *h, const char* k);
 void hash_set(Hash *h, const char* k, void *v);
-void hash_free(Hash *h);
+void hash_copy(Hash *dst, Hash *src);
+void hash_copy_all(Hash *dst, Hash *src);
+void hash_free(Hash *h, void (*freefunc)(void *));
 
 /* ------------------------- */
 
@@ -102,6 +109,7 @@ typedef struct {
   bool reserved;
 } symtab_item;
 
+extern Hash *builtin_symtab;
 extern Hash *global_symtab;
 extern Hash *current_tab;
 extern Hash *last_lookup_tab;
@@ -112,23 +120,19 @@ void sym_new_entry(const char *k, int type, const char *origtext, bool reserved)
 void sym_set(const char *k, symtab_item *v);
 void sym_free(Hash *h);
 
-enum StrType {
-  Str_Package,
-  Str_General,
-  Str_Skill,
-  Str_Mark,
-  Str_Pile
-};
-
 typedef struct {
   int type;
   const char *origtxt;
   const char *translated;
 } str_value;
-extern Hash *strtab;
 extern List *restrtab;
-const char *translate(const char *orig);
+const char *untranslate(const char *trans);
 void addTranslation(const char *orig, const char *translated);
+
+extern Hash *mark_table;
+extern Hash *skill_table;
+extern Hash *general_table;
+extern Hash *other_string_table;
 
 extern char *event_table[];
 

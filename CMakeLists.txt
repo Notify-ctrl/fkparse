@@ -2,9 +2,40 @@ cmake_minimum_required(VERSION 3.16)
 
 project(fkparse VERSION 0.0.1)
 
-include_directories(src)
-include_directories(src/analyze)
-include_directories(src/parse)
-include_directories(src/fundamental)
+if (CMAKE_BUILD_TYPE STREQUAL Debug)
+  add_definitions(-DFK_DEBUG)
+endif ()
 
+if (WIN32)
+  add_definitions(-DFK_WIN32)
+  set(FLEX win_flex)
+  set(BISON win_bison)
+else ()
+  set(FLEX flex)
+  set(BISON bison)
+endif ()
+
+add_custom_command(
+  PRE_BUILD
+  OUTPUT ${PROJECT_SOURCE_DIR}/src/parse/grammar.c
+  DEPENDS ${PROJECT_SOURCE_DIR}/src/parse/grammar.y
+  COMMENT "Generating grammar.c"
+  COMMAND ${BISON} -d ${PROJECT_SOURCE_DIR}/src/parse/grammar.y -o ${PROJECT_SOURCE_DIR}/src/parse/grammar.c -Wcounterexamples
+)
+
+add_custom_command(
+  PRE_BUILD
+  OUTPUT ${PROJECT_SOURCE_DIR}/src/parse/lex.c
+  DEPENDS ${PROJECT_SOURCE_DIR}/src/parse/lex.l ${PROJECT_SOURCE_DIR}/src/parse/grammar.c
+  COMMENT "Generating lex.c"
+  COMMAND ${FLEX} -o ${PROJECT_SOURCE_DIR}/src/parse/lex.c ${PROJECT_SOURCE_DIR}/src/parse/lex.l
+)
+
+add_library(fkparse SHARED)
 add_subdirectory(src)
+
+find_package(Qt5 REQUIRED COMPONENTS Gui Widgets)
+set(CMAKE_AUTOMOC ON)
+add_executable(fkparse_qt)
+add_subdirectory(gui)
+target_link_libraries(fkparse_qt PRIVATE fkparse Qt5::Gui Qt5::Widgets)

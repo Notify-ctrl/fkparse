@@ -1,30 +1,28 @@
-#include "structs.h"
-#include "ast.h"
-#include <stdlib.h>
+#include "builtin.h"
 
-static struct {
-  char *dst;
-  char *src;
-  int type;
-} reserved[] = {
-  {"你", "player", TPlayer},
+static BuiltinVar v[] = {
+  {"魏", "'wei'", TNumber},
+  {"蜀", "'shu'", TNumber},
+  {"吴", "'wu'", TNumber},
+  {"群", "'qun'", TNumber},
+  {"神", "'god'", TNumber},
+  {"Wei", "'wei'", TNumber},
+  {"Shu", "'shu'", TNumber},
+  {"Wu", "'wu'", TNumber},
+  {"Qun", "'qun'", TNumber},
+  {"God", "'god'", TNumber},
 
-  {"魏", "\"wei\"", TNumber},
-  {"蜀", "\"shu\"", TNumber},
-  {"吴", "\"wu\"", TNumber},
-  {"群", "\"qun\"", TNumber},
-  {"神", "\"god\"", TNumber},
+  {"黑桃", "'spade'", TString},
+  {"红桃", "'heart'", TString},
+  {"梅花", "'club'", TString},
+  {"方块", "'diamond'", TString},
+  {"无花色", "'no_suit'", TString},
+  {"黑色无花色", "'no_suit_black'", TString},
+  {"红色无花色", "'no_suit_red'", TString},
 
-  {"黑桃", "sgs.Card_Spade", TNumber},
-  {"红桃", "sgs.Card_Heart", TNumber},
-  {"梅花", "sgs.Card_Club", TNumber},
-  {"方块", "sgs.Card_Diamond", TNumber},
-  {"无花色", "sgs.Card_NoSuit", TNumber},
-
-  {"基本牌", "sgs.Card_TypeBasic", TNumber},
-  {"装备牌", "sgs.Card_TypeEquip", TNumber},
-  {"锦囊牌", "sgs.Card_TypeTrick", TNumber},
-  {"技能卡", "sgs.Card_TypeSkill", TNumber},
+  {"基本牌", "'basic'", TString},
+  {"装备牌", "'equip'", TString},
+  {"锦囊牌", "'trick'", TString},
 
   {"手牌区", "sgs.Player_PlaceHand", TNumber},
   {"装备区", "sgs.Player_PlaceEquip", TNumber},
@@ -43,6 +41,11 @@ static struct {
   {"默认技", "sgs.Skill_Frequent", TNumber},
   {"觉醒技", "sgs.Skill_Wake", TNumber},
   {"限定技", "sgs.Skill_Limited", TNumber},
+  {"Compulsory", "sgs.Skill_Compulsory", TNumber},
+  {"NotFrequent", "sgs.Skill_NotFrequent", TNumber},
+  {"Frequent", "sgs.Skill_Frequent", TNumber},
+  {"Wake", "sgs.Skill_Wake", TNumber},
+  {"Limited", "sgs.Skill_Limited", TNumber},
 
   {"开始阶段", "sgs.Player_RoundStart", TNumber},
   {"准备阶段", "sgs.Player_Start", TNumber},
@@ -58,71 +61,33 @@ static struct {
   {"反贼", "sgs.Player_Rebel", TNumber},
   {"内奸", "sgs.Player_Renegade", TNumber},
 
-  {"杀", "\"slash\"", TString},
-  {"闪", "\"jink\"", TString},
-  {"桃", "\"peach\"", TString},
-  {"酒", "\"analeptic\"", TString},
-  {"过河拆桥", "\"dismantlement\"", TString},
-  {"顺手牵羊", "\"snatch\"", TString},
-  {"决斗", "\"duel\"", TString},
-  {"借刀杀人", "\"collateral\"", TString},
-  {"无中生有", "\"ex_nihilo\"", TString},
-  {"无懈可击", "\"nullification\"", TString},
-  {"南蛮入侵", "\"savage_assault\"", TString},
-  {"万箭齐发", "\"archery_attack\"", TString},
-  {"桃园结义", "\"god_salvation\"", TString},
-  {"五谷丰登", "\"amazing_grace\"", TString},
-  {"闪电", "\"lightning\"", TString},
-  {"乐不思蜀", "\"indulgence\"", TString},
-  {"诸葛连弩", "\"crossbow\"", TString},
-  {"青釭剑", "\"qinggang_sword\"", TString},
-  {"寒冰剑", "\"ice_sword\"", TString},
-  {"雌雄双股剑", "\"double_sword\"", TString},
-  {"青龙偃月刀", "\"blade\"", TString},
-  {"丈八蛇矛", "\"spear\"", TString},
-  {"贯石斧", "\"axe\"", TString},
-  {"方天画戟", "\"halberd\"", TString},
-  {"麒麟弓", "\"kylin_bow\"", TString},
-  {"八卦阵", "\"eight_diagram\"", TString},
-  {"仁王盾", "\"renwang_shield\"", TString},
-  {"的卢", "\"dilu\"", TString},
-  {"绝影", "\"jueying\"", TString},
-  {"爪黄飞电", "\"zhuahuangfeidian\"", TString},
-  {"赤兔", "\"chitu\"", TString},
-  {"大宛", "\"dayuan\"", TString},
-  {"紫骍", "\"zixing\"", TString},
-  {"雷杀", "\"thunder_slash\"", TString},
-  {"火杀", "\"fire_slash\"", TString},
-  {"古锭刀", "\"guding_blade\"", TString},
-  {"藤甲", "\"vine\"", TString},
-  {"兵粮寸断", "\"supply_shortage\"", TString},
-  {"铁索连环", "\"iron_chain\"", TString},
-  {"白银狮子", "\"sliver_lion\"", TString},
-  {"火攻", "\"fire_attack\"", TString},
-  {"朱雀羽扇", "\"fan\"", TString},
-  {"骅骝", "\"hualiu\"", TString},
-
   {"男性", "sgs.General_Male", TNumber},
   {"女性", "sgs.General_Female", TNumber},
   {"中性", "sgs.General_Neuter", TNumber},
+  {"Male", "sgs.General_Male", TNumber},
+  {"Female", "sgs.General_Female", TNumber},
+  {"Neuter", "sgs.General_Neuter", TNumber},
 
-  {"其他角色", "room:getOtherPlayers(player)", TPlayerList},
+  {"只放置顶部", "sgs.Room_GuanxingUpOnly", TNumber},
+  {"顶部底部均放置", "sgs.Room_GuanxingBothSides", TNumber},
+  {"只放置底部", "sgs.Room_GuanxingDownOnly", TNumber},
+
+  /* card move reasons */
+  {"因使用而移动", "sgs.CardMoveReason_S_REASON_USE", TNumber},
+  {"因打出而移动", "sgs.CardMoveReason_S_REASON_RESPONSE", TNumber},
+  {"因弃置而移动", "sgs.CardMoveReason_S_REASON_DISCARD", TNumber},
+  {"因重铸而移动", "sgs.CardMoveReason_S_REASON_RECAST", TNumber},
+  {"因拼点而移动", "sgs.CardMoveReason_S_REASON_PINDIAN", TNumber},
+  {"因摸牌而移动", "sgs.CardMoveReason_S_REASON_DRAW", TNumber},
+  {"因置入而移动", "sgs.CardMoveReason_S_REASON_PUT", TNumber},
+  {"因交给而移动", "sgs.CardMoveReason_S_REASON_GIVE", TNumber},
+  {"因换牌而移动", "sgs.CardMoveReason_S_REASON_SWAP", TNumber},
 
   {NULL, NULL, TNone}
 };
 
-void sym_init() {
-  global_symtab = hash_new();
-  symtab_stack = stack_new();
-  stack_push(symtab_stack, cast(Object *, global_symtab));
-  current_tab = global_symtab;
-  last_lookup_tab = NULL;
-
-  symtab_item *v;
-  for (int i=0; ; i++) {
-    if (reserved[i].dst == NULL) break;
-    sym_new_entry(reserved[i].dst, reserved[i].type, reserved[i].src, true);
-  }
+void load_builtin_enum() {
+  loadmodule(NULL, v);
 }
 
 char *event_table[] = {
