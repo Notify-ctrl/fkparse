@@ -258,6 +258,15 @@ static void analyzeVar(VarObj *v) {
           } else if (!strcmp(name, "座位号")) {
             writestr(":getSeat()");
             t = TNumber;
+          } else if (!strcmp(name, "攻击距离")) {
+            writestr(":getAttackRange()");
+            t = TNumber;
+          } else if (!strcmp(name, "存活状态")) {
+            writestr(":isAlive()");
+            t = TBool;
+          } else if (!strcmp(name, "死亡状态")) {
+            writestr(":isDead()");
+            t = TBool;
           } else {
             yyerror(cast(YYLTYPE *, v), "无法获取 玩家 的属性 '%s'\n", name);
             t = TNone;

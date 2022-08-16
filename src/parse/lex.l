@@ -159,10 +159,7 @@ static int yycolumn = 1;
 "攻击" { return ATTACK; }
 "内" { return INSIDE; }
 "在" { return AT; }
-"存活" { return ALIVE; }
-"死亡" { return DEAD; }
 "到" { return DAO; }
-"状态" { return STATUS; }
 
 "主动技" |
 "ActiveSkill"   { return ACTIVE; }

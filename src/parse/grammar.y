@@ -113,7 +113,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token SENDLOG
 %token GIVE PINDIAN SWAPCARD
 %token TURNOVER EXTRATURN SKIP
-%token DAO DISTANCE ATTACK INSIDE AT ALIVE DEAD STATUS
+%token DAO DISTANCE ATTACK INSIDE AT
 
 %type <list> eliflist
 %type <list> funcdefList defargs defarglist skillList packageList generalList
@@ -167,8 +167,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> chat sendlog
 %type <func_call> throwCards giveCards pindian swapCards
 %type <func_call> turnOver playExtraTurn skipPhase
-%type <func_call> getAttackRange inMyAttackRange distanceTo
-%type <func_call> isAlive isDead
+%type <func_call> inMyAttackRange distanceTo
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -610,11 +609,8 @@ action      : drawCards
             | turnOver
             | playExtraTurn
             | skipPhase
-            | getAttackRange
             | inMyAttackRange
             | distanceTo
-            | isAlive
-            | isDead
               { $$ = $1; }
             ;
 
@@ -990,14 +986,6 @@ skipPhase : exp SKIP exp {
             }
           ;
 
-getAttackRange : exp ATTACK DISTANCE {
-               $$ = newFunccall(
-                 strdup("__getAttackRange"),
-                 newParams(1, "玩家", $1)
-               );
-             }
-           ;
-
 inMyAttackRange : exp AT exp ATTACK DISTANCE INSIDE {
                 $$ = newFunccall(
                   strdup("__inMyAttackRange"),
@@ -1014,20 +1002,6 @@ distanceTo : exp DAO exp DISTANCE {
              }
             ;
 
-isAlive: exp ALIVE STATUS {
-                $$ = newFunccall(
-                  strdup("__isAlive"),
-                  newParams(1, "玩家", $1)
-                );
-             }
-            ;
-isDead: exp DEAD STATUS {
-                $$ = newFunccall(
-                  strdup("__isDead"),
-                  newParams(1, "玩家", $1)
-                );
-             }
-            ;
 %%
 
 static int yyreport_syntax_error(const yypcontext_t *ctx) {
