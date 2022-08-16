@@ -232,6 +232,17 @@ fkp.functions = {
     return room:retrial(card, player, judge, skill_name, exchange)
   end,
 
+  inMyAttackRange = function(player, other, distance_fix)
+    return player:inMyAttackRange(other, distance_fix)
+  end,
+
+  distanceTo = function(player, other, distance_fix)
+    return player:distanceTo(other,distance_fix)
+  end,
+
+  isAdjacentTo = function(player, another)
+    return player:isAdjacentTo(another)
+  end
 }
 
 fkp.functions.askForCard = function(player, pattern, prompt, skill_name)
