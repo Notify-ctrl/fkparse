@@ -153,7 +153,7 @@ static void analyzeExp(ExpressionObj *e) {
             origtext = hash_get(mark_table, e->strvalue);
           }
           writestr("'%s'", origtext);
-        } else if (!strcmp(e->param_name, "文本")) {
+        } else if (!strcmp(e->param_name, "文本") || !strcmp(e->param_name, "value")) {
           origtext = hash_get(other_string_table, e->strvalue);
           if (!origtext) {
             sprintf(buf, "%s_str_%d", readfile_name, stringId);
@@ -477,6 +477,12 @@ static void analyzeFunccall(FunccallObj *f) {
     return;
   }
   FuncdefObj *d = cast(FuncdefObj *, i->origtext);
+  if (!strcmp(f->name, "__prepend") || !strcmp(f->name, "__append")) {
+    /* if is empty list, create new list here */
+    /* fkp.functions.append wont affect empty list */
+    analyzeExp(hash_get(f->params, "array"));
+    writestr(" = ");
+  }
   writestr("%s(", d->funcname);
 
   List *node;
