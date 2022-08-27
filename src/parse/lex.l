@@ -52,7 +52,7 @@ static int yycolumn = 1;
     return STRING;
     }
 
-[0-9]+    { yylval->i = atoi(yytext); return NUMBER; }
+-?[0-9]+    { yylval->i = atoi(yytext); return NUMBER; }
 
 \{[a-zA-Z][_a-zA-Z0-9]*\} {
     yylval->s = strdup(yytext + 1);
@@ -93,7 +93,7 @@ static int yycolumn = 1;
 "repeat"        { return REPEAT; }
 "直到" |
 "until"         { return UNTIL; }
-"的" |
+"的属性" |
 "."             { return FIELD; }
 "返回" |
 "return"        { return RET; }
@@ -140,6 +140,7 @@ static int yycolumn = 1;
 "删除" { return DELETE; }
 "第" { return DI; }
 "个" { return GE; }
+"的" { return DE; }
 "元素" { return ELEMENT; }
 "拥有"  { return HAVE; }
 "洗牌" { return WASH; }

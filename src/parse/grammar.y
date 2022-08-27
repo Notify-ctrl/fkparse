@@ -115,6 +115,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token TURNOVER EXTRATURN SKIP
 %token DAO DISTANCE ATTACK INSIDE AT RANGE ADJACENT
 %token EXPECT OTHERPLAYER
+%token DE
 
 %type <list> eliflist
 %type <list> funcdefList defargs defarglist skillList packageList generalList
@@ -212,9 +213,9 @@ funcdef : FUNCDEF IDENTIFIER defargs block
           { $$ = newFuncdef($2, $3, $5, $6); yycopyloc($$, &@$); }
         ;
 
-defargs : '{' defarglist '}' { $$ = $2; }
-        | '{' defarglist ',' '}' { $$ = $2; }
-        | '{' '}' { $$ = list_new(); }
+defargs : '(' defarglist ')' { $$ = $2; }
+        | '(' defarglist ',' ')' { $$ = $2; }
+        | '(' ')' { $$ = list_new(); }
         ;
 
 defarglist  : defarglist ',' defarg {
@@ -435,10 +436,10 @@ traverse_stat : TO exp IN EVERY IDENTIFIER REPEAT block END
                 { $$ = newTraverse($2, $5, $7); yycopyloc($$, &@$); }
               ;
 
-func_call : CALL IDENTIFIER args { $$ = newFunccall($2, $3); yycopyloc($$, &@$); }
+func_call : IDENTIFIER args { $$ = newFunccall($1, $2); yycopyloc($$, &@$); }
           ;
 
-args : '{' arglist '}' {
+args : '(' arglist ')' {
           $$ = hash_new();
           list_foreach(iter, $2) {
             ArgObj *a = cast(ArgObj *, iter->data);
@@ -448,7 +449,7 @@ args : '{' arglist '}' {
           }
           list_free($2, NULL);
         }
-     | '{' arglist ',' '}' {
+     | '(' arglist ',' ')' {
           $$ = hash_new();
           list_foreach(iter, $2) {
             ArgObj *a = cast(ArgObj *, iter->data);
@@ -458,7 +459,7 @@ args : '{' arglist '}' {
           }
           list_free($2, NULL);
         }
-     | '{' '}' { $$ = hash_new(); }
+     | '(' ')' { $$ = hash_new(); }
      ;
 
 arglist : arglist ',' arg { $$ = $1; list_append($$, cast(Object *, $3)); }
@@ -559,10 +560,10 @@ stringList  : %empty  { $$ = list_new(); }
 
 /* special function calls */
 action_stat : action { $$ = $1; }
-            | action args {
+            | action ':' args {
                 $$ = $1;
-                hash_copy($$->params, $2);
-                hash_free($2, NULL);
+                hash_copy($$->params, $3);
+                hash_free($3, NULL);
               }
             ;
 
@@ -720,16 +721,16 @@ loseMark  : exp LOSE exp MEI exp MARK {
             }
           ;
 
-getMark : exp exp MARK COUNT {
+getMark : exp DE exp MARK COUNT {
             $$ = newFunccall(
                   strdup("__getMark"),
-                  newParams(2, "玩家", $1, "标记", $2)
+                  newParams(2, "玩家", $1, "标记", $3)
                 );
           }
-        | exp exp HIDDEN MARK COUNT {
+        | exp DE exp HIDDEN MARK COUNT {
             $$ = newFunccall(
                   strdup("__getMark"),
-                  newParams(3, "玩家", $1, "标记", $2,
+                  newParams(3, "玩家", $1, "标记", $3,
                             "隐藏", newExpression(ExpBool, 1, 0, NULL, NULL))
                 );
           }
