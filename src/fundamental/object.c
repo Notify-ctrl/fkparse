@@ -72,6 +72,9 @@ ExpressionObj *newExpression(int exptype, long long value, int optype,
     case ExpStr:
       ret->valuetype = TString;
       break;
+    case ExpDict:
+      ret->valuetype = TDict;
+      break;
     default:
       ret->valuetype = -1;
       break;
@@ -82,6 +85,7 @@ ExpressionObj *newExpression(int exptype, long long value, int optype,
   ret->varValue = NULL;
   ret->func = NULL;
   ret->array = NULL;
+  ret->dict = NULL;
   ret->oprand1 = l;
   ret->oprand2 = r;
   ret->bracketed = false;
@@ -397,6 +401,7 @@ static void freeExp(void *ptr) {
   if (e->varValue) freeObject(e->varValue);
   if (e->func) freeObject(e->func);
   if (e->array) list_free(e->array, freeObject);
+  if (e->dict) hash_free(e->dict, freeObject);
   if (e->oprand1) freeObject(e->oprand1);
   if (e->oprand2) freeObject(e->oprand2);
   free((void *)e->param_name);

@@ -73,6 +73,7 @@ enum ExpType {
   ExpBool,
   ExpVar,
   ExpArray,
+  ExpDict,
   ExpFunc,
 };
 
@@ -94,6 +95,7 @@ enum ExpVType {
   TNumberList,
   TStringList,
   TMark,
+  TDict,
   TFunc,
   TPindian,
 
@@ -112,6 +114,7 @@ typedef struct ExpressionObj {
   struct VarObj *varValue;
   struct FunccallObj *func;
   List *array;
+  Hash *dict;
   int optype;
   struct ExpressionObj *oprand1; /* maybe NULL */
   struct ExpressionObj *oprand2; /* maybe NULL */

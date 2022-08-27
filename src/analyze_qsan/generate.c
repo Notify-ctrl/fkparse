@@ -336,6 +336,11 @@ static void analyzeVar(VarObj *v) {
             t = TNone;
           }
           break;
+        case TDict:
+        case TAny:
+          writestr("[\"%s\"]", name);
+          t = TAny;
+          break;
         default:
           yyerror(cast(YYLTYPE *, v), "不能获取类型为%d的对象的属性\n", v->obj->valuetype);
           t = TNone;

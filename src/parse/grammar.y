@@ -175,6 +175,9 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <exp> exp prefixexp opexp
 %type <var> var
 %type <func_call> func_call
+%type <list> dict_entries
+%type <hash> dictionary
+%type <arg> dict_entry
 
 %destructor {} <enum_v>
 %destructor {} <i>
@@ -479,6 +482,7 @@ exp : FALSE { $$ = newExpression(ExpBool, 0, 0, NULL, NULL); yycopyloc($$, &@$);
     | prefixexp { $$ = $1; }
     | opexp { $$ = $1; }
     | array { $$ = newExpression(ExpArray, 0, 0, NULL, NULL); $$->array = $1; yycopyloc($$, &@$); }
+    | dictionary { $$ = newExpression(ExpDict, 0, 0, NULL, NULL); $$->dict = $1; yycopyloc($$, &@$); }
     ;
 
 prefixexp : var { $$ = newExpression(ExpVar, 0, 0, NULL, NULL); $$->varValue = $1; yycopyloc($$, &@$); }
@@ -509,6 +513,39 @@ array : '[' ']' { $$ = list_new(); }
       | '[' explist ']' { $$ = $2; }
       | '[' explist ',' ']' { $$ = $2; }
       ;
+
+dict_entries  : dict_entries ',' dict_entry { $$ = $1; list_append($$, cast(Object *, $3)); }
+              | dict_entry { $$ = list_new(); list_append($$, cast(Object *, $1)); }
+              ;
+
+dict_entry : STRING ':' exp {
+               $3->param_name = strdup($1);
+               $$ = newArg($1, $3);
+             }
+            ;
+
+dictionary  : '{' dict_entries '}' {
+              $$ = hash_new();
+              list_foreach(iter, $2) {
+                ArgObj *a = cast(ArgObj *, iter->data);
+                hash_set($$, a->name, a->exp);
+                free((void *)a->name);
+                free(a);
+              }
+              list_free($2, NULL);
+            }
+            | '{' dict_entries ',' '}' {
+              $$ = hash_new();
+              list_foreach(iter, $2) {
+                ArgObj *a = cast(ArgObj *, iter->data);
+                hash_set($$, a->name, a->exp);
+                free((void *)a->name);
+                free(a);
+              }
+              list_free($2, NULL);
+            }
+            | '{' '}' { $$ = hash_new(); }
+            ;
 
 var : IDENTIFIER { $$ = newVar($1, NULL); yycopyloc($$, &@$); }
     | prefixexp FIELD STRING { $$ = newVar($3, $1); yycopyloc($$, &@$); }
