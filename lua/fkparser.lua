@@ -538,6 +538,26 @@ fkp.functions.skipPhase = function(player, phase)
   player:skip(phase)
 end
 
+fkp.functions.getOtherPlayers = function(player)
+  local room = sgs.Sanguosha:currentRoom()
+  if room == nil then
+    return player:getAliveSiblings()
+  end
+  return room:getOtherPlayers(player)
+end
+
+fkp.functions.getAllPlayers = function()
+  local room = sgs.Sanguosha:currentRoom()
+  if room == nil then
+    local ret = sgs.Self:getAlivePlayers()
+    if sgs.Self:isAlive() then
+      ret:append(sgs.Self)
+    end
+    return ret
+  end
+  return room:getAllPlayers()
+end
+
 function fkp.newlist(t)
   local element_type
   if #t == 0 then

@@ -114,6 +114,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token GIVE PINDIAN SWAPCARD
 %token TURNOVER EXTRATURN SKIP
 %token DAO DISTANCE ATTACK INSIDE AT RANGE ADJACENT
+%token EXPECT OTHERPLAYER
 
 %type <list> eliflist
 %type <list> funcdefList defargs defarglist skillList packageList generalList
@@ -168,6 +169,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> throwCards giveCards pindian swapCards
 %type <func_call> turnOver playExtraTurn skipPhase
 %type <func_call> inMyAttackRange distanceTo isAdjacentTo
+%type <func_call> getOtherPlayers
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -612,6 +614,7 @@ action      : drawCards
             | inMyAttackRange
             | distanceTo
             | isAdjacentTo
+            | getOtherPlayers
               { $$ = $1; }
             ;
 
@@ -1010,6 +1013,15 @@ isAdjacentTo : exp YU exp ADJACENT {
             );
          }
       ;
+
+getOtherPlayers : exp EXPECT OTHERPLAYER {
+          $$ = newFunccall(
+            strdup("__getOtherPlayers"),
+            newParams(1, "排除的玩家", $1)
+          );
+        }
+      ;
+
 %%
 
 static int yyreport_syntax_error(const yypcontext_t *ctx) {
