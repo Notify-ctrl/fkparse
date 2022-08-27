@@ -162,6 +162,8 @@ static int yycolumn = 1;
 "在" { return AT; }
 "到" { return DAO; }
 "相邻" { return ADJACENT; }
+"之外的"  { return EXPECT; }
+"其他角色"  { return OTHERPLAYER; }
 
 "主动技" |
 "ActiveSkill"   { return ACTIVE; }

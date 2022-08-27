@@ -22,18 +22,34 @@ local string2suit = {
 
 fkp.functions = {
   prepend = function(arr, e)
-    arr:prepend(e)
+    if arr:length() == 0 then
+      arr = fkp.newlist{e}
+    else
+      arr:prepend(e)
+    end
+    return arr
   end,
 
   append = function(arr, e)
-    arr:append(e)
+    if arr:length() == 0 then
+      arr = fkp.newlist{e}
+    else
+      arr:append(e)
+    end
+    return arr
   end,
 
   removeOne = function(arr, e)
+    if arr:length() == 0 then
+      return
+    end
     arr:removeOne(e)
   end,
 
   at = function(arr, i)
+    if arr:length() == 0 then
+      return nil
+    end
     return arr:at(i - 1)
   end,
 ---------------------------------
@@ -522,8 +538,33 @@ fkp.functions.skipPhase = function(player, phase)
   player:skip(phase)
 end
 
+fkp.functions.getOtherPlayers = function(player)
+  local room = sgs.Sanguosha:currentRoom()
+  if room == nil then
+    return player:getAliveSiblings()
+  end
+  return room:getOtherPlayers(player)
+end
+
+fkp.functions.getAllPlayers = function()
+  local room = sgs.Sanguosha:currentRoom()
+  if room == nil then
+    local ret = sgs.Self:getAlivePlayers()
+    if sgs.Self:isAlive() then
+      ret:append(sgs.Self)
+    end
+    return ret
+  end
+  return room:getAllPlayers()
+end
+
 function fkp.newlist(t)
-  local element_type = swig_type(t[1])
+  local element_type
+  if #t == 0 then
+    element_type = "nil"
+  else
+    element_type = swig_type(t[1])
+  end
   local ret
   if element_type == "ServerPlayer *" then
     ret = sgs.SPlayerList()
@@ -535,14 +576,14 @@ function fkp.newlist(t)
     ret = sgs.CardsMoveList()
   elseif element_type == "number" then
     ret = sgs.IntList()
-  elseif element_type == "string" then
+  else
     ret = {
       length = function(self)
         return #self
       end,
 
       prepend = function(self, element)
-        if type(self[1]) ~= type(element) then return end
+        if #self > 0 and type(self[1]) ~= type(element) then return end
         for i = #self, 1, -1 do
           self[i + 1] = self[i]
         end
@@ -550,7 +591,7 @@ function fkp.newlist(t)
       end,
 
       append = function(self, element)
-        if type(self[1]) ~= type(element) then return end
+        if #self > 0 and type(self[1]) ~= type(element) then return end
         table.insert(self, element)
       end,
 
@@ -572,11 +613,11 @@ function fkp.newlist(t)
     }
   end
 
-  for _, t in ipairs(t) do
+  for _, t2 in ipairs(t) do
     if swig_type(ret) == "table" then
-      table.insert(ret, t)
+      table.insert(ret, t2)
     else
-      ret:append(t)
+      ret:append(t2)
     end
   end
   return ret
