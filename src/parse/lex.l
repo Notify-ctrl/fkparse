@@ -32,7 +32,6 @@ static int yycolumn = 1;
 
  /* Frequently used IDENTIFIER */
 "你" |
-"X" |
 "其" |
 "不存在的" {
     yylval->s = strdup(yytext);
@@ -460,6 +459,12 @@ static int yycolumn = 1;
 "或"  |
 "or" |
 "||"  { yylval->enum_v = 8; return LOGICOP; }
+
+ /* C-style identifier, with lowest priority */
+[_a-zA-Z][_a-zA-Z0-9]* {
+    yylval->s = strdup(yytext);
+    return IDENTIFIER;
+    }
 
  /* Below are ignored */
 "注:".*
