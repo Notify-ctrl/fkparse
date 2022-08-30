@@ -75,6 +75,9 @@ ExpressionObj *newExpression(int exptype, long long value, int optype,
     case ExpDict:
       ret->valuetype = TDict;
       break;
+    case ExpFunc:
+      ret->valuetype = TFunc;
+      break;
     default:
       ret->valuetype = -1;
       break;
@@ -84,6 +87,7 @@ ExpressionObj *newExpression(int exptype, long long value, int optype,
   ret->strvalue = NULL;
   ret->varValue = NULL;
   ret->func = NULL;
+  ret->funcdef = NULL;
   ret->array = NULL;
   ret->dict = NULL;
   ret->oprand1 = l;
@@ -305,7 +309,7 @@ GeneralObj *newGeneral(const char *id, const char *kingdom, long long hp,
   return ret;
 }
 
-PackageObj *newPackage(const char *name, List *generals) {
+PackageObj *newPackage(const char *name) {
   PackageObj *ret = malloc(sizeof(PackageObj));
   ret->objtype = Obj_Package;
   ret->internal_id = package_id++;
@@ -315,7 +319,6 @@ PackageObj *newPackage(const char *name, List *generals) {
   ret->id = strdup(buf);
   addTranslation(ret->id, name);
   sym_new_entry(name, TPackage, ret->id, false);
-  ret->generals = generals;
 
   free((void *)name);
   return ret;
@@ -357,12 +360,9 @@ SkillSpecObj *newSkillSpec(SpecType type, void *obj) {
   return ret;
 }
 
-ExtensionObj *newExtension(List *funcs, List *skills, List *packs) {
+ExtensionObj *newExtension() {
   ExtensionObj *ret = malloc(sizeof(ExtensionObj));
   ret->objtype = Obj_Extension;
-  ret->funcdefs = funcs;
-  ret->skills = skills;
-  ret->packages = packs;
 
   return ret;
 }
@@ -398,12 +398,13 @@ static void freeExp(void *ptr) {
   if (!ptr) return;
   ExpressionObj *e = ptr;
   free((void *)e->strvalue);
-  if (e->varValue) freeObject(e->varValue);
-  if (e->func) freeObject(e->func);
+  freeObject(e->varValue);
+  freeObject(e->func);
+  freeObject(e->funcdef);
   if (e->array) list_free(e->array, freeObject);
   if (e->dict) hash_free(e->dict, freeObject);
-  if (e->oprand1) freeObject(e->oprand1);
-  if (e->oprand2) freeObject(e->oprand2);
+  freeObject(e->oprand1);
+  freeObject(e->oprand2);
   free((void *)e->param_name);
   free(e);
 }
@@ -561,14 +562,11 @@ static void freeGeneral(void *ptr) {
 static void freePackage(void *ptr) {
   PackageObj *pack = ptr;
   free((void *)pack->id);
-  list_free(pack->generals, freeGeneral);
   free(pack);
 }
 
 static void freeExtension(ExtensionObj *e) {
-  list_free(e->funcdefs, freeFuncdef);
-  list_free(e->skills, freeSkill);
-  list_free(e->packages, freePackage);
+  list_free(e->stats, freeObject);
   free(e);
 }
 

@@ -33,6 +33,7 @@ static void writeline(const char *msg, ...) {
 static void analyzeVar(VarObj *v);
 static void analyzeBlock(BlockObj *bl);
 static void analyzeFunccall(FunccallObj *f);
+static void analyzeFuncdef(FuncdefObj *f);
 
 static void analyzeExp(ExpressionObj *e) {
   if (e->bracketed) writestr("(");
@@ -121,6 +122,30 @@ static void analyzeExp(ExpressionObj *e) {
         yyerror(cast(YYLTYPE *, e), "未知的数组元素类型%d\n", t);
         break;
     }
+  } else if (e->exptype == ExpFuncdef) {
+    free((void *)(e->funcdef->funcname));
+    e->funcdef->funcname = strdup("");
+    analyzeFuncdef(e->funcdef);
+    t = TFunc;
+  } else if (e->exptype == ExpDict) {
+    writestr("{\n");
+    indent_level++;
+
+    Hash *h = e->dict;
+    for (size_t i = 0; i < h->capacity; i++) {
+      const char *s = h->entries[i].key;
+      if (s) {
+        print_indent();
+        writestr("['%s'] = ", s);
+        analyzeExp(h->entries[i].value);
+        writestr(",\n");
+      }
+    }
+
+    indent_level--;
+    print_indent();
+    writestr("}");
+    t = TDict;
   } else switch (e->exptype) {
     case ExpNum:
       writestr("%lld", e->value);
@@ -381,6 +406,13 @@ static void analyzeAssign(AssignObj *a) {
       if (i->reserved) {
         yyerror(cast(YYLTYPE *, a->var), "不允许重定义标识符 '%s'", a->var->name);
       } else {
+        if (a->value->exptype == ExpFuncdef) {
+          if (i->type != TFunc) free((void *)i->origtext);
+          FuncdefObj *f = a->value->funcdef;
+          free((void *)f->funcname); /* should be "" */
+          f->funcname = strdup(a->var->name);
+          i->origtext = cast(const char *, f);
+        }
         i->type = a->value->valuetype;
       }
     }
@@ -595,54 +627,6 @@ static void analyzeFunccall(FunccallObj *f) {
       break;
     }
   }
-}
-
-void analyzeBlock(BlockObj *bl) {
-  List *node;
-  Hash *symtab = hash_new();
-  current_tab = symtab;
-  stack_push(symtab_stack, cast(Object *, current_tab));
-
-  list_foreach(node, bl->statements) {
-    if (!node->data)  /* maybe error token */
-      continue;
-
-    switch (node->data->objtype) {
-    case Obj_Assign:
-      analyzeAssign(cast(AssignObj *, node->data));
-      break;
-    case Obj_If:
-      analyzeIf(cast(IfObj *, node->data));
-      break;
-    case Obj_Loop:
-      analyzeLoop(cast(LoopObj *, node->data));
-      break;
-    case Obj_Traverse:
-      analyzeTraverse(cast(TraverseObj *, node->data));
-      break;
-    case Obj_Break:
-      writeline("break");
-      break;
-    case Obj_Funccall:
-      print_indent();
-      analyzeFunccall(cast(FunccallObj *, node->data));
-      writestr("\n");
-      break;
-    default:
-      break;
-    }
-  }
-
-  if (bl->ret) {
-    print_indent();
-    writestr("return ");
-    analyzeExp(bl->ret);
-    writestr("\n");
-  }
-
-  stack_pop(symtab_stack);
-  sym_free(symtab);
-  current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
 static void defineLocal(char *k, char *v, int type) {
@@ -1596,6 +1580,11 @@ all_skills:append(%s_at) end", name, name);
 }
 
 static void analyzeSkill(SkillObj *s) {
+  if (!currentpack) {
+    yyerror(cast(YYLTYPE *, s), "必须先添加拓展包才能添加技能");
+    return;
+  }
+
   List *node;
 
   if (s->activeSpec) {
@@ -1643,6 +1632,11 @@ all_skills:append(%s) end\n", s->interid, s->interid);
 }
 
 static void analyzeGeneral(GeneralObj *g) {
+  if (!currentpack) {
+    yyerror(cast(YYLTYPE *, g), "必须先添加拓展包才能添加武将");
+    return;
+  }
+
   const char *orig = sym_lookup(g->id)->origtext;
   writestr("%s = sgs.General(extension%d, '%s', %s, %lld)\n",
            orig, currentpack->internal_id, orig,
@@ -1651,7 +1645,12 @@ static void analyzeGeneral(GeneralObj *g) {
 
   List *node;
   list_foreach(node, g->skills) {
-    const char *skill_orig = cast(const char *, node->data);
+    ExpressionObj *e = cast(ExpressionObj *, node->data);
+    if (e->exptype != ExpStr) {
+      yyerror(cast(YYLTYPE *, g), "给武将添加的技能必须是字符串类型");
+      return;
+    }
+    const char *skill_orig = cast(const char *, e->strvalue);
     const char *skill = hash_get(skill_table, skill_orig);
     if (!skill) {
       /* yyerror(cast(YYLTYPE *, g), "只能为武将添加文件内的自定义技能！"); */
@@ -1671,12 +1670,6 @@ static void analyzePackage(PackageObj *p) {
   writestr("local extension%d = sgs.Package('%s')\n",
            p->internal_id, p->id);
   writestr("\n");
-
-  List *node;
-  list_foreach(node, p->generals) {
-    GeneralObj *g = cast(GeneralObj *, node->data);
-    analyzeGeneral(g);
-  }
 }
 
 static void loadTranslations() {
@@ -1692,7 +1685,11 @@ static void loadTranslations() {
 }
 
 static void analyzeFuncdef(FuncdefObj *f) {
-  writestr("local function %s(", f->funcname);
+  if (strcmp(f->funcname, ""))
+    writestr("local function %s(", f->funcname);
+  else
+    writestr("function(");
+
   List *node;
   int argId = 0;
   Hash *param_symtab = hash_new();
@@ -1746,30 +1743,83 @@ static void analyzeFuncdef(FuncdefObj *f) {
   current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
+void analyzeBlock(BlockObj *bl) {
+  List *node;
+  Hash *symtab = hash_new();
+  current_tab = symtab;
+  stack_push(symtab_stack, cast(Object *, current_tab));
+
+  list_foreach(node, bl->statements) {
+    if (!node->data)  /* maybe error token */
+      continue;
+
+    switch (node->data->objtype) {
+    case Obj_Assign:
+      analyzeAssign(cast(AssignObj *, node->data));
+      break;
+    case Obj_If:
+      analyzeIf(cast(IfObj *, node->data));
+      break;
+    case Obj_Loop:
+      analyzeLoop(cast(LoopObj *, node->data));
+      break;
+    case Obj_Traverse:
+      analyzeTraverse(cast(TraverseObj *, node->data));
+      break;
+    case Obj_Break:
+      writeline("break");
+      break;
+    case Obj_Funccall:
+      print_indent();
+      analyzeFunccall(cast(FunccallObj *, node->data));
+      writestr("\n");
+      break;
+    case Obj_Funcdef:
+      analyzeFuncdef(cast(FuncdefObj *, node->data));
+      break;
+
+    /* for root-statements */
+    case Obj_Package:
+      analyzePackage(cast(PackageObj *, node->data));
+      break;
+    case Obj_General:
+      analyzeGeneral(cast(GeneralObj *, node->data));
+      break;
+    case Obj_Skill:
+      analyzeSkill(cast(SkillObj *, node->data));
+      break;
+    default:
+      break;
+    }
+  }
+
+  if (bl->ret) {
+    print_indent();
+    writestr("return ");
+    analyzeExp(bl->ret);
+    writestr("\n");
+  }
+
+  stack_pop(symtab_stack);
+  sym_free(symtab);
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
+}
+
 void analyzeExtensionQSan(ExtensionObj *e) {
   writeline("require 'fkparser'\n\nlocal global_self\n");
   writeline("local all_skills = sgs.SkillList()\n");
 
-  List *node;
-
-  list_foreach(node, e->packages) {
-    analyzePackage(cast(PackageObj *, node->data));
-  }
-
-  list_foreach(node, e->funcdefs) {
-    analyzeFuncdef(cast(FuncdefObj *, node->data));
-  }
-
-  list_foreach(node, e->skills) {
-    analyzeSkill(cast(SkillObj *, node->data));
-  }
+  currentpack = NULL;
+  BlockObj *b = newBlock(e->stats, NULL);
+  analyzeBlock(b);
+  free(b);  /* stats will be freed in freeObject. */
 
   loadTranslations();
   writeline("sgs.Sanguosha:addSkills(all_skills)");
 
   writestr("return {");
-  list_foreach(node, e->packages) {
-    writestr("extension%d, ", cast(PackageObj *, node->data)->internal_id);
+  for (int i = 0; i < package_id; i++) {
+    writestr("extension%d, ", i);
   }
   writestr("}\n");
 }

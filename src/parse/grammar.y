@@ -118,13 +118,13 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token DE
 
 %type <list> eliflist
-%type <list> funcdefList defargs defarglist skillList packageList generalList
-%type <list> stringList skillspecs triggerSkill triggerspecs
-%type <list> statements arglist explist array
+%type <list> defargs defarglist 
+%type <list> skillspecs triggerSkill triggerspecs
+%type <list> statements root_stats arglist explist array
 %type <hash> args
 
 %type <defarg> defarg
-%type <func_def> funcdef
+%type <func_def> funcdef anon_funcdef
 %type <package> package
 %type <general> general
 %type <skill> skill
@@ -137,7 +137,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <status_func> statusfunc
 
 %type <block> block
-%type <any> statement
+%type <any> statement root_stat
 %type <exp> retstat
 %type <traverse> traverse_stat
 %type <assign> assign_stat
@@ -195,26 +195,33 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 
 %%
 
-extension : funcdefList skillList packageList
-              {
-                extension = newExtension($1, $2, $3);
-                yycopyloc(extension, &@$);
-                YYACCEPT;
-              }
+extension : root_stats {
+              extension = newExtension(); 
+              extension->stats = $1;
+            }
           ;
 
-funcdefList : %empty { $$ = list_new(); }
-            | funcdefList funcdef {
-                $$ = $1;
-                list_append($$, cast(Object *, $2));
-              }
+root_stats  : %empty { $$ = list_new(); }
+            | root_stats root_stat { $$ = $1; list_append($$, $2); }
             ;
 
-funcdef : FUNCDEF IDENTIFIER defargs block
+root_stat : statement
+          | skill { $$ = cast(Object *, $1); }
+          | package { $$ = cast(Object *, $1); }
+          | general { $$ = cast(Object *, $1); }
+          ;
+
+funcdef : FUNCDEF IDENTIFIER defargs block END
           { $$ = newFuncdef($2, $3, TNone, $4); yycopyloc($$, &@$); }
-        | FUNCDEF IDENTIFIER defargs RETURN TYPE block
+        | FUNCDEF IDENTIFIER defargs RETURN TYPE block END
           { $$ = newFuncdef($2, $3, $5, $6); yycopyloc($$, &@$); }
         ;
+
+anon_funcdef  : FUNCDEF defargs block END
+                { $$ = newFuncdef(strdup(""), $2, TNone, $3); yycopyloc($$, &@$); }
+              | FUNCDEF defargs RETURN TYPE block END
+                { $$ = newFuncdef(strdup(""), $2, $4, $5); yycopyloc($$, &@$); }
+              ;
 
 defargs : '(' defarglist ')' { $$ = $2; }
         | '(' defarglist ',' ')' { $$ = $2; }
@@ -237,24 +244,12 @@ defarg : IDENTIFIER ':' TYPE
          { $$ = newDefarg($1, $3, $5); yycopyloc($$, &@$); }
        ;
 
-skillList : %empty { $$ = list_new(); }
-          | skillList skill {
-              $$ = $1;
-              list_append($$, cast(Object *, $2));
-            }
-          ;
-
-skill     : '$' IDENTIFIER STRING FREQUENCY INTERID skillspecs
-              {
-                $$ = newSkill($2, $3, $4, $5, $6);
-                yycopyloc($$, &@$);
-              }
-          | '$' IDENTIFIER STRING FREQUENCY skillspecs
+skill     : '$' IDENTIFIER STRING FREQUENCY skillspecs END
               {
                 $$ = newSkill($2, $3, $4, NULL, $5);
                 yycopyloc($$, &@$);
               }
-          | '$' IDENTIFIER STRING skillspecs
+          | '$' IDENTIFIER STRING skillspecs END
               {
                 $$ = newSkill($2, $3, NULL, NULL, $4);
                 yycopyloc($$, &@$);
@@ -415,6 +410,7 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
             | BREAK { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Break; }
             | func_call { $$ = cast(Object *, $1); }
             | action_stat { $$ = cast(Object *, $1); }
+            | funcdef { $$ = cast(Object *, $1); }
             | error { $$ = NULL; }
             ;
 
@@ -483,6 +479,7 @@ exp : FALSE { $$ = newExpression(ExpBool, 0, 0, NULL, NULL); yycopyloc($$, &@$);
     | opexp { $$ = $1; }
     | array { $$ = newExpression(ExpArray, 0, 0, NULL, NULL); $$->array = $1; yycopyloc($$, &@$); }
     | dictionary { $$ = newExpression(ExpDict, 0, 0, NULL, NULL); $$->dict = $1; yycopyloc($$, &@$); }
+    | anon_funcdef { $$ = newExpression(ExpFuncdef, 0, 0, NULL, NULL); $$->funcdef = $1; yycopyloc($$, &@$); }
     ;
 
 prefixexp : var { $$ = newExpression(ExpVar, 0, 0, NULL, NULL); $$->varValue = $1; yycopyloc($$, &@$); }
@@ -554,45 +551,19 @@ var : IDENTIFIER { $$ = newVar($1, NULL); yycopyloc($$, &@$); }
 retstat : RET exp { $$ = $2; }
         ;
 
-packageList : package { $$ = list_new(); list_append($$, cast(Object *, $1)); }
-            | packageList package {
-                $$ = $1;
-                list_append($$, cast(Object *, $2));
-              }
+package     : PKGSTART IDENTIFIER { $$ = newPackage($2); yycopyloc($$, &@$); }
             ;
 
-package     : PKGSTART IDENTIFIER generalList { $$ = newPackage($2, $3); yycopyloc($$, &@$); }
-            ;
-
-generalList : %empty { $$ = list_new(); }
-            | generalList general {
-                $$ = $1;
-                list_append($$, cast(Object *, $2));
-              }
-            ;
-
-general     : '#' KINGDOM STRING IDENTIFIER NUMBER GENDER INTERID '[' stringList ']'
+general     : '#' KINGDOM STRING IDENTIFIER NUMBER GENDER array
                 {
-                  $$ = newGeneral($4, $2, $5, $3, $6, $7, $9);
+                  $$ = newGeneral($4, $2, $5, $3, $6, NULL, $7);
                   yycopyloc($$, &@$);
                 }
-            | '#' KINGDOM STRING IDENTIFIER NUMBER GENDER '[' stringList ']'
+            | '#' KINGDOM STRING IDENTIFIER NUMBER array
                 {
-                  $$ = newGeneral($4, $2, $5, $3, $6, NULL, $8);
+                  $$ = newGeneral($4, $2, $5, $3, NULL, NULL, $6);
                   yycopyloc($$, &@$);
                 }
-            | '#' KINGDOM STRING IDENTIFIER NUMBER '[' stringList ']'
-                {
-                  $$ = newGeneral($4, $2, $5, $3, NULL, NULL, $7);
-                  yycopyloc($$, &@$);
-                }
-            ;
-
-stringList  : %empty  { $$ = list_new(); }
-            | stringList STRING {
-                $$ = $1;
-                list_append($$, cast(Object *, $2));
-              }
             ;
 
 /* special function calls */
