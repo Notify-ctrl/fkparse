@@ -146,6 +146,7 @@ LoopObj *newLoop(BlockObj *body, ExpressionObj *cond) {
   ret->objtype = Obj_Loop;
   ret->cond = cond;
   ret->body = body;
+  ret->type = 0;
 
   return ret;
 }

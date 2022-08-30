@@ -610,6 +610,10 @@ function fkp.newlist(t)
       at = function(self, index)
         return self[index + 1]
       end,
+
+      replace = function(self, index, value)
+        self[index + 1] = value
+      end,
     }
   end
 

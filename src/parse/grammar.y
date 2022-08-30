@@ -79,7 +79,6 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token <i> NUMBER
 %token <s> IDENTIFIER
 %token <s> STRING
-%token <s> INTERID
 %token <s> FREQUENCY
 %token <s> GENDER
 %token <s> KINGDOM
@@ -91,13 +90,13 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token TMD_RESIDUE TMD_DISTANCE TMD_EXTARGET ATKRANGE_EXTRA ATKRANGE_FIXED
 %token FUNCDEF
 %token <enum_v> EVENT
-%token LET EQ IF THEN ELSEIF ELSE END REPEAT UNTIL
+%token LET EQ IF THEN ELSEIF ELSE END REPEAT UNTIL WHILE
 %token <enum_v> TYPE
-%token RETURN CALL
+%token RETURN
 %token IN EVERY TOWARD PREPEND APPEND DELETE DI GE ELEMENT
 %left <enum_v> LOGICOP
-%left '+' '-' '*' '/'
 %nonassoc <enum_v> CMP
+%left '+' '-' '*' '/'
 %token FIELD RET
 %token FALSE TRUE BREAK
 %token DRAW ZHANG CARD LOSE DIAN HP MAX
@@ -108,7 +107,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token BECAUSE THROW TIMES
 %token SPEAK ACT_LINE WASH CHANGEGENERAL CHANGESEAT YU
 %token EXEC JUDGE
-%token GUANXINGTYPE GUANXING PILETOP
+%token GUANXING PILETOP
 %token JIANG RESULT FIX SELF AZHANG USE RESPOND
 %token SENDLOG
 %token GIVE PINDIAN SWAPCARD
@@ -142,7 +141,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <traverse> traverse_stat
 %type <assign> assign_stat
 %type <if_stat> if_stat
-%type <loop> loop_stat
+%type <loop> loop_stat while_stat
 %type <arg> arg
 %type <func_call> action_stat action
 %type <func_call> drawCards loseHp causeDamage inflictDamage recoverHp
@@ -406,6 +405,7 @@ statements  : %empty { $$ = list_new(); }
 statement   : assign_stat { $$ = cast(Object *, $1); }
             | if_stat { $$ = cast(Object *, $1); }
             | loop_stat { $$ = cast(Object *, $1); }
+            | while_stat { $$ = cast(Object *, $1); }
             | traverse_stat { $$ = cast(Object *, $1); }
             | BREAK { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Break; }
             | func_call { $$ = cast(Object *, $1); }
@@ -415,6 +415,7 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
             ;
 
 assign_stat : var EQ exp { $$ = newAssign($1, $3); yycopyloc($$, &@$); }
+            | LET var EQ exp { $$ = newAssign($2, $4); yycopyloc($$, &@$); }
             ;
 
 if_stat : IF exp THEN block eliflist END { $$ = newIf($2, $4, $5, NULL); yycopyloc($$, &@$); }
@@ -430,6 +431,9 @@ eliflist  : %empty  { $$ = list_new(); }
 
 loop_stat : REPEAT block UNTIL exp { $$ = newLoop($2, $4); yycopyloc($$, &@$); }
           ;
+
+while_stat  : WHILE exp REPEAT block END { $$ = newLoop($4, $2); $$->type = 1; yycopyloc($$, &@$); }
+            ;
 
 traverse_stat : TO exp IN EVERY IDENTIFIER REPEAT block END
                 { $$ = newTraverse($2, $5, $7); yycopyloc($$, &@$); }
@@ -816,7 +820,7 @@ throwCardsBySkill : exp BECAUSE SKILL exp THROW CARD exp {
                     }
                   ;
 
-getUsedTimes  : exp INVOKE ACTIVE STRING FIELD TIMES {
+getUsedTimes  : exp INVOKE ACTIVE STRING DE TIMES {
                   tempExp = newExpression(ExpStr, 0, 0, NULL, NULL);
                   tempExp->strvalue = $4;
                   $$ = newFunccall(
@@ -826,7 +830,7 @@ getUsedTimes  : exp INVOKE ACTIVE STRING FIELD TIMES {
                 }
               ;
 
-broadcastSkillInvoke  : exp SPEAK STRING FIELD ACT_LINE {
+broadcastSkillInvoke  : exp SPEAK STRING DE ACT_LINE {
                           tempExp = newExpression(ExpStr, 0, 0, NULL, NULL);
                           tempExp->strvalue = $3;
                           $$ = newFunccall(
@@ -890,7 +894,7 @@ retrial: exp JIANG JUDGE RESULT FIX EQ exp {
           );
         };
 
-askChooseForCard: exp SELECT SELF FIELD AZHANG CARD {
+askChooseForCard: exp SELECT SELF DE AZHANG CARD {
           $$ = newFunccall(
             strdup("__askForCard"),
             newParams(1, "玩家", $1)

@@ -53,12 +53,6 @@ static int yycolumn = 1;
 
 -?[0-9]+    { yylval->i = atoi(yytext); return NUMBER; }
 
-\{[a-zA-Z][_a-zA-Z0-9]*\} {
-    yylval->s = strdup(yytext + 1);
-    yylval->s[strlen(yylval->s) - 1] = 0;
-    return INTERID;
-    }
-
 "拓展包" |
 "Package"       { return PKGSTART; }
 "触发技" |
@@ -92,6 +86,8 @@ static int yycolumn = 1;
 "repeat"        { return REPEAT; }
 "直到" |
 "until"         { return UNTIL; }
+"当" |
+"while"         { return WHILE; }
 "的属性" |
 "."             { return FIELD; }
 "返回" |
@@ -105,8 +101,6 @@ static int yycolumn = 1;
 "break"         { return BREAK; }
 "定义函数" |
 "def"           { return FUNCDEF; }
-"调用" |
-"call"          { return CALL; }
 
 "摸"    { return DRAW; }
 "张"    { return ZHANG; }
@@ -358,13 +352,6 @@ static int yycolumn = 1;
     yylval->s = strdup(yytext);
     return GENDER;
     }
-
-"只观看顶部" |
-"顶部底部均观看" |
-"只观看底部" {
-    yylval->s = strdup(yytext);
-    return GUANXINGTYPE;
-}
 
 "魏" |
 "蜀" |

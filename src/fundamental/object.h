@@ -239,6 +239,7 @@ typedef struct {
   ObjectHeader;
   BlockObj *body;
   ExpressionObj *cond;
+  int type;
 } LoopObj;
 
 LoopObj *newLoop(BlockObj *body, ExpressionObj *cond);

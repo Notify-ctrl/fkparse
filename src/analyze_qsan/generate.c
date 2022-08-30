@@ -260,7 +260,7 @@ static void analyzeVar(VarObj *v) {
     writestr(":at(");
     analyzeExp(v->index);
     checktype(v->index, v->index->valuetype, TNumber);
-    writestr(")");
+    writestr(" - 1)");
     return;
   }
 
@@ -419,18 +419,49 @@ static void analyzeVar(VarObj *v) {
 static void analyzeAssign(AssignObj *a) {
   print_indent();
 
-  /* pre-analyze var for symtab */
-  if (!a->var->obj && !sym_lookup(a->var->name)) {
-    sym_new_entry(a->var->name, TNone, NULL, false);
+  if (a->var->obj && a->var->index) {
+    ExpressionObj *arr = a->var->obj;
+    ExpVType t = TNone;
+    analyzeExp(arr);
+    switch (arr->valuetype) {
+    case TNumberList:
+      t = TNumber;
+      break;
+    case TStringList:
+      t = TString;
+      break;
+    case TPlayerList:
+      t = TPlayer;
+      break;
+    case TCardList:
+      t = TCard;
+      break;
+    default:
+      yyerror(cast(YYLTYPE *, arr), "试图对不是数组或者空数组根据下标取左值");
+      break;
+    }
+    writestr(":replace(");
+    analyzeExp(a->var->index);
+    checktype(a->var->index, a->var->index->valuetype, TNumber);
+    writestr(" - 1, ");
+    analyzeExp(a->value);
+    checktype(a->value, a->value->valuetype, t);
+    writestr(")\n");;
+    return;
   }
 
-  sym_lookup(a->var->name)->type = TAny;
+  /* pre-analyze var for symtab */
+  if (!a->var->obj && !a->var->index && !sym_lookup(a->var->name)) {
+    sym_new_entry(a->var->name, TNone, NULL, false);
+    sym_lookup(a->var->name)->type = TAny;
+  }
+
   analyzeVar(a->var);
   writestr(" = ");
   analyzeExp(a->value);
   writestr("\n");
 
-  if (!a->var->obj){
+  if (!a->var->obj && !a->var->index){
     symtab_item *i = sym_lookup(a->var->name);
     if (i) {
       if (i->reserved) {
@@ -479,14 +510,25 @@ static void analyzeIf(IfObj *i) {
 }
 
 static void analyzeLoop(LoopObj *l) {
-  writeline("repeat");
-  indent_level++;
-  analyzeBlock(l->body);
-  indent_level--;
-  print_indent();
-  writestr("until ");
-  analyzeExp(l->cond);
-  writestr("\n");
+  if (l->type == 0) {
+    writeline("repeat");
+    indent_level++;
+    analyzeBlock(l->body);
+    indent_level--;
+    print_indent();
+    writestr("until ");
+    analyzeExp(l->cond);
+    writestr("\n");
+  } else {
+    print_indent();
+    writestr("while ");
+    analyzeExp(l->cond);
+    writestr(" do\n");
+    indent_level++;
+    analyzeBlock(l->body);
+    indent_level--;
+    writeline("end");
+  }
 }
 
 static void analyzeTraverse(TraverseObj *t) {
@@ -553,7 +595,7 @@ static void analyzeFunccall(FunccallObj *f) {
 
   char buf[64];
   sprintf(buf, "%s_func_", readfile_name);
-  if (strstr(d->funcname, buf))
+  if (strstr(d->funcname, buf) || i->reserved)
     writestr("%s(", d->funcname);
   else
     writestr("locals['%s'](", d->funcname);
@@ -1827,7 +1869,7 @@ void analyzeBlock(BlockObj *bl) {
 }
 
 void analyzeExtensionQSan(ExtensionObj *e) {
-  writeline("require 'fkparser'\n\nlocal global_self\n");
+  writeline("require 'fkparser'\n\nlocal global_self\nlocal locals = {}\n");
   writeline("local all_skills = sgs.SkillList()\n");
 
   currentpack = NULL;
