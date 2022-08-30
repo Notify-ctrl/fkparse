@@ -550,7 +550,13 @@ static void analyzeFunccall(FunccallObj *f) {
     analyzeExp(hash_get(f->params, "array"));
     writestr(" = ");
   }
-  writestr("%s(", d->funcname);
+
+  char buf[64];
+  sprintf(buf, "%s_func_", readfile_name);
+  if (strstr(d->funcname, buf))
+    writestr("%s(", d->funcname);
+  else
+    writestr("locals['%s'](", d->funcname);
 
   List *node;
   bool start = true;
@@ -1696,10 +1702,13 @@ static void loadTranslations() {
 }
 
 static void analyzeFuncdef(FuncdefObj *f) {
+  print_indent();
   if (strcmp(f->funcname, ""))
     writestr("local function %s(", f->funcname);
   else
     writestr("function(");
+
+  sym_new_entry(f->name, TFunc, cast(const char *, f), false);
 
   List *node;
   int argId = 0;
@@ -1746,6 +1755,7 @@ static void analyzeFuncdef(FuncdefObj *f) {
 
   analyzeBlock(f->funcbody);
   indent_level--;
+  print_indent();
   writestr("end\n\n");
 
   list_free(param_gclist, free);

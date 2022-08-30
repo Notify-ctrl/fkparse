@@ -348,12 +348,11 @@ FuncdefObj *newFuncdef(const char *name, List *params, int rettype,
   funcId++;
 
   ret->funcname = strdup(buf);
-  sym_new_entry(name, TFunc, cast(const char *, ret), false);
+  ret->name = name;
   ret->params = params;
   ret->rettype = rettype;
   ret->funcbody = funcbody;
 
-  free((void *)name);
   return ret;
 }
 

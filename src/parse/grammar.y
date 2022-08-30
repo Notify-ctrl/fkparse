@@ -414,7 +414,7 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
             | error { $$ = NULL; }
             ;
 
-assign_stat : LET var EQ exp { $$ = newAssign($2, $4); yycopyloc($$, &@$); }
+assign_stat : var EQ exp { $$ = newAssign($1, $3); yycopyloc($$, &@$); }
             ;
 
 if_stat : IF exp THEN block eliflist END { $$ = newIf($2, $4, $5, NULL); yycopyloc($$, &@$); }

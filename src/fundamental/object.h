@@ -146,6 +146,7 @@ DefargObj *newDefarg(const char *name, int type, ExpressionObj *d);
 typedef struct FuncdefObj {
   ObjectHeader;
   const char *funcname;
+  const char *name;
   List *params;
   int rettype;
   BlockObj *funcbody;
