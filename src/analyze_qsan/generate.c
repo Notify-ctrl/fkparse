@@ -33,6 +33,7 @@ static void writeline(const char *msg, ...) {
 static void analyzeVar(VarObj *v);
 static void analyzeBlock(BlockObj *bl);
 static void analyzeFunccall(FunccallObj *f);
+static void analyzeFuncdef(FuncdefObj *f);
 
 static void analyzeExp(ExpressionObj *e) {
   if (e->bracketed) writestr("(");
@@ -121,6 +122,30 @@ static void analyzeExp(ExpressionObj *e) {
         yyerror(cast(YYLTYPE *, e), "未知的数组元素类型%d\n", t);
         break;
     }
+  } else if (e->exptype == ExpFuncdef) {
+    free((void *)(e->funcdef->funcname));
+    e->funcdef->funcname = strdup("");
+    analyzeFuncdef(e->funcdef);
+    t = TFunc;
+  } else if (e->exptype == ExpDict) {
+    writestr("{\n");
+    indent_level++;
+
+    Hash *h = e->dict;
+    for (size_t i = 0; i < h->capacity; i++) {
+      const char *s = h->entries[i].key;
+      if (s) {
+        print_indent();
+        writestr("['%s'] = ", s);
+        analyzeExp(h->entries[i].value);
+        writestr(",\n");
+      }
+    }
+
+    indent_level--;
+    print_indent();
+    writestr("}");
+    t = TDict;
   } else switch (e->exptype) {
     case ExpNum:
       writestr("%lld", e->value);
@@ -208,9 +233,39 @@ static void analyzeExp(ExpressionObj *e) {
 }
 
 static void analyzeVar(VarObj *v) {
+  ExpVType t = TNone;
+
+  /* Handle index of an array first */
+  if (!v->name) {
+    analyzeExp(v->obj);
+    ExpressionObj *array = v->obj;
+    switch (array->valuetype) {
+    case TNumberList:
+      t = TNumber;
+      break;
+    case TStringList:
+      t = TString;
+      break;
+    case TPlayerList:
+      t = TPlayer;
+      break;
+    case TCardList:
+      t = TCard;
+      break;
+    default:
+      yyerror(cast(YYLTYPE *, v->obj), "试图对不是数组或者空数组根据下标取值");
+      break;
+    }
+    v->type = t;
+    writestr(":at(");
+    analyzeExp(v->index);
+    checktype(v->index, v->index->valuetype, TNumber);
+    writestr(" - 1)");
+    return;
+  }
+
   const char *name = v->name;
   if (v->obj) {
-    ExpVType t = TNone;
     if (!strcmp(name, "所在位置")) {
       /* 对于不是直接调成员函数的，得区别对待 */
       /* 在客户端用这个属性的人还是后果自负罢 */
@@ -336,6 +391,11 @@ static void analyzeVar(VarObj *v) {
             t = TNone;
           }
           break;
+        case TDict:
+        case TAny:
+          writestr("[\"%s\"]", name);
+          t = TAny;
+          break;
         default:
           yyerror(cast(YYLTYPE *, v), "不能获取类型为%d的对象的属性\n", v->obj->valuetype);
           t = TNone;
@@ -359,23 +419,61 @@ static void analyzeVar(VarObj *v) {
 static void analyzeAssign(AssignObj *a) {
   print_indent();
 
-  /* pre-analyze var for symtab */
-  if (!a->var->obj && !sym_lookup(a->var->name)) {
-    sym_new_entry(a->var->name, TNone, NULL, false);
+  if (a->var->obj && a->var->index) {
+    ExpressionObj *arr = a->var->obj;
+    ExpVType t = TNone;
+    analyzeExp(arr);
+    switch (arr->valuetype) {
+    case TNumberList:
+      t = TNumber;
+      break;
+    case TStringList:
+      t = TString;
+      break;
+    case TPlayerList:
+      t = TPlayer;
+      break;
+    case TCardList:
+      t = TCard;
+      break;
+    default:
+      yyerror(cast(YYLTYPE *, arr), "试图对不是数组或者空数组根据下标取左值");
+      break;
+    }
+    writestr(":replace(");
+    analyzeExp(a->var->index);
+    checktype(a->var->index, a->var->index->valuetype, TNumber);
+    writestr(" - 1, ");
+    analyzeExp(a->value);
+    checktype(a->value, a->value->valuetype, t);
+    writestr(")\n");;
+    return;
   }
 
-  sym_lookup(a->var->name)->type = TAny;
+  /* pre-analyze var for symtab */
+  if (!a->var->obj && !a->var->index && !sym_lookup(a->var->name)) {
+    sym_new_entry(a->var->name, TNone, NULL, false);
+    sym_lookup(a->var->name)->type = TAny;
+  }
+
   analyzeVar(a->var);
   writestr(" = ");
   analyzeExp(a->value);
   writestr("\n");
 
-  if (!a->var->obj){
+  if (!a->var->obj && !a->var->index){
     symtab_item *i = sym_lookup(a->var->name);
     if (i) {
       if (i->reserved) {
         yyerror(cast(YYLTYPE *, a->var), "不允许重定义标识符 '%s'", a->var->name);
       } else {
+        if (a->value->exptype == ExpFuncdef) {
+          if (i->type != TFunc) free((void *)i->origtext);
+          FuncdefObj *f = a->value->funcdef;
+          free((void *)f->funcname); /* should be "" */
+          f->funcname = strdup(a->var->name);
+          i->origtext = cast(const char *, f);
+        }
         i->type = a->value->valuetype;
       }
     }
@@ -412,14 +510,25 @@ static void analyzeIf(IfObj *i) {
 }
 
 static void analyzeLoop(LoopObj *l) {
-  writeline("repeat");
-  indent_level++;
-  analyzeBlock(l->body);
-  indent_level--;
-  print_indent();
-  writestr("until ");
-  analyzeExp(l->cond);
-  writestr("\n");
+  if (l->type == 0) {
+    writeline("repeat");
+    indent_level++;
+    analyzeBlock(l->body);
+    indent_level--;
+    print_indent();
+    writestr("until ");
+    analyzeExp(l->cond);
+    writestr("\n");
+  } else {
+    print_indent();
+    writestr("while ");
+    analyzeExp(l->cond);
+    writestr(" do\n");
+    indent_level++;
+    analyzeBlock(l->body);
+    indent_level--;
+    writeline("end");
+  }
 }
 
 static void analyzeTraverse(TraverseObj *t) {
@@ -443,7 +552,7 @@ static void analyzeTraverse(TraverseObj *t) {
   ExpVType vtype = TNone;
   switch (type) {
     case TCardList: vtype = TCard; break;
-    case TNumberList: vtype = TNumberList; break;
+    case TNumberList: vtype = TNumber; break;
     case TPlayerList: vtype = TPlayer; break;
     case TStringList: vtype = TString; break;
     case TEmptyList: yyerror(cast(YYLTYPE *, t->array), "不允许遍历空数组"); break;
@@ -483,7 +592,13 @@ static void analyzeFunccall(FunccallObj *f) {
     analyzeExp(hash_get(f->params, "array"));
     writestr(" = ");
   }
-  writestr("%s(", d->funcname);
+
+  char buf[64];
+  sprintf(buf, "%s_func_", readfile_name);
+  if (strstr(d->funcname, buf) || i->reserved)
+    writestr("%s(", d->funcname);
+  else
+    writestr("locals['%s'](", d->funcname);
 
   List *node;
   bool start = true;
@@ -570,74 +685,7 @@ static void analyzeFunccall(FunccallObj *f) {
       checktype(value, value->valuetype, t);
     }
 
-  } else if (!strcmp(f->name, "__at")) {
-    ExpressionObj *array = hash_get(f->params, "array");
-    switch (array->valuetype) {
-    case TNumberList:
-      f->rettype = TNumber;
-      break;
-    case TStringList:
-      f->rettype = TString;
-      break;
-    case TPlayerList:
-      f->rettype = TPlayer;
-      break;
-    case TCardList:
-      f->rettype = TCard;
-      break;
-    default:
-      yyerror(cast(YYLTYPE *, f), "试图对不是数组或者空数组根据下标取值");
-      break;
-    }
   }
-}
-
-void analyzeBlock(BlockObj *bl) {
-  List *node;
-  Hash *symtab = hash_new();
-  current_tab = symtab;
-  stack_push(symtab_stack, cast(Object *, current_tab));
-
-  list_foreach(node, bl->statements) {
-    if (!node->data)  /* maybe error token */
-      continue;
-
-    switch (node->data->objtype) {
-    case Obj_Assign:
-      analyzeAssign(cast(AssignObj *, node->data));
-      break;
-    case Obj_If:
-      analyzeIf(cast(IfObj *, node->data));
-      break;
-    case Obj_Loop:
-      analyzeLoop(cast(LoopObj *, node->data));
-      break;
-    case Obj_Traverse:
-      analyzeTraverse(cast(TraverseObj *, node->data));
-      break;
-    case Obj_Break:
-      writeline("break");
-      break;
-    case Obj_Funccall:
-      print_indent();
-      analyzeFunccall(cast(FunccallObj *, node->data));
-      writestr("\n");
-      break;
-    default:
-      break;
-    }
-  }
-
-  if (bl->ret) {
-    print_indent();
-    writestr("return ");
-    analyzeExp(bl->ret);
-    writestr("\n");
-  }
-
-  stack_pop(symtab_stack);
-  sym_free(symtab);
-  current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
 static void defineLocal(char *k, char *v, int type) {
@@ -1591,6 +1639,11 @@ all_skills:append(%s_at) end", name, name);
 }
 
 static void analyzeSkill(SkillObj *s) {
+  if (!currentpack) {
+    yyerror(cast(YYLTYPE *, s), "必须先添加拓展包才能添加技能");
+    return;
+  }
+
   List *node;
 
   if (s->activeSpec) {
@@ -1638,6 +1691,11 @@ all_skills:append(%s) end\n", s->interid, s->interid);
 }
 
 static void analyzeGeneral(GeneralObj *g) {
+  if (!currentpack) {
+    yyerror(cast(YYLTYPE *, g), "必须先添加拓展包才能添加武将");
+    return;
+  }
+
   const char *orig = sym_lookup(g->id)->origtext;
   writestr("%s = sgs.General(extension%d, '%s', %s, %lld)\n",
            orig, currentpack->internal_id, orig,
@@ -1646,7 +1704,12 @@ static void analyzeGeneral(GeneralObj *g) {
 
   List *node;
   list_foreach(node, g->skills) {
-    const char *skill_orig = cast(const char *, node->data);
+    ExpressionObj *e = cast(ExpressionObj *, node->data);
+    if (e->exptype != ExpStr) {
+      yyerror(cast(YYLTYPE *, g), "给武将添加的技能必须是字符串类型");
+      return;
+    }
+    const char *skill_orig = cast(const char *, e->strvalue);
     const char *skill = hash_get(skill_table, skill_orig);
     if (!skill) {
       /* yyerror(cast(YYLTYPE *, g), "只能为武将添加文件内的自定义技能！"); */
@@ -1666,12 +1729,6 @@ static void analyzePackage(PackageObj *p) {
   writestr("local extension%d = sgs.Package('%s')\n",
            p->internal_id, p->id);
   writestr("\n");
-
-  List *node;
-  list_foreach(node, p->generals) {
-    GeneralObj *g = cast(GeneralObj *, node->data);
-    analyzeGeneral(g);
-  }
 }
 
 static void loadTranslations() {
@@ -1687,7 +1744,14 @@ static void loadTranslations() {
 }
 
 static void analyzeFuncdef(FuncdefObj *f) {
-  writestr("local function %s(", f->funcname);
+  print_indent();
+  if (strcmp(f->funcname, ""))
+    writestr("local function %s(", f->funcname);
+  else
+    writestr("function(");
+
+  sym_new_entry(f->name, TFunc, cast(const char *, f), false);
+
   List *node;
   int argId = 0;
   Hash *param_symtab = hash_new();
@@ -1733,6 +1797,7 @@ static void analyzeFuncdef(FuncdefObj *f) {
 
   analyzeBlock(f->funcbody);
   indent_level--;
+  print_indent();
   writestr("end\n\n");
 
   list_free(param_gclist, free);
@@ -1741,30 +1806,83 @@ static void analyzeFuncdef(FuncdefObj *f) {
   current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
+void analyzeBlock(BlockObj *bl) {
+  List *node;
+  Hash *symtab = hash_new();
+  current_tab = symtab;
+  stack_push(symtab_stack, cast(Object *, current_tab));
+
+  list_foreach(node, bl->statements) {
+    if (!node->data)  /* maybe error token */
+      continue;
+
+    switch (node->data->objtype) {
+    case Obj_Assign:
+      analyzeAssign(cast(AssignObj *, node->data));
+      break;
+    case Obj_If:
+      analyzeIf(cast(IfObj *, node->data));
+      break;
+    case Obj_Loop:
+      analyzeLoop(cast(LoopObj *, node->data));
+      break;
+    case Obj_Traverse:
+      analyzeTraverse(cast(TraverseObj *, node->data));
+      break;
+    case Obj_Break:
+      writeline("break");
+      break;
+    case Obj_Funccall:
+      print_indent();
+      analyzeFunccall(cast(FunccallObj *, node->data));
+      writestr("\n");
+      break;
+    case Obj_Funcdef:
+      analyzeFuncdef(cast(FuncdefObj *, node->data));
+      break;
+
+    /* for root-statements */
+    case Obj_Package:
+      analyzePackage(cast(PackageObj *, node->data));
+      break;
+    case Obj_General:
+      analyzeGeneral(cast(GeneralObj *, node->data));
+      break;
+    case Obj_Skill:
+      analyzeSkill(cast(SkillObj *, node->data));
+      break;
+    default:
+      break;
+    }
+  }
+
+  if (bl->ret) {
+    print_indent();
+    writestr("return ");
+    analyzeExp(bl->ret);
+    writestr("\n");
+  }
+
+  stack_pop(symtab_stack);
+  sym_free(symtab);
+  current_tab = cast(Hash *, stack_gettop(symtab_stack));
+}
+
 void analyzeExtensionQSan(ExtensionObj *e) {
-  writeline("require 'fkparser'\n\nlocal global_self\n");
+  writeline("require 'fkparser'\n\nlocal global_self\nlocal locals = {}\n");
   writeline("local all_skills = sgs.SkillList()\n");
 
-  List *node;
-
-  list_foreach(node, e->packages) {
-    analyzePackage(cast(PackageObj *, node->data));
-  }
-
-  list_foreach(node, e->funcdefs) {
-    analyzeFuncdef(cast(FuncdefObj *, node->data));
-  }
-
-  list_foreach(node, e->skills) {
-    analyzeSkill(cast(SkillObj *, node->data));
-  }
+  currentpack = NULL;
+  BlockObj *b = newBlock(e->stats, NULL);
+  analyzeBlock(b);
+  free(b);  /* stats will be freed in freeObject. */
 
   loadTranslations();
   writeline("sgs.Sanguosha:addSkills(all_skills)");
 
   writestr("return {");
-  list_foreach(node, e->packages) {
-    writestr("extension%d, ", cast(PackageObj *, node->data)->internal_id);
+  for (int i = 0; i < package_id; i++) {
+    writestr("extension%d, ", i);
   }
   writestr("}\n");
 }

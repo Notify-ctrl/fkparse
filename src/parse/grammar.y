@@ -79,7 +79,6 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token <i> NUMBER
 %token <s> IDENTIFIER
 %token <s> STRING
-%token <s> INTERID
 %token <s> FREQUENCY
 %token <s> GENDER
 %token <s> KINGDOM
@@ -91,13 +90,13 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token TMD_RESIDUE TMD_DISTANCE TMD_EXTARGET ATKRANGE_EXTRA ATKRANGE_FIXED
 %token FUNCDEF
 %token <enum_v> EVENT
-%token LET EQ IF THEN ELSEIF ELSE END REPEAT UNTIL
+%token LET EQ IF THEN ELSEIF ELSE END REPEAT UNTIL WHILE
 %token <enum_v> TYPE
-%token RETURN CALL
+%token RETURN
 %token IN EVERY TOWARD PREPEND APPEND DELETE DI GE ELEMENT
 %left <enum_v> LOGICOP
-%left '+' '-' '*' '/'
 %nonassoc <enum_v> CMP
+%left '+' '-' '*' '/'
 %token FIELD RET
 %token FALSE TRUE BREAK
 %token DRAW ZHANG CARD LOSE DIAN HP MAX
@@ -108,22 +107,23 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token BECAUSE THROW TIMES
 %token SPEAK ACT_LINE WASH CHANGEGENERAL CHANGESEAT YU
 %token EXEC JUDGE
-%token GUANXINGTYPE GUANXING PILETOP
+%token GUANXING PILETOP
 %token JIANG RESULT FIX SELF AZHANG USE RESPOND
 %token SENDLOG
 %token GIVE PINDIAN SWAPCARD
 %token TURNOVER EXTRATURN SKIP
 %token DAO DISTANCE ATTACK INSIDE AT RANGE ADJACENT
 %token EXPECT OTHERPLAYER
+%token DE
 
 %type <list> eliflist
-%type <list> funcdefList defargs defarglist skillList packageList generalList
-%type <list> stringList skillspecs triggerSkill triggerspecs
-%type <list> statements arglist explist array
+%type <list> defargs defarglist 
+%type <list> skillspecs triggerSkill triggerspecs
+%type <list> statements root_stats arglist explist array
 %type <hash> args
 
 %type <defarg> defarg
-%type <func_def> funcdef
+%type <func_def> funcdef anon_funcdef
 %type <package> package
 %type <general> general
 %type <skill> skill
@@ -136,12 +136,12 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <status_func> statusfunc
 
 %type <block> block
-%type <any> statement
+%type <any> statement root_stat
 %type <exp> retstat
 %type <traverse> traverse_stat
 %type <assign> assign_stat
 %type <if_stat> if_stat
-%type <loop> loop_stat
+%type <loop> loop_stat while_stat
 %type <arg> arg
 %type <func_call> action_stat action
 %type <func_call> drawCards loseHp causeDamage inflictDamage recoverHp
@@ -149,7 +149,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> addMark loseMark getMark
 %type <func_call> askForChoice askForChoosePlayer
 %type <func_call> askForSkillInvoke obtainCard hasSkill
-%type <func_call> arrayPrepend arrayAppend arrayRemoveOne arrayAt
+%type <func_call> arrayPrepend arrayAppend arrayRemoveOne
 %type <func_call> loseMaxHp recoverMaxHp
 %type <func_call> throwCardsBySkill getUsedTimes
 %type <func_call> broadcastSkillInvoke
@@ -174,6 +174,9 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <exp> exp prefixexp opexp
 %type <var> var
 %type <func_call> func_call
+%type <list> dict_entries
+%type <hash> dictionary
+%type <arg> dict_entry
 
 %destructor {} <enum_v>
 %destructor {} <i>
@@ -191,30 +194,37 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 
 %%
 
-extension : funcdefList skillList packageList
-              {
-                extension = newExtension($1, $2, $3);
-                yycopyloc(extension, &@$);
-                YYACCEPT;
-              }
+extension : root_stats {
+              extension = newExtension(); 
+              extension->stats = $1;
+            }
           ;
 
-funcdefList : %empty { $$ = list_new(); }
-            | funcdefList funcdef {
-                $$ = $1;
-                list_append($$, cast(Object *, $2));
-              }
+root_stats  : %empty { $$ = list_new(); }
+            | root_stats root_stat { $$ = $1; list_append($$, $2); }
             ;
 
-funcdef : FUNCDEF IDENTIFIER defargs block
+root_stat : statement
+          | skill { $$ = cast(Object *, $1); }
+          | package { $$ = cast(Object *, $1); }
+          | general { $$ = cast(Object *, $1); }
+          ;
+
+funcdef : FUNCDEF IDENTIFIER defargs block END
           { $$ = newFuncdef($2, $3, TNone, $4); yycopyloc($$, &@$); }
-        | FUNCDEF IDENTIFIER defargs RETURN TYPE block
+        | FUNCDEF IDENTIFIER defargs RETURN TYPE block END
           { $$ = newFuncdef($2, $3, $5, $6); yycopyloc($$, &@$); }
         ;
 
-defargs : '{' defarglist '}' { $$ = $2; }
-        | '{' defarglist ',' '}' { $$ = $2; }
-        | '{' '}' { $$ = list_new(); }
+anon_funcdef  : FUNCDEF defargs block END
+                { $$ = newFuncdef(strdup(""), $2, TNone, $3); yycopyloc($$, &@$); }
+              | FUNCDEF defargs RETURN TYPE block END
+                { $$ = newFuncdef(strdup(""), $2, $4, $5); yycopyloc($$, &@$); }
+              ;
+
+defargs : '(' defarglist ')' { $$ = $2; }
+        | '(' defarglist ',' ')' { $$ = $2; }
+        | '(' ')' { $$ = list_new(); }
         ;
 
 defarglist  : defarglist ',' defarg {
@@ -233,24 +243,12 @@ defarg : IDENTIFIER ':' TYPE
          { $$ = newDefarg($1, $3, $5); yycopyloc($$, &@$); }
        ;
 
-skillList : %empty { $$ = list_new(); }
-          | skillList skill {
-              $$ = $1;
-              list_append($$, cast(Object *, $2));
-            }
-          ;
-
-skill     : '$' IDENTIFIER STRING FREQUENCY INTERID skillspecs
-              {
-                $$ = newSkill($2, $3, $4, $5, $6);
-                yycopyloc($$, &@$);
-              }
-          | '$' IDENTIFIER STRING FREQUENCY skillspecs
+skill     : '$' IDENTIFIER STRING FREQUENCY skillspecs END
               {
                 $$ = newSkill($2, $3, $4, NULL, $5);
                 yycopyloc($$, &@$);
               }
-          | '$' IDENTIFIER STRING skillspecs
+          | '$' IDENTIFIER STRING skillspecs END
               {
                 $$ = newSkill($2, $3, NULL, NULL, $4);
                 yycopyloc($$, &@$);
@@ -407,14 +405,17 @@ statements  : %empty { $$ = list_new(); }
 statement   : assign_stat { $$ = cast(Object *, $1); }
             | if_stat { $$ = cast(Object *, $1); }
             | loop_stat { $$ = cast(Object *, $1); }
+            | while_stat { $$ = cast(Object *, $1); }
             | traverse_stat { $$ = cast(Object *, $1); }
             | BREAK { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Break; }
             | func_call { $$ = cast(Object *, $1); }
             | action_stat { $$ = cast(Object *, $1); }
+            | funcdef { $$ = cast(Object *, $1); }
             | error { $$ = NULL; }
             ;
 
-assign_stat : LET var EQ exp { $$ = newAssign($2, $4); yycopyloc($$, &@$); }
+assign_stat : var EQ exp { $$ = newAssign($1, $3); yycopyloc($$, &@$); }
+            | LET var EQ exp { $$ = newAssign($2, $4); yycopyloc($$, &@$); }
             ;
 
 if_stat : IF exp THEN block eliflist END { $$ = newIf($2, $4, $5, NULL); yycopyloc($$, &@$); }
@@ -431,14 +432,17 @@ eliflist  : %empty  { $$ = list_new(); }
 loop_stat : REPEAT block UNTIL exp { $$ = newLoop($2, $4); yycopyloc($$, &@$); }
           ;
 
+while_stat  : WHILE exp REPEAT block END { $$ = newLoop($4, $2); $$->type = 1; yycopyloc($$, &@$); }
+            ;
+
 traverse_stat : TO exp IN EVERY IDENTIFIER REPEAT block END
                 { $$ = newTraverse($2, $5, $7); yycopyloc($$, &@$); }
               ;
 
-func_call : CALL IDENTIFIER args { $$ = newFunccall($2, $3); yycopyloc($$, &@$); }
+func_call : IDENTIFIER args { $$ = newFunccall($1, $2); yycopyloc($$, &@$); }
           ;
 
-args : '{' arglist '}' {
+args : '(' arglist ')' {
           $$ = hash_new();
           list_foreach(iter, $2) {
             ArgObj *a = cast(ArgObj *, iter->data);
@@ -448,7 +452,7 @@ args : '{' arglist '}' {
           }
           list_free($2, NULL);
         }
-     | '{' arglist ',' '}' {
+     | '(' arglist ',' ')' {
           $$ = hash_new();
           list_foreach(iter, $2) {
             ArgObj *a = cast(ArgObj *, iter->data);
@@ -458,7 +462,7 @@ args : '{' arglist '}' {
           }
           list_free($2, NULL);
         }
-     | '{' '}' { $$ = hash_new(); }
+     | '(' ')' { $$ = hash_new(); }
      ;
 
 arglist : arglist ',' arg { $$ = $1; list_append($$, cast(Object *, $3)); }
@@ -478,6 +482,8 @@ exp : FALSE { $$ = newExpression(ExpBool, 0, 0, NULL, NULL); yycopyloc($$, &@$);
     | prefixexp { $$ = $1; }
     | opexp { $$ = $1; }
     | array { $$ = newExpression(ExpArray, 0, 0, NULL, NULL); $$->array = $1; yycopyloc($$, &@$); }
+    | dictionary { $$ = newExpression(ExpDict, 0, 0, NULL, NULL); $$->dict = $1; yycopyloc($$, &@$); }
+    | anon_funcdef { $$ = newExpression(ExpFuncdef, 0, 0, NULL, NULL); $$->funcdef = $1; yycopyloc($$, &@$); }
     ;
 
 prefixexp : var { $$ = newExpression(ExpVar, 0, 0, NULL, NULL); $$->varValue = $1; yycopyloc($$, &@$); }
@@ -509,60 +515,68 @@ array : '[' ']' { $$ = list_new(); }
       | '[' explist ',' ']' { $$ = $2; }
       ;
 
+dict_entries  : dict_entries ',' dict_entry { $$ = $1; list_append($$, cast(Object *, $3)); }
+              | dict_entry { $$ = list_new(); list_append($$, cast(Object *, $1)); }
+              ;
+
+dict_entry : STRING ':' exp {
+               $3->param_name = strdup($1);
+               $$ = newArg($1, $3);
+             }
+            ;
+
+dictionary  : '{' dict_entries '}' {
+              $$ = hash_new();
+              list_foreach(iter, $2) {
+                ArgObj *a = cast(ArgObj *, iter->data);
+                hash_set($$, a->name, a->exp);
+                free((void *)a->name);
+                free(a);
+              }
+              list_free($2, NULL);
+            }
+            | '{' dict_entries ',' '}' {
+              $$ = hash_new();
+              list_foreach(iter, $2) {
+                ArgObj *a = cast(ArgObj *, iter->data);
+                hash_set($$, a->name, a->exp);
+                free((void *)a->name);
+                free(a);
+              }
+              list_free($2, NULL);
+            }
+            | '{' '}' { $$ = hash_new(); }
+            ;
+
 var : IDENTIFIER { $$ = newVar($1, NULL); yycopyloc($$, &@$); }
     | prefixexp FIELD STRING { $$ = newVar($3, $1); yycopyloc($$, &@$); }
+    | prefixexp DI exp GE ELEMENT { $$ = newVar(NULL, $1); $$->index = $3; yycopyloc($$, &@$); }
     ;
 
 retstat : RET exp { $$ = $2; }
         ;
 
-packageList : package { $$ = list_new(); list_append($$, cast(Object *, $1)); }
-            | packageList package {
-                $$ = $1;
-                list_append($$, cast(Object *, $2));
-              }
+package     : PKGSTART IDENTIFIER { $$ = newPackage($2); yycopyloc($$, &@$); }
             ;
 
-package     : PKGSTART IDENTIFIER generalList { $$ = newPackage($2, $3); yycopyloc($$, &@$); }
-            ;
-
-generalList : %empty { $$ = list_new(); }
-            | generalList general {
-                $$ = $1;
-                list_append($$, cast(Object *, $2));
-              }
-            ;
-
-general     : '#' KINGDOM STRING IDENTIFIER NUMBER GENDER INTERID '[' stringList ']'
+general     : '#' KINGDOM STRING IDENTIFIER NUMBER GENDER array
                 {
-                  $$ = newGeneral($4, $2, $5, $3, $6, $7, $9);
+                  $$ = newGeneral($4, $2, $5, $3, $6, NULL, $7);
                   yycopyloc($$, &@$);
                 }
-            | '#' KINGDOM STRING IDENTIFIER NUMBER GENDER '[' stringList ']'
+            | '#' KINGDOM STRING IDENTIFIER NUMBER array
                 {
-                  $$ = newGeneral($4, $2, $5, $3, $6, NULL, $8);
+                  $$ = newGeneral($4, $2, $5, $3, NULL, NULL, $6);
                   yycopyloc($$, &@$);
                 }
-            | '#' KINGDOM STRING IDENTIFIER NUMBER '[' stringList ']'
-                {
-                  $$ = newGeneral($4, $2, $5, $3, NULL, NULL, $7);
-                  yycopyloc($$, &@$);
-                }
-            ;
-
-stringList  : %empty  { $$ = list_new(); }
-            | stringList STRING {
-                $$ = $1;
-                list_append($$, cast(Object *, $2));
-              }
             ;
 
 /* special function calls */
 action_stat : action { $$ = $1; }
-            | action args {
+            | action ':' args {
                 $$ = $1;
-                hash_copy($$->params, $2);
-                hash_free($2, NULL);
+                hash_copy($$->params, $3);
+                hash_free($3, NULL);
               }
             ;
 
@@ -585,7 +599,6 @@ action      : drawCards
             | arrayPrepend
             | arrayAppend
             | arrayRemoveOne
-            | arrayAt
             | hasSkill
             | throwCardsBySkill
             | getUsedTimes
@@ -720,16 +733,16 @@ loseMark  : exp LOSE exp MEI exp MARK {
             }
           ;
 
-getMark : exp exp MARK COUNT {
+getMark : exp DE exp MARK COUNT {
             $$ = newFunccall(
                   strdup("__getMark"),
-                  newParams(2, "玩家", $1, "标记", $2)
+                  newParams(2, "玩家", $1, "标记", $3)
                 );
           }
-        | exp exp HIDDEN MARK COUNT {
+        | exp DE exp HIDDEN MARK COUNT {
             $$ = newFunccall(
                   strdup("__getMark"),
-                  newParams(3, "玩家", $1, "标记", $2,
+                  newParams(3, "玩家", $1, "标记", $3,
                             "隐藏", newExpression(ExpBool, 1, 0, NULL, NULL))
                 );
           }
@@ -791,14 +804,6 @@ arrayRemoveOne : FROM exp DELETE exp {
                 }
           ;
 
-arrayAt : exp DI exp GE ELEMENT {
-            $$ = newFunccall(
-                  strdup("__at"),
-                  newParams(2, "array", $1, "index", $3)
-                );
-          }
-          ;
-
 hasSkill : exp HAVE SKILL exp {
             $$ = newFunccall(
                   strdup("__hasSkill"),
@@ -815,7 +820,7 @@ throwCardsBySkill : exp BECAUSE SKILL exp THROW CARD exp {
                     }
                   ;
 
-getUsedTimes  : exp INVOKE ACTIVE STRING FIELD TIMES {
+getUsedTimes  : exp INVOKE ACTIVE STRING DE TIMES {
                   tempExp = newExpression(ExpStr, 0, 0, NULL, NULL);
                   tempExp->strvalue = $4;
                   $$ = newFunccall(
@@ -825,7 +830,7 @@ getUsedTimes  : exp INVOKE ACTIVE STRING FIELD TIMES {
                 }
               ;
 
-broadcastSkillInvoke  : exp SPEAK STRING FIELD ACT_LINE {
+broadcastSkillInvoke  : exp SPEAK STRING DE ACT_LINE {
                           tempExp = newExpression(ExpStr, 0, 0, NULL, NULL);
                           tempExp->strvalue = $3;
                           $$ = newFunccall(
@@ -889,7 +894,7 @@ retrial: exp JIANG JUDGE RESULT FIX EQ exp {
           );
         };
 
-askChooseForCard: exp SELECT SELF FIELD AZHANG CARD {
+askChooseForCard: exp SELECT SELF DE AZHANG CARD {
           $$ = newFunccall(
             strdup("__askForCard"),
             newParams(1, "玩家", $1)

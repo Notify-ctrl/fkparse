@@ -14,10 +14,6 @@ static Proto f[] = {
     {"array", TAny, false, {.s = NULL}},
     {"value", TAny, false, {.s = NULL}},
   }},
-  {"__at", "fkp.functions.at", TAny, 2, {
-    {"array", TAny, false, {.s = NULL}},
-    {"index", TNumber, false, {.s = NULL}},
-  }},
   {NULL, NULL, TNone, 0, {}}
 };
 

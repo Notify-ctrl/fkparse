@@ -32,7 +32,6 @@ static int yycolumn = 1;
 
  /* Frequently used IDENTIFIER */
 "你" |
-"X" |
 "其" |
 "不存在的" {
     yylval->s = strdup(yytext);
@@ -52,13 +51,7 @@ static int yycolumn = 1;
     return STRING;
     }
 
-[0-9]+    { yylval->i = atoi(yytext); return NUMBER; }
-
-\{[a-zA-Z][_a-zA-Z0-9]*\} {
-    yylval->s = strdup(yytext + 1);
-    yylval->s[strlen(yylval->s) - 1] = 0;
-    return INTERID;
-    }
+-?[0-9]+    { yylval->i = atoi(yytext); return NUMBER; }
 
 "拓展包" |
 "Package"       { return PKGSTART; }
@@ -93,7 +86,9 @@ static int yycolumn = 1;
 "repeat"        { return REPEAT; }
 "直到" |
 "until"         { return UNTIL; }
-"的" |
+"当" |
+"while"         { return WHILE; }
+"的属性" |
 "."             { return FIELD; }
 "返回" |
 "return"        { return RET; }
@@ -106,8 +101,6 @@ static int yycolumn = 1;
 "break"         { return BREAK; }
 "定义函数" |
 "def"           { return FUNCDEF; }
-"调用" |
-"call"          { return CALL; }
 
 "摸"    { return DRAW; }
 "张"    { return ZHANG; }
@@ -140,6 +133,7 @@ static int yycolumn = 1;
 "删除" { return DELETE; }
 "第" { return DI; }
 "个" { return GE; }
+"的" { return DE; }
 "元素" { return ELEMENT; }
 "拥有"  { return HAVE; }
 "洗牌" { return WASH; }
@@ -359,13 +353,6 @@ static int yycolumn = 1;
     return GENDER;
     }
 
-"只观看顶部" |
-"顶部底部均观看" |
-"只观看底部" {
-    yylval->s = strdup(yytext);
-    return GUANXINGTYPE;
-}
-
 "魏" |
 "蜀" |
 "吴" |
@@ -459,6 +446,12 @@ static int yycolumn = 1;
 "或"  |
 "or" |
 "||"  { yylval->enum_v = 8; return LOGICOP; }
+
+ /* C-style identifier, with lowest priority */
+[_a-zA-Z][_a-zA-Z0-9]* {
+    yylval->s = strdup(yytext);
+    return IDENTIFIER;
+    }
 
  /* Below are ignored */
 "注:".*

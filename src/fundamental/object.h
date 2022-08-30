@@ -5,22 +5,19 @@
 
 typedef struct {
   ObjectHeader;
-  List *funcdefs;
-  List *skills;
-  List *packages;
+  List *stats;
 } ExtensionObj;
 
-ExtensionObj *newExtension(List *funcs, List *skills, List *packs);
+ExtensionObj *newExtension();
 void analyzeExtensionQSan(ExtensionObj *e);
 
 typedef struct {
   ObjectHeader;
   const char *id;
   int internal_id;
-  List *generals;
 } PackageObj;
 
-PackageObj *newPackage(const char *name, List *generals);
+PackageObj *newPackage(const char *name);
 
 typedef struct {
   ObjectHeader;
@@ -73,7 +70,9 @@ enum ExpType {
   ExpBool,
   ExpVar,
   ExpArray,
+  ExpDict,
   ExpFunc,
+  ExpFuncdef,
 };
 
 typedef enum ExpType ExpType;
@@ -94,6 +93,7 @@ enum ExpVType {
   TNumberList,
   TStringList,
   TMark,
+  TDict,
   TFunc,
   TPindian,
 
@@ -111,7 +111,9 @@ typedef struct ExpressionObj {
   const char *strvalue;
   struct VarObj *varValue;
   struct FunccallObj *func;
+  struct FuncdefObj *funcdef;
   List *array;
+  Hash *dict;
   int optype;
   struct ExpressionObj *oprand1; /* maybe NULL */
   struct ExpressionObj *oprand2; /* maybe NULL */
@@ -126,6 +128,7 @@ typedef struct VarObj {
   ObjectHeader;
   const char *name; /* or field */
   ExpressionObj *obj; /* maybe NULL */
+  ExpressionObj *index; /* used in index of array */
   ExpVType type;
 } VarObj;
 
@@ -140,9 +143,10 @@ typedef struct {
 
 DefargObj *newDefarg(const char *name, int type, ExpressionObj *d);
 
-typedef struct {
+typedef struct FuncdefObj {
   ObjectHeader;
   const char *funcname;
+  const char *name;
   List *params;
   int rettype;
   BlockObj *funcbody;
@@ -235,6 +239,7 @@ typedef struct {
   ObjectHeader;
   BlockObj *body;
   ExpressionObj *cond;
+  int type;
 } LoopObj;
 
 LoopObj *newLoop(BlockObj *body, ExpressionObj *cond);

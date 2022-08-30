@@ -31,11 +31,11 @@ add_custom_command(
   COMMAND ${FLEX} -o ${PROJECT_SOURCE_DIR}/src/parse/lex.c ${PROJECT_SOURCE_DIR}/src/parse/lex.l
 )
 
-add_library(fkparse SHARED)
+add_executable(fkparse)
 add_subdirectory(src)
 
-find_package(Qt5 REQUIRED COMPONENTS Gui Widgets)
-set(CMAKE_AUTOMOC ON)
-add_executable(fkparse_qt)
-add_subdirectory(gui)
-target_link_libraries(fkparse_qt PRIVATE fkparse Qt5::Gui Qt5::Widgets)
+#find_package(Qt5 REQUIRED COMPONENTS Gui Widgets)
+#set(CMAKE_AUTOMOC ON)
+#add_executable(fkparse_qt)
+#add_subdirectory(gui)
+#target_link_libraries(fkparse_qt PRIVATE fkparse Qt5::Gui Qt5::Widgets)

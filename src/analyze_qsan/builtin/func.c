@@ -35,6 +35,9 @@ static Proto f[] = {
   {"移动卡牌", "fkp.functions.moveCards", TNone, 1, {
     {"移牌信息列表", TStringList, false, {.s = NULL}},
   }},
+  {"警告框", "sgs.Alert", TNone, 1, {
+    {"信息", TAny, false, {.s = NULL}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 

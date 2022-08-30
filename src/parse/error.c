@@ -192,7 +192,9 @@ static const char *type_table[] = {
   "数字数组",
   "字符串数组",
   "标记类型",
-  "函数类型"
+  "字典类型",
+  "函数类型",
+  "拼点结果",
 };
 
 void checktype(void *o, ExpVType a, ExpVType t) {
