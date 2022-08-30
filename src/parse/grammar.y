@@ -150,7 +150,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> addMark loseMark getMark
 %type <func_call> askForChoice askForChoosePlayer
 %type <func_call> askForSkillInvoke obtainCard hasSkill
-%type <func_call> arrayPrepend arrayAppend arrayRemoveOne arrayAt
+%type <func_call> arrayPrepend arrayAppend arrayRemoveOne
 %type <func_call> loseMaxHp recoverMaxHp
 %type <func_call> throwCardsBySkill getUsedTimes
 %type <func_call> broadcastSkillInvoke
@@ -546,6 +546,7 @@ dictionary  : '{' dict_entries '}' {
 
 var : IDENTIFIER { $$ = newVar($1, NULL); yycopyloc($$, &@$); }
     | prefixexp FIELD STRING { $$ = newVar($3, $1); yycopyloc($$, &@$); }
+    | prefixexp DI exp GE ELEMENT { $$ = newVar(NULL, $1); $$->index = $3; yycopyloc($$, &@$); }
     ;
 
 retstat : RET exp { $$ = $2; }
@@ -594,7 +595,6 @@ action      : drawCards
             | arrayPrepend
             | arrayAppend
             | arrayRemoveOne
-            | arrayAt
             | hasSkill
             | throwCardsBySkill
             | getUsedTimes
@@ -798,14 +798,6 @@ arrayRemoveOne : FROM exp DELETE exp {
                         newParams(2, "array", $2, "value", $4)
                       );
                 }
-          ;
-
-arrayAt : exp DI exp GE ELEMENT {
-            $$ = newFunccall(
-                  strdup("__at"),
-                  newParams(2, "array", $1, "index", $3)
-                );
-          }
           ;
 
 hasSkill : exp HAVE SKILL exp {

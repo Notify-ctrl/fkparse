@@ -11,8 +11,14 @@ $ '奸雄' "你可以获得对你造成伤害的牌。"
     以上
 以上
 
-let func = def()
-  let a = 1
+let func = def() -> TNumber
+  let a = [1, 2, 3]
+  let b = a第1个元素
+  let c = 0
+  对a中每个n repeat
+    let c = c + b
+  end
+  return c
 end
 func()
 

@@ -103,8 +103,13 @@ VarObj *newVar(const char *name, ExpressionObj *obj) {
   ret->objtype = Obj_Var;
   ret->name = name;
   ret->obj = obj;
+  ret->index = NULL;
 
   if (!ret->obj) {
+    if (!ret->name) {
+      ret->type = TNone;
+      return ret;
+    }
     symtab_item *i = sym_lookup(ret->name);
     if (i) {
       ret->type = i->type;

@@ -128,6 +128,7 @@ typedef struct VarObj {
   ObjectHeader;
   const char *name; /* or field */
   ExpressionObj *obj; /* maybe NULL */
+  ExpressionObj *index; /* used in index of array */
   ExpVType type;
 } VarObj;
 

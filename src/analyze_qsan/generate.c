@@ -233,9 +233,39 @@ static void analyzeExp(ExpressionObj *e) {
 }
 
 static void analyzeVar(VarObj *v) {
+  ExpVType t = TNone;
+
+  /* Handle index of an array first */
+  if (!v->name) {
+    analyzeExp(v->obj);
+    ExpressionObj *array = v->obj;
+    switch (array->valuetype) {
+    case TNumberList:
+      t = TNumber;
+      break;
+    case TStringList:
+      t = TString;
+      break;
+    case TPlayerList:
+      t = TPlayer;
+      break;
+    case TCardList:
+      t = TCard;
+      break;
+    default:
+      yyerror(cast(YYLTYPE *, v->obj), "试图对不是数组或者空数组根据下标取值");
+      break;
+    }
+    v->type = t;
+    writestr(":at(");
+    analyzeExp(v->index);
+    checktype(v->index, v->index->valuetype, TNumber);
+    writestr(")");
+    return;
+  }
+
   const char *name = v->name;
   if (v->obj) {
-    ExpVType t = TNone;
     if (!strcmp(name, "所在位置")) {
       /* 对于不是直接调成员函数的，得区别对待 */
       /* 在客户端用这个属性的人还是后果自负罢 */
@@ -480,7 +510,7 @@ static void analyzeTraverse(TraverseObj *t) {
   ExpVType vtype = TNone;
   switch (type) {
     case TCardList: vtype = TCard; break;
-    case TNumberList: vtype = TNumberList; break;
+    case TNumberList: vtype = TNumber; break;
     case TPlayerList: vtype = TPlayer; break;
     case TStringList: vtype = TString; break;
     case TEmptyList: yyerror(cast(YYLTYPE *, t->array), "不允许遍历空数组"); break;
@@ -607,25 +637,6 @@ static void analyzeFunccall(FunccallObj *f) {
       checktype(value, value->valuetype, t);
     }
 
-  } else if (!strcmp(f->name, "__at")) {
-    ExpressionObj *array = hash_get(f->params, "array");
-    switch (array->valuetype) {
-    case TNumberList:
-      f->rettype = TNumber;
-      break;
-    case TStringList:
-      f->rettype = TString;
-      break;
-    case TPlayerList:
-      f->rettype = TPlayer;
-      break;
-    case TCardList:
-      f->rettype = TCard;
-      break;
-    default:
-      yyerror(cast(YYLTYPE *, f), "试图对不是数组或者空数组根据下标取值");
-      break;
-    }
   }
 }
 
