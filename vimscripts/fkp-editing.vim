@@ -59,6 +59,8 @@ def NewFunc(funcdef: string)
 
   # Finally, go back to origin work dir
   exec "lcd " .. curr_dir
+  # And go back to origin file
+  exec "bn"
 enddef
 
 command -nargs=+ FKPnewfunc :call NewFunc(<q-args>)
