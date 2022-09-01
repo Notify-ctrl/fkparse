@@ -178,7 +178,8 @@ static void analyzeExp(ExpressionObj *e) {
             origtext = hash_get(mark_table, e->strvalue);
           }
           writestr("'%s'", origtext);
-        } else if (!strcmp(e->param_name, "文本") || !strcmp(e->param_name, "value")) {
+        } else if (!strcmp(e->param_name, "文本") || !strcmp(e->param_name, "value")
+          || !strcmp(e->param_name, "牌堆名")) {
           origtext = hash_get(other_string_table, e->strvalue);
           if (!origtext) {
             sprintf(buf, "%s_str_%d", readfile_name, stringId);

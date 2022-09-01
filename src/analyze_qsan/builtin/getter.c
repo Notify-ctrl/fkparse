@@ -22,6 +22,10 @@ static Proto f[] = {
   {"__getOtherPlayers", "fkp.functions.getOtherPlayers", TPlayerList, 1, {
     {"排除的玩家", TPlayer, false, {.s = NULL}},
   }},
+  {"__getPile", "fkp.functions.getPile", TCardList, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"牌堆名", TString, false, {.s = NULL}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 

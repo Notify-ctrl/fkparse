@@ -162,6 +162,12 @@ static Proto f[] = {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"目标", TPlayer, false, {.s = NULL}},
   }},
+  {"__addToPile", "fkp.functions.addToPile", TNone, 4, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"牌堆名", TString, false, {.s = NULL}},
+    {"加入的牌", TCardList, false, {.s = NULL}},
+    {"可见", TBool, true, {.n = true}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 

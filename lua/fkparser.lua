@@ -558,6 +558,22 @@ fkp.functions.getAllPlayers = function()
   return room:getAllPlayers()
 end
 
+fkp.functions.addToPile = function(player, pile, cards, open)
+  local dummy = sgs.DummyCard()
+  dummy:addSubcards(cards)
+  player:addToPile(pile, dummy, open)
+  dummy:deleteLater()
+end
+
+fkp.functions.getPile = function(player, pile)
+  local ret = sgs.CardList()
+  local p = player:getPile(pile)
+  for _, id in sgs.list(p) do
+    ret:append(sgs.Sanguosha:getCard(id))
+  end
+  return ret
+end
+
 function fkp.newlist(t)
   local element_type
   if #t == 0 then
