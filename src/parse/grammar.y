@@ -115,6 +115,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token DAO DISTANCE ATTACK INSIDE AT RANGE ADJACENT
 %token EXPECT OTHERPLAYER
 %token DE
+%token PUT PILE
 
 %type <list> eliflist
 %type <list> defargs defarglist 
@@ -170,6 +171,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> turnOver playExtraTurn skipPhase
 %type <func_call> inMyAttackRange distanceTo isAdjacentTo
 %type <func_call> getOtherPlayers
+%type <func_call> addToPile getPile
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -628,6 +630,8 @@ action      : drawCards
             | distanceTo
             | isAdjacentTo
             | getOtherPlayers
+            | addToPile
+            | getPile
               { $$ = $1; }
             ;
 
@@ -1026,6 +1030,22 @@ getOtherPlayers : exp EXPECT OTHERPLAYER {
           );
         }
       ;
+
+addToPile : JIANG exp PUT exp DE PILE exp IN {
+              $$ = newFunccall(
+                strdup("__addToPile"),
+                newParams(3, "加入的牌", $2, "玩家", $4, "牌堆名", $7)
+              );
+            }
+          ;
+
+getPile : exp DE PILE exp IN DE CARD {
+            $$ = newFunccall(
+              strdup("__getPile"),
+              newParams(2, "玩家", $1, "牌堆名", $4)
+            );
+          }
+        ;
 
 %%
 
