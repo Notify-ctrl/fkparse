@@ -128,6 +128,7 @@ AssignObj *newAssign(VarObj *var, ExpressionObj *e) {
   ret->objtype = Obj_Assign;
   ret->var = var;
   ret->value = e;
+  ret->custom_type = TNone;
   return ret;
 }
 

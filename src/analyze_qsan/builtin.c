@@ -1,7 +1,9 @@
 #include "builtin.h"
 
 static void loadfuncdef(Proto *p) {
-  FuncdefObj *def = newFuncdef(strdup(p->src), NULL, p->rettype, NULL);
+  FuncdefObj *def = newFuncdef(NULL, NULL, p->rettype, NULL);
+  free((void *)def->funcname);
+  def->funcname = strdup(p->src);
   sym_new_entry(p->dst, TFunc, cast(const char *, def), true);
 
   List *l = list_new();

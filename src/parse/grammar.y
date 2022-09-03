@@ -114,7 +114,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token TURNOVER EXTRATURN SKIP
 %token DAO DISTANCE ATTACK INSIDE AT RANGE ADJACENT
 %token EXPECT OTHERPLAYER
-%token DE
+%token DE AS
 
 %type <list> eliflist
 %type <list> defargs defarglist 
@@ -416,6 +416,8 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
 
 assign_stat : var EQ exp { $$ = newAssign($1, $3); yycopyloc($$, &@$); }
             | LET var EQ exp { $$ = newAssign($2, $4); yycopyloc($$, &@$); }
+            | var EQ exp AS TYPE { $$ = newAssign($1, $3); $$->custom_type = $5; yycopyloc($$, &@$); }
+            | LET var EQ exp AS TYPE { $$ = newAssign($2, $4); $$->custom_type = $6; yycopyloc($$, &@$); }
             ;
 
 if_stat : IF exp THEN block eliflist END { $$ = newIf($2, $4, $5, NULL); yycopyloc($$, &@$); }
