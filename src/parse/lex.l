@@ -230,6 +230,8 @@ static int yycolumn = 1;
 "翻面"    { return TURNOVER; }
 "额外回合"  { return EXTRATURN; }
 "跳过"    { return SKIP; }
+"私人牌堆"  { return PILE; }
+"置于"    { return PUT; }
 
 "游戏开始时" |
 "GameStart"         { yylval->enum_v = GameStart; return EVENT; }

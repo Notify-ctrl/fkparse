@@ -59,6 +59,10 @@ static void analyzeExp(ExpressionObj *e) {
           writestr(" and ");
           analyzeExp(e->oprand1);
           writestr(":objectName()");
+        } else if (e->oprand1->valuetype == TCard) {
+          writestr(" and ");
+          analyzeExp(e->oprand1);
+          writestr(":getId()");
         }
         writestr(")");
 
@@ -73,7 +77,12 @@ static void analyzeExp(ExpressionObj *e) {
           writestr(" and ");
           analyzeExp(e->oprand2);
           writestr(":objectName()");
+        } else if (e->oprand2->valuetype == TCard) {
+          writestr(" and ");
+          analyzeExp(e->oprand2);
+          writestr(":getId()");
         }
+
         writestr(")");
       }
       t = TBool;
@@ -178,7 +187,8 @@ static void analyzeExp(ExpressionObj *e) {
             origtext = hash_get(mark_table, e->strvalue);
           }
           writestr("'%s'", origtext);
-        } else if (!strcmp(e->param_name, "文本") || !strcmp(e->param_name, "value")) {
+        } else if (!strcmp(e->param_name, "文本") || !strcmp(e->param_name, "value")
+          || !strcmp(e->param_name, "牌堆名")) {
           origtext = hash_get(other_string_table, e->strvalue);
           if (!origtext) {
             sprintf(buf, "%s_str_%d", readfile_name, stringId);
@@ -1129,7 +1139,7 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
     analyzeBlock(t->can_trigger);
     if (t->can_trigger->ret == NULL) clearData(t->event);
   } else {
-    writeline("return target and player == target and player:hasSkill(self:objectName())");
+    writeline("return target and player:objectName() == target:objectName() and player:hasSkill(self:objectName())");
   }
 
   indent_level--;
