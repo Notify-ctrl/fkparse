@@ -1155,6 +1155,23 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
   analyzeBlock(t->on_trigger);
   if (t->on_trigger->ret == NULL) clearData(t->event);
   indent_level--;
+  writeline("end,\n");
+
+  writeline("-- on_cost");
+  writeline("function (self, target, player, data)");
+  indent_level++;
+  if (t->on_cost) {
+    writeline("local room = player:getRoom()");
+    writeline("local locals = {}");
+    writeline("global_self = self\n");
+    initData(t->event);
+    analyzeBlock(t->on_cost);
+    if (t->on_cost->ret == NULL) clearData(t->event);
+  } else {
+    writeline("return self:getFrequency() == sgs.Skill_Compulsory or player:askForSkillInvoke(self:objectName())");
+  }
+
+  indent_level--;
   writeline("end,");
 
   indent_level--;

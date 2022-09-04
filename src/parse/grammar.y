@@ -83,7 +83,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token <s> GENDER
 %token <s> KINGDOM
 %token PKGSTART
-%token TRIGGER EVENTI COND EFFECT
+%token TRIGGER EVENTI COND COST EFFECT
 %token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
 %token VIEWAS VSRULE RESPONSECOND RESPONSABLE
 %token STATUSSKILL IS_PROHIBITED DISTANCE_CORRECT MAX_EXTRA MAX_FIXED
@@ -289,6 +289,16 @@ triggerspec : EVENTI EVENT EFFECT block {
               }
             | EVENTI EVENT COND block EFFECT block {
                 $$ = newTriggerSpec($2, $4, $6);
+                yycopyloc($$, &@$);
+              }
+            | EVENTI EVENT COST block EFFECT block {
+                $$ = newTriggerSpec($2, NULL, $6);
+                $$->on_cost = $4;
+                yycopyloc($$, &@$);
+              }
+            | EVENTI EVENT COND block COST block EFFECT block {
+                $$ = newTriggerSpec($2, $4, $8);
+                $$->on_cost = $6;
                 yycopyloc($$, &@$);
               }
             ;

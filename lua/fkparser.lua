@@ -687,9 +687,13 @@ function fkp.CreateTriggerSkill(spec)
       if not_triggable_func[event] and not_triggable_func[event](player, data) then
         return false
       end
+      local cond_func = specs[event][1]
+      local effect_func = specs[event][2]
+      local cost_func = specs[event][3]
       for _, p in sgs.qlist(room:getAlivePlayers()) do
-        if specs[event][1](self, player, p, data) then
-          return specs[event][2](self, player, p, data)
+        if cond_func(self, player, p, data) and cost_func(self, player, p, data) then
+          -- TODO: skill used times
+          return effect_func(self, player, p, data)
         end
       end
     end,

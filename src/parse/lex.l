@@ -63,6 +63,9 @@ static int yycolumn = 1;
 "条件:" |
 "条件："   |
 "Condition:"    { return COND; }
+"消耗:" |
+"消耗："  |
+"Cost:"         { return COST; }
 "效果:" |
 "效果："   |
 "Effect:"       { return EFFECT; }
