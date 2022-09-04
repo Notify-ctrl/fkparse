@@ -26,6 +26,11 @@ static Proto f[] = {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"牌堆名", TString, false, {.s = NULL}},
   }},
+  {"__getSkillUsedTimes", "fkp.functions.getSkillUsedTimes", TNumber, 3, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"技能名", TString, false, {.s = NULL}},
+    {"格局", TNumber, false, {.s = NULL}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 

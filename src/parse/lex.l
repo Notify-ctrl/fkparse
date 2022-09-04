@@ -235,6 +235,10 @@ static int yycolumn = 1;
 "跳过"    { return SKIP; }
 "私人牌堆"  { return PILE; }
 "置于"    { return PUT; }
+"本轮"    { return THISROUND; }
+"本回合"  { return THISTURN;  }
+"本阶段"  { return THISPHASE; }
+"发动过"  { return INVOKED;   }
 
 "游戏开始时" |
 "GameStart"         { yylval->enum_v = GameStart; return EVENT; }
