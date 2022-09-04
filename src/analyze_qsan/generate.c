@@ -1168,7 +1168,7 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
     analyzeBlock(t->on_cost);
     if (t->on_cost->ret == NULL) clearData(t->event);
   } else {
-    writeline("return self:getFrequency() == sgs.Skill_Compulsory or player:askForSkillInvoke(self:objectName())");
+    writeline("return self:getFrequency(player) == sgs.Skill_Compulsory or player:askForSkillInvoke(self:objectName())");
   }
 
   indent_level--;
