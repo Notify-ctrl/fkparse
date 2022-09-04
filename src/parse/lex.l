@@ -63,6 +63,9 @@ static int yycolumn = 1;
 "条件:" |
 "条件："   |
 "Condition:"    { return COND; }
+"消耗:" |
+"消耗："  |
+"Cost:"         { return COST; }
 "效果:" |
 "效果："   |
 "Effect:"       { return EFFECT; }
@@ -232,6 +235,10 @@ static int yycolumn = 1;
 "跳过"    { return SKIP; }
 "私人牌堆"  { return PILE; }
 "置于"    { return PUT; }
+"本轮"    { return THISROUND; }
+"本回合"  { return THISTURN;  }
+"本阶段"  { return THISPHASE; }
+"发动过"  { return INVOKED;   }
 
 "游戏开始时" |
 "GameStart"         { yylval->enum_v = GameStart; return EVENT; }

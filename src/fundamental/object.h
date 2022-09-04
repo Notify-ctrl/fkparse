@@ -177,6 +177,7 @@ typedef struct {
   BlockObj *can_trigger;
   BlockObj *on_trigger;
   BlockObj *on_refresh;
+  BlockObj *on_cost;
 } TriggerSpecObj;
 
 TriggerSpecObj *newTriggerSpec(int event, BlockObj *cond, BlockObj *effect);

@@ -83,7 +83,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token <s> GENDER
 %token <s> KINGDOM
 %token PKGSTART
-%token TRIGGER EVENTI COND EFFECT
+%token TRIGGER EVENTI COND COST EFFECT
 %token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
 %token VIEWAS VSRULE RESPONSECOND RESPONSABLE
 %token STATUSSKILL IS_PROHIBITED DISTANCE_CORRECT MAX_EXTRA MAX_FIXED
@@ -116,6 +116,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token EXPECT OTHERPLAYER
 %token DE AS
 %token PUT PILE
+%token THISROUND THISTURN THISPHASE INVOKED
 
 %type <list> eliflist
 %type <list> defargs defarglist 
@@ -172,6 +173,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> inMyAttackRange distanceTo isAdjacentTo
 %type <func_call> getOtherPlayers
 %type <func_call> addToPile getPile
+%type <func_call> getSkillUsedTimes
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -289,6 +291,16 @@ triggerspec : EVENTI EVENT EFFECT block {
               }
             | EVENTI EVENT COND block EFFECT block {
                 $$ = newTriggerSpec($2, $4, $6);
+                yycopyloc($$, &@$);
+              }
+            | EVENTI EVENT COST block EFFECT block {
+                $$ = newTriggerSpec($2, NULL, $6);
+                $$->on_cost = $4;
+                yycopyloc($$, &@$);
+              }
+            | EVENTI EVENT COND block COST block EFFECT block {
+                $$ = newTriggerSpec($2, $4, $8);
+                $$->on_cost = $6;
                 yycopyloc($$, &@$);
               }
             ;
@@ -634,6 +646,7 @@ action      : drawCards
             | getOtherPlayers
             | addToPile
             | getPile
+            | getSkillUsedTimes
               { $$ = $1; }
             ;
 
@@ -1048,6 +1061,30 @@ getPile : exp DE PILE exp IN DE CARD {
             );
           }
         ;
+
+getSkillUsedTimes :
+    exp THISROUND INVOKED exp DE TIMES {
+      $$ = newFunccall(
+        strdup("__getSkillUsedTimes"),
+        newParams(3, "玩家", $1, "技能名", $4,
+                    "格局", newExpression(ExpNum, 1, 0, NULL, NULL))
+      );
+    }
+  | exp THISTURN INVOKED exp DE TIMES {
+      $$ = newFunccall(
+        strdup("__getSkillUsedTimes"),
+        newParams(3, "玩家", $1, "技能名", $4,
+                    "格局", newExpression(ExpNum, 2, 0, NULL, NULL))
+      );
+    }
+  | exp THISPHASE INVOKED exp DE TIMES {
+      $$ = newFunccall(
+        strdup("__getSkillUsedTimes"),
+        newParams(3, "玩家", $1, "技能名", $4,
+                    "格局", newExpression(ExpNum, 3, 0, NULL, NULL))
+      );
+    }
+  ;
 
 %%
 
