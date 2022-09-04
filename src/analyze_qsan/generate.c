@@ -852,7 +852,7 @@ static void initData(int event) {
     case CardsMoveOneTime:
       writeline("local move = data:toMoveOneTime()");
       defineLocal("移动的牌", "move.card_ids", TNumber);
-      defineLocal("移动产地", "move.from_place", TNumber);
+      defineLocal("移动来源地", "move.from_place", TNumber);
       defineLocal("移动目的地", "move.to_place", TNumber);
       defineLocal("移动的来源的名字", "move.from_player_name", TString);
       defineLocal("移动的目标的名字", "move.to_player_name", TString);
@@ -1074,7 +1074,7 @@ static void clearData(int event) {
     case CardsMoveOneTime:
       if (rewrite) writestr("\n");
       clearLocal("移动的牌", "move.card_ids", rewrite);
-      clearLocal("移动产地", "move.from_place", rewrite);
+      clearLocal("移动来源地", "move.from_place", rewrite);
       clearLocal("移动目的地", "move.to_place", rewrite);
       clearLocal("移动的来源的名字", "move.from_player_name", rewrite);
       clearLocal("移动的目标的名字", "move.to_player_name", rewrite);
