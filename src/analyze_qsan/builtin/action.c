@@ -162,6 +162,12 @@ static Proto f[] = {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"目标", TPlayer, false, {.s = NULL}},
   }},
+  {"__jinknum", "fkp.functions.jinknum", TNone, 4, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"用牌信息", TAny, true, {.s = "使用牌信息"}},
+    {"需闪数", TNumber, false, {.s = NULL}},
+    {"目标", TPlayer, false, {.s = NULL}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 

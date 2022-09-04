@@ -22,6 +22,7 @@ static BuiltinVar v[] = {
   {"不存在的", "nil", TAny},
   {"判定结构体", "judge", TAny},
   {"其他角色", "room:getOtherPlayers(player)", TPlayerList},
+  {"使用牌信息", "data:toCardUse()", TAny},
   {NULL, NULL, TNone}
 };
 
