@@ -158,6 +158,7 @@ static int yycolumn = 1;
 "相邻" { return ADJACENT; }
 "之外的"  { return EXPECT; }
 "其他角色"  { return OTHERPLAYER; }
+"作为"  { return AS; }
 
 "主动技" |
 "ActiveSkill"   { return ACTIVE; }

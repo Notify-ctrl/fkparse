@@ -1,36 +1,21 @@
 #include "builtin.h"
 
 static void loadfuncdef(Proto *p) {
-  FuncdefObj *def = malloc(sizeof(FuncdefObj));
-  def->objtype = Obj_Funcdef;
+  FuncdefObj *def = newFuncdef(NULL, NULL, p->rettype, NULL);
+  free((void *)def->funcname);
   def->funcname = strdup(p->src);
   sym_new_entry(p->dst, TFunc, cast(const char *, def), true);
-  def->rettype = p->rettype;
-  def->funcbody = NULL;
 
   List *l = list_new();
   for (int i = 0; i < p->argcount; i++) {
     struct ProtoArg *arg = &p->args[i];
-    DefargObj *defarg = malloc(sizeof(DefargObj));
-    defarg->first_line = -1;
-    defarg->objtype = Obj_Defarg;
-    defarg->name = strdup(arg->name);
-    defarg->type = arg->argtype;
+    DefargObj *defarg = newDefarg(strdup(arg->name), arg->argtype, NULL);
 
     if (!arg->have_default) {
       defarg->d = NULL;
     } else {
-      ExpressionObj *e = malloc(sizeof(ExpressionObj));
-      e->objtype = Obj_Expression;
+      ExpressionObj *e = newExpression(ExpVar, 0, 0, NULL, NULL);
       e->valuetype = arg->argtype;
-      e->optype = 0;
-      e->strvalue = NULL;
-      e->varValue = NULL;
-      e->func = NULL;
-      e->array = NULL;
-      e->oprand1 = NULL;
-      e->oprand2 = NULL;
-      e->bracketed = false;
       e->param_name = strdup(arg->name);
 
       VarObj *v;
@@ -49,11 +34,8 @@ static void loadfuncdef(Proto *p) {
         break;
       default:
         e->exptype = ExpVar;
-        v = malloc(sizeof(VarObj));
-        v->objtype = Obj_Var;
-        v->name = strdup(arg->d.s);
+        v = newVar(strdup(arg->d.s), NULL);
         v->type = arg->argtype;
-        v->obj = NULL;
         e->varValue = v;
         break;
       }

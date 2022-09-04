@@ -484,7 +484,10 @@ static void analyzeAssign(AssignObj *a) {
           f->funcname = strdup(a->var->name);
           i->origtext = cast(const char *, f);
         }
-        i->type = a->value->valuetype;
+        if (a->custom_type == TNone)
+          i->type = a->value->valuetype;
+        else
+          i->type = a->custom_type;
       }
     }
   }

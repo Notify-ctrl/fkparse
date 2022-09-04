@@ -258,6 +258,7 @@ typedef struct {
   ObjectHeader;
   VarObj *var;
   ExpressionObj *value;
+  ExpVType custom_type;
 } AssignObj;
 
 AssignObj *newAssign(VarObj *var, ExpressionObj *e);
