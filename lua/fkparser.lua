@@ -931,16 +931,16 @@ fkp_global = sgs.CreateTriggerSkill{
     elseif event == sgs.CardUsed then
       local skill = data:toCardUse().card:getSkillName()
       if skill ~= "" then
-        room:addPlayerMark(p, "fkp_usedtime_round_" .. skill, 1)
-        room:addPlayerMark(p, "fkp_usedtime_turn_" .. skill, 1)
-        room:addPlayerMark(p, "fkp_usedtime_phase_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_round_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_turn_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_phase_" .. skill, 1)
       end
     elseif event == sgs.CardResponded then
       local skill = data:toCardResponse().m_card:getSkillName()
       if skill ~= "" then
-        room:addPlayerMark(p, "fkp_usedtime_round_" .. skill, 1)
-        room:addPlayerMark(p, "fkp_usedtime_turn_" .. skill, 1)
-        room:addPlayerMark(p, "fkp_usedtime_phase_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_round_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_turn_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_phase_" .. skill, 1)
       end
     end
   end,
