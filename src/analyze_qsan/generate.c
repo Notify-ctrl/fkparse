@@ -59,6 +59,10 @@ static void analyzeExp(ExpressionObj *e) {
           writestr(" and ");
           analyzeExp(e->oprand1);
           writestr(":objectName()");
+        } else if (e->oprand1->valuetype == TCard) {
+          writestr(" and ");
+          analyzeExp(e->oprand1);
+          writestr(":getId()");
         }
         writestr(")");
 
@@ -73,7 +77,12 @@ static void analyzeExp(ExpressionObj *e) {
           writestr(" and ");
           analyzeExp(e->oprand2);
           writestr(":objectName()");
+        } else if (e->oprand2->valuetype == TCard) {
+          writestr(" and ");
+          analyzeExp(e->oprand2);
+          writestr(":getId()");
         }
+
         writestr(")");
       }
       t = TBool;
@@ -178,7 +187,8 @@ static void analyzeExp(ExpressionObj *e) {
             origtext = hash_get(mark_table, e->strvalue);
           }
           writestr("'%s'", origtext);
-        } else if (!strcmp(e->param_name, "文本") || !strcmp(e->param_name, "value")) {
+        } else if (!strcmp(e->param_name, "文本") || !strcmp(e->param_name, "value")
+          || !strcmp(e->param_name, "牌堆名")) {
           origtext = hash_get(other_string_table, e->strvalue);
           if (!origtext) {
             sprintf(buf, "%s_str_%d", readfile_name, stringId);
@@ -474,7 +484,10 @@ static void analyzeAssign(AssignObj *a) {
           f->funcname = strdup(a->var->name);
           i->origtext = cast(const char *, f);
         }
-        i->type = a->value->valuetype;
+        if (a->custom_type == TNone)
+          i->type = a->value->valuetype;
+        else
+          i->type = a->custom_type;
       }
     }
   }
@@ -839,7 +852,7 @@ static void initData(int event) {
     case CardsMoveOneTime:
       writeline("local move = data:toMoveOneTime()");
       defineLocal("移动的牌", "move.card_ids", TNumber);
-      defineLocal("移动产地", "move.from_place", TNumber);
+      defineLocal("移动来源地", "move.from_place", TNumber);
       defineLocal("移动目的地", "move.to_place", TNumber);
       defineLocal("移动的来源的名字", "move.from_player_name", TString);
       defineLocal("移动的目标的名字", "move.to_player_name", TString);
@@ -1061,7 +1074,7 @@ static void clearData(int event) {
     case CardsMoveOneTime:
       if (rewrite) writestr("\n");
       clearLocal("移动的牌", "move.card_ids", rewrite);
-      clearLocal("移动产地", "move.from_place", rewrite);
+      clearLocal("移动来源地", "move.from_place", rewrite);
       clearLocal("移动目的地", "move.to_place", rewrite);
       clearLocal("移动的来源的名字", "move.from_player_name", rewrite);
       clearLocal("移动的目标的名字", "move.to_player_name", rewrite);
@@ -1126,7 +1139,7 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
     analyzeBlock(t->can_trigger);
     if (t->can_trigger->ret == NULL) clearData(t->event);
   } else {
-    writeline("return target and player == target and player:hasSkill(self:objectName())");
+    writeline("return target and player:objectName() == target:objectName() and player:hasSkill(self:objectName())");
   }
 
   indent_level--;
@@ -1141,6 +1154,23 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
   initData(t->event);
   analyzeBlock(t->on_trigger);
   if (t->on_trigger->ret == NULL) clearData(t->event);
+  indent_level--;
+  writeline("end,\n");
+
+  writeline("-- on_cost");
+  writeline("function (self, target, player, data)");
+  indent_level++;
+  if (t->on_cost) {
+    writeline("local room = player:getRoom()");
+    writeline("local locals = {}");
+    writeline("global_self = self\n");
+    initData(t->event);
+    analyzeBlock(t->on_cost);
+    if (t->on_cost->ret == NULL) clearData(t->event);
+  } else {
+    writeline("return self:getFrequency(player) == sgs.Skill_Compulsory or player:askForSkillInvoke(self:objectName())");
+  }
+
   indent_level--;
   writeline("end,");
 

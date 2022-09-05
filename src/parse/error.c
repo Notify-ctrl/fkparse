@@ -350,7 +350,7 @@ static void printPosAnnonation(YYLTYPE *loc, Bound *bound) {
 }
 
 void yyerror(YYLTYPE *loc, const char *msg, ...) {
-  error_occured = 1;
+  error_occured++;
 
   /* built-in error report */
   if (loc->first_line == -1) {

@@ -177,6 +177,7 @@ typedef struct {
   BlockObj *can_trigger;
   BlockObj *on_trigger;
   BlockObj *on_refresh;
+  BlockObj *on_cost;
 } TriggerSpecObj;
 
 TriggerSpecObj *newTriggerSpec(int event, BlockObj *cond, BlockObj *effect);
@@ -258,6 +259,7 @@ typedef struct {
   ObjectHeader;
   VarObj *var;
   ExpressionObj *value;
+  ExpVType custom_type;
 } AssignObj;
 
 AssignObj *newAssign(VarObj *var, ExpressionObj *e);

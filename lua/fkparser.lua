@@ -581,6 +581,27 @@ fkp.functions.getAllPlayers = function()
   return room:getAllPlayers()
 end
 
+fkp.functions.addToPile = function(player, pile, cards, open)
+  local dummy = sgs.DummyCard()
+  dummy:addSubcards(cards)
+  player:addToPile(pile, dummy, open)
+  dummy:deleteLater()
+end
+
+fkp.functions.getPile = function(player, pile)
+  local ret = sgs.CardList()
+  local p = player:getPile(pile)
+  for _, id in sgs.list(p) do
+    ret:append(sgs.Sanguosha:getCard(id))
+  end
+  return ret
+end
+
+fkp.functions.getSkillUsedTimes = function(player, skill, scope)
+  local tmp_t = {"round", "turn", "phase"}
+  return player:getMark("fkp_usedtime_" .. tmp_t[scope] .. "_" .. skill)
+end
+
 function fkp.newlist(t)
   local element_type
   if #t == 0 then
@@ -694,9 +715,15 @@ function fkp.CreateTriggerSkill(spec)
       if not_triggable_func[event] and not_triggable_func[event](player, data) then
         return false
       end
+      local cond_func = specs[event][1]
+      local effect_func = specs[event][2]
+      local cost_func = specs[event][3]
       for _, p in sgs.qlist(room:getAlivePlayers()) do
-        if specs[event][1](self, player, p, data) then
-          return specs[event][2](self, player, p, data)
+        if cond_func(self, player, p, data) and cost_func(self, player, p, data) then
+          room:addPlayerMark(p, "fkp_usedtime_round_" .. self:objectName(), 1)
+          room:addPlayerMark(p, "fkp_usedtime_turn_" .. self:objectName(), 1)
+          room:addPlayerMark(p, "fkp_usedtime_phase_" .. self:objectName(), 1)
+          return effect_func(self, player, p, data)
         end
       end
     end,
@@ -723,6 +750,9 @@ function fkp.CreateActiveSkill(spec)
       for _, id in sgs.list(self:getSubcards()) do
         clist:append(sgs.Sanguosha:getCard(id))
       end
+      room:addPlayerMark(source, "fkp_usedtime_round_" .. self:objectName(), 1)
+      room:addPlayerMark(source, "fkp_usedtime_turn_" .. self:objectName(), 1)
+      room:addPlayerMark(source, "fkp_usedtime_phase_" .. self:objectName(), 1)
       return spec.on_use(self, source, plist, clist)
     end,
     on_effect = spec.on_effect or function()end,  -- TODO
@@ -857,7 +887,7 @@ fkp_global = sgs.CreateTriggerSkill{
   name = "fkp_global",
   global = true,
   priority = -1,
-  events = {sgs.Pindian},
+  events = {sgs.Pindian, sgs.EventPhaseStart, sgs.TurnStart, sgs.CardUsed, sgs.CardResponded},
   can_trigger = function(self, target)
     return target
   end,
@@ -890,6 +920,50 @@ fkp_global = sgs.CreateTriggerSkill{
       else
         local times = room:getTag("fkp_pindian_times"):toInt() + 1
         room:setTag("fkp_pindian_times", sgs.QVariant(times))
+      end
+
+    -- clean marks that store skill used times
+    elseif event == sgs.EventPhaseStart then
+      for _, mark in sgs.list(player:getMarkNames()) do
+        if string.find(mark, "fkp_usedtime_phase_") and player:getMark(mark) > 0 then
+          room:setPlayerMark(player, mark, 0)
+        end
+      end
+    elseif event == sgs.TurnStart then
+      local n = 15
+      for _, p in sgs.qlist(room:getAlivePlayers()) do
+        n = math.min(p:getSeat(), n)
+      end
+      if player:getSeat() == n and not room:getTag("ExtraTurn"):toBool() then
+        for _, p in sgs.qlist(room:getAlivePlayers()) do
+          for _, mark in sgs.list(p:getMarkNames()) do
+            if string.find(mark, "fkp_usedtime_round_") and p:getMark(mark) > 0 then
+              room:setPlayerMark(p, mark, 0)
+            end
+          end
+        end
+      end
+
+      for _, mark in sgs.list(player:getMarkNames()) do
+        if string.find(mark, "fkp_usedtime_turn_") and player:getMark(mark) > 0 then
+          room:setPlayerMark(player, mark, 0)
+        end
+      end
+
+    -- for view as skills.
+    elseif event == sgs.CardUsed then
+      local skill = data:toCardUse().card:getSkillName()
+      if skill ~= "" then
+        room:addPlayerMark(player, "fkp_usedtime_round_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_turn_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_phase_" .. skill, 1)
+      end
+    elseif event == sgs.CardResponded then
+      local skill = data:toCardResponse().m_card:getSkillName()
+      if skill ~= "" then
+        room:addPlayerMark(player, "fkp_usedtime_round_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_turn_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_phase_" .. skill, 1)
       end
     end
   end,

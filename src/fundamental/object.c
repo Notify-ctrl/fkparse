@@ -128,6 +128,7 @@ AssignObj *newAssign(VarObj *var, ExpressionObj *e) {
   ret->objtype = Obj_Assign;
   ret->var = var;
   ret->value = e;
+  ret->custom_type = TNone;
   return ret;
 }
 
@@ -176,6 +177,7 @@ TriggerSpecObj *newTriggerSpec(int event, BlockObj *cond, BlockObj *effect) {
   ret->can_trigger = cond;
   ret->on_trigger = effect;
   ret->on_refresh = NULL; /* TODO */
+  ret->on_cost = NULL;
 
   return ret;
 }
@@ -418,6 +420,7 @@ static void freeVar(void *ptr) {
   VarObj *v = cast(VarObj *, ptr);
   free((void *)v->name);
   freeObject(v->obj);
+  freeObject(v->index);
   free(v);
 }
 
@@ -475,6 +478,7 @@ static void freeTriggerSpec(void *ptr) {
   freeObject(t->can_trigger);
   freeObject(t->on_trigger);
   freeObject(t->on_refresh);
+  freeObject(t->on_cost);
   free(t);
 }
 
@@ -526,6 +530,7 @@ static void freeDefarg(void *ptr) {
 void freeFuncdef(void *ptr) {
   FuncdefObj *d = ptr;
   free((void *)d->funcname);
+  free((void *)d->name);
   list_free(d->params, freeDefarg);
   freeObject(d->funcbody);
   free(d);
@@ -560,7 +565,7 @@ static void freeGeneral(void *ptr) {
   free((void *)g->kingdom);
   free((void *)g->nickname);
   free((void *)g->gender);
-  list_free(g->skills, free);
+  list_free(g->skills, freeExp);
   free(g);
 }
 

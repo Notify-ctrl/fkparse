@@ -83,7 +83,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token <s> GENDER
 %token <s> KINGDOM
 %token PKGSTART
-%token TRIGGER EVENTI COND EFFECT
+%token TRIGGER EVENTI COND COST EFFECT
 %token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
 %token VIEWAS VSRULE RESPONSECOND RESPONSABLE
 %token STATUSSKILL IS_PROHIBITED DISTANCE_CORRECT MAX_EXTRA MAX_FIXED
@@ -114,7 +114,10 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token TURNOVER EXTRATURN SKIP
 %token DAO DISTANCE ATTACK INSIDE AT RANGE ADJACENT
 %token EXPECT OTHERPLAYER
-%token DE SHAN SHA NEED RESPONSE
+%token DE AS
+%token PUT PILE
+%token THISROUND THISTURN THISPHASE INVOKED
+%token SHAN SHA NEED RESPONSE
 
 %type <list> eliflist
 %type <list> defargs defarglist 
@@ -171,6 +174,8 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> inMyAttackRange distanceTo isAdjacentTo
 %type <func_call> getOtherPlayers
 %type <func_call> jinknum
+%type <func_call> addToPile getPile
+%type <func_call> getSkillUsedTimes
 
 %type <exp> exp prefixexp opexp
 %type <var> var
@@ -288,6 +293,16 @@ triggerspec : EVENTI EVENT EFFECT block {
               }
             | EVENTI EVENT COND block EFFECT block {
                 $$ = newTriggerSpec($2, $4, $6);
+                yycopyloc($$, &@$);
+              }
+            | EVENTI EVENT COST block EFFECT block {
+                $$ = newTriggerSpec($2, NULL, $6);
+                $$->on_cost = $4;
+                yycopyloc($$, &@$);
+              }
+            | EVENTI EVENT COND block COST block EFFECT block {
+                $$ = newTriggerSpec($2, $4, $8);
+                $$->on_cost = $6;
                 yycopyloc($$, &@$);
               }
             ;
@@ -417,6 +432,8 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
 
 assign_stat : var EQ exp { $$ = newAssign($1, $3); yycopyloc($$, &@$); }
             | LET var EQ exp { $$ = newAssign($2, $4); yycopyloc($$, &@$); }
+            | var EQ exp AS TYPE { $$ = newAssign($1, $3); $$->custom_type = $5; yycopyloc($$, &@$); }
+            | LET var EQ exp AS TYPE { $$ = newAssign($2, $4); $$->custom_type = $6; yycopyloc($$, &@$); }
             ;
 
 if_stat : IF exp THEN block eliflist END { $$ = newIf($2, $4, $5, NULL); yycopyloc($$, &@$); }
@@ -629,6 +646,9 @@ action      : drawCards
             | distanceTo
             | isAdjacentTo
             | getOtherPlayers
+            | addToPile
+            | getPile
+            | getSkillUsedTimes
             | jinknum
               { $$ = $1; }
             ;
@@ -1028,6 +1048,46 @@ getOtherPlayers : exp EXPECT OTHERPLAYER {
           );
         }
       ;
+
+addToPile : JIANG exp PUT exp DE PILE exp IN {
+              $$ = newFunccall(
+                strdup("__addToPile"),
+                newParams(3, "加入的牌", $2, "玩家", $4, "牌堆名", $7)
+              );
+            }
+          ;
+
+getPile : exp DE PILE exp IN DE CARD {
+            $$ = newFunccall(
+              strdup("__getPile"),
+              newParams(2, "玩家", $1, "牌堆名", $4)
+            );
+          }
+        ;
+
+getSkillUsedTimes :
+    exp THISROUND INVOKED exp DE TIMES {
+      $$ = newFunccall(
+        strdup("__getSkillUsedTimes"),
+        newParams(3, "玩家", $1, "技能名", $4,
+                    "格局", newExpression(ExpNum, 1, 0, NULL, NULL))
+      );
+    }
+  | exp THISTURN INVOKED exp DE TIMES {
+      $$ = newFunccall(
+        strdup("__getSkillUsedTimes"),
+        newParams(3, "玩家", $1, "技能名", $4,
+                    "格局", newExpression(ExpNum, 2, 0, NULL, NULL))
+      );
+    }
+  | exp THISPHASE INVOKED exp DE TIMES {
+      $$ = newFunccall(
+        strdup("__getSkillUsedTimes"),
+        newParams(3, "玩家", $1, "技能名", $4,
+                    "格局", newExpression(ExpNum, 3, 0, NULL, NULL))
+      );
+    }
+  ;
 
 // # 令 对 # 使用 的 杀 需 # 张 闪 响应
 jinknum : exp LET TO exp USE DE SHA NEED exp ZHANG SHAN RESPONSE {

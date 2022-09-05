@@ -78,6 +78,7 @@ void parse(const char *filename, fkp_analyze_type type) {
   fclose(yyout);
 
   if (error_occured) {
+    fprintf(error_output, "一共检测到%d条错误。\n", error_occured);
     fprintf(error_output, "在编译期间有错误产生，请检查您的输入文件。\n");
 // #ifndef FK_DEBUG
     fclose(error_output);

@@ -28,4 +28,7 @@ static BuiltinVar v[] = {
 
 void load_builtin_util() {
   loadmodule(f, v);
+  /* fkp.cost是可读写的全局数据，所以要特意把reserved设为false */
+  /* 它仅用于为消耗函数提供额外返回值 */
+  sym_new_entry("消耗数据", TAny, "fkp.cost", false);
 }
