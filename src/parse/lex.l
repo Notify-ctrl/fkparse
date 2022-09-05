@@ -160,7 +160,7 @@ static int yycolumn = 1;
 "其他角色"  { return OTHERPLAYER; }
 "闪" { return SHAN; }
 "杀" { return SHA; }
-"需" { return BESOIN; }
+"需" { return NEED; }
 "响应" { return RESPONSE; }
 
 "主动技" |

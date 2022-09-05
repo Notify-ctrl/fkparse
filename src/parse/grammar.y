@@ -114,7 +114,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token TURNOVER EXTRATURN SKIP
 %token DAO DISTANCE ATTACK INSIDE AT RANGE ADJACENT
 %token EXPECT OTHERPLAYER
-%token DE SHAN SHA BESOIN RESPONSE
+%token DE SHAN SHA NEED RESPONSE
 
 %type <list> eliflist
 %type <list> defargs defarglist 
@@ -1030,8 +1030,7 @@ getOtherPlayers : exp EXPECT OTHERPLAYER {
       ;
 
 // # 令 对 # 使用 的 杀 需 # 张 闪 响应
-// 需 BESOIN 是法语，NEED留给后面的完整词“需要”
-jinknum : exp LET TO exp USE DE SHA BESOIN exp ZHANG SHAN RESPONSE {
+jinknum : exp LET TO exp USE DE SHA NEED exp ZHANG SHAN RESPONSE {
           $$ = newFunccall(
             strdup("__jinknum"),
             newParams(3, "玩家", $1, "目标", $4, "需闪数", $9)
