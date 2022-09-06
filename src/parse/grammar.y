@@ -117,6 +117,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token DE AS
 %token PUT PILE
 %token THISROUND THISTURN THISPHASE INVOKED
+%token SHAN SHA NEED RESPONSE
 
 %type <list> eliflist
 %type <list> defargs defarglist 
@@ -172,6 +173,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_call> turnOver playExtraTurn skipPhase
 %type <func_call> inMyAttackRange distanceTo isAdjacentTo
 %type <func_call> getOtherPlayers
+%type <func_call> jinknum
 %type <func_call> addToPile getPile
 %type <func_call> getSkillUsedTimes
 
@@ -647,6 +649,7 @@ action      : drawCards
             | addToPile
             | getPile
             | getSkillUsedTimes
+            | jinknum
               { $$ = $1; }
             ;
 
@@ -1085,6 +1088,15 @@ getSkillUsedTimes :
       );
     }
   ;
+
+// # 令 对 # 使用 的 杀 需 # 张 闪 响应
+jinknum : exp LET TO exp USE DE SHA NEED exp ZHANG SHAN RESPONSE {
+          $$ = newFunccall(
+            strdup("__jinknum"),
+            newParams(3, "玩家", $1, "目标", $4, "需闪数", $9)
+          );
+        }
+       ;
 
 %%
 

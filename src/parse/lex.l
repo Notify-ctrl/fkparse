@@ -162,6 +162,10 @@ static int yycolumn = 1;
 "之外的"  { return EXPECT; }
 "其他角色"  { return OTHERPLAYER; }
 "作为"  { return AS; }
+"闪" { return SHAN; }
+"杀" { return SHA; }
+"需" { return NEED; }
+"响应" { return RESPONSE; }
 
 "主动技" |
 "ActiveSkill"   { return ACTIVE; }

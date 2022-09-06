@@ -347,6 +347,29 @@ fkp.functions.judge = function(player, reason, pattern, good, play_animation)
   return judge.card
 end
 
+fkp.functions.jinknum = function(player,use, num, target)
+  --local use = data:toCardUse()
+  local jink_table = sgs.QList2Table(player:getTag("Jink_"..use.card:toString()):toIntList())
+  local index = 1
+  for _, p in sgs.qlist(use.to) do
+    if target == nil or target:objectName() == p:objectName() then
+      jink_table[index] = num
+    end
+    index = index + 1
+  end
+  local jink_data = sgs.QVariant()
+  local Table2IntList = function(theTable)
+    local result = sgs.IntList()
+    for i = 1, #theTable, 1 do
+      result:append(theTable[i])
+    end
+    return result
+  end
+  jink_data:setValue(Table2IntList(jink_table))
+  player:setTag("Jink_" .. use.card:toString(),jink_data)
+end
+
+
 fkp.functions.buildPattern = function(names, suits, numbers)
   if not names then names = {"."} end
   if not suits then suits = {"."} end
