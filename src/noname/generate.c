@@ -3,6 +3,7 @@
 #include "main.h"
 #include <stdarg.h>
 #include "error.h"
+#include "qsan.h"
 
 static PackageObj *currentpack;
 static int indent_level = 0;
@@ -1126,7 +1127,7 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
   sym_new_entry("你", TPlayer, "player", true);
   sym_new_entry("当前目标", TPlayer, "target", true);
 
-  writeline("[%s] = {", event_table[t->event]);
+  writeline("[%s] = {", qsan_event_table[t->event]);
   indent_level++;
   writeline("-- can_trigger");
   writeline("function (self, target, player, data)");
@@ -1898,7 +1899,7 @@ void analyzeBlock(BlockObj *bl) {
   current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
-void analyzeExtensionQSan(ExtensionObj *e) {
+void analyzeExtensionNoname(ExtensionObj *e) {
   writeline("require 'fkparser'\n\nlocal global_self\nlocal locals = {}\n");
   writeline("local all_skills = sgs.SkillList()\n");
 

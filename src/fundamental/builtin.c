@@ -1,4 +1,6 @@
 #include "builtin.h"
+#include "qsan.h"
+#include "noname.h"
 
 static void loadfuncdef(Proto *p) {
   FuncdefObj *def = newFuncdef(NULL, NULL, p->rettype, NULL);
@@ -65,19 +67,7 @@ void loadmodule(Proto *ps, BuiltinVar *vs) {
     }
 }
 
-typedef void (*InitFunc)();
-static InitFunc init_funcs[] = {
-  load_builtin_action,
-  load_builtin_cards,
-  load_builtin_enum,
-  load_builtin_func,
-  load_builtin_getter,
-  load_builtin_interaction,
-  load_builtin_util,
-  NULL
-};
-
-void sym_init() {
+void sym_init(fkp_analyze_type parse_type) {
   if (builtin_symtab != NULL) return;
   builtin_symtab = hash_new();
   symtab_stack = stack_new();
@@ -85,9 +75,10 @@ void sym_init() {
   current_tab = builtin_symtab;
   last_lookup_tab = NULL;
 
-  for (int i = 0; ; i++) {
-    if (init_funcs[i] == NULL)
-      break;
-    init_funcs[i]();
+  switch (parse_type) {
+  case FKP_QSAN_LUA: qsan_load(); break;
+  case FKP_NONAME_JS: noname_load(); break;
+  default:
+    break;
   }
 }

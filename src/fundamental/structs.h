@@ -114,7 +114,7 @@ extern Hash *global_symtab;
 extern Hash *current_tab;
 extern Hash *last_lookup_tab;
 extern Stack *symtab_stack;
-void sym_init();
+
 symtab_item *sym_lookup(const char *k);
 void sym_new_entry(const char *k, int type, const char *origtext, bool reserved);
 void sym_set(const char *k, symtab_item *v);
@@ -133,7 +133,5 @@ extern Hash *mark_table;
 extern Hash *skill_table;
 extern Hash *general_table;
 extern Hash *other_string_table;
-
-extern char *event_table[];
 
 #endif

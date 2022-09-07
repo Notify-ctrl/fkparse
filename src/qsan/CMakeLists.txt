@@ -1,5 +1,5 @@
 set(fkparse_qsan_SRCS
-  "builtin.c"
+  "qsan.c"
   "generate.c"
 
   "builtin/action.c"

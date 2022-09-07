@@ -1,4 +1,4 @@
-#include "builtin.h"
+#include "qsan.h"
 
 static BuiltinVar v[] = {
   {"所有角色", "fkp.functions.getAllPlayers()", TPlayerList},
@@ -34,6 +34,6 @@ static Proto f[] = {
   {NULL, NULL, TNone, 0, {}}
 };
 
-void load_builtin_getter() {
+void qsan_load_getter() {
   loadmodule(f, v);
 }
