@@ -1,4 +1,4 @@
-#include "builtin.h"
+#include "qsan.h"
 
 static Proto f[] = {
   /* array operations */
@@ -26,7 +26,7 @@ static BuiltinVar v[] = {
   {NULL, NULL, TNone}
 };
 
-void load_builtin_util() {
+void qsan_load_util() {
   loadmodule(f, v);
   /* fkp.cost是可读写的全局数据，所以要特意把reserved设为false */
   /* 它仅用于为消耗函数提供额外返回值 */

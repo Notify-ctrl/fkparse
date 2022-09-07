@@ -1,4 +1,4 @@
-#include "builtin.h"
+#include "qsan.h"
 
 static Proto f[] = {
   {"生成随机数", "math.random", TNumber, 2, {
@@ -41,6 +41,6 @@ static Proto f[] = {
   {NULL, NULL, TNone, 0, {}}
 };
 
-void load_builtin_func() {
+void qsan_load_func() {
   loadmodule(f, NULL);
 }

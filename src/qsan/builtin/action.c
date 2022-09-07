@@ -1,4 +1,4 @@
-#include "builtin.h"
+#include "qsan.h"
 
 static Proto f[] = {
   {"__drawCards", "fkp.functions.drawCards", TNone, 2, {
@@ -177,6 +177,6 @@ static Proto f[] = {
   {NULL, NULL, TNone, 0, {}}
 };
 
-void load_builtin_action() {
+void qsan_load_action() {
   loadmodule(f, NULL);
 }

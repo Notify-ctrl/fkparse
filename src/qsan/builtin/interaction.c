@@ -1,4 +1,4 @@
-#include "builtin.h"
+#include "qsan.h"
 
 static Proto f[] = {
   {"__askForChoice", "fkp.functions.askForChoice", TString, 3, {
@@ -64,6 +64,6 @@ static Proto f[] = {
   {NULL, NULL, TNone, 0, {}}
 };
 
-void load_builtin_interaction() {
+void qsan_load_interaction() {
   loadmodule(f, NULL);
 }

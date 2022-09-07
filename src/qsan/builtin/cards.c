@@ -1,4 +1,4 @@
-#include "builtin.h"
+#include "qsan.h"
 
 static BuiltinVar v[] = {
   {"杀", "'slash'", TString},
@@ -47,6 +47,6 @@ static BuiltinVar v[] = {
   {NULL, NULL, TNone}
 };
 
-void load_builtin_cards() {
+void qsan_load_cards() {
   loadmodule(NULL, v);
 }

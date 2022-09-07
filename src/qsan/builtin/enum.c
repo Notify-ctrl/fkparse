@@ -1,4 +1,4 @@
-#include "builtin.h"
+#include "qsan.h"
 
 static BuiltinVar v[] = {
   {"魏", "'wei'", TNumber},
@@ -86,11 +86,11 @@ static BuiltinVar v[] = {
   {NULL, NULL, TNone}
 };
 
-void load_builtin_enum() {
+void qsan_load_enum() {
   loadmodule(NULL, v);
 }
 
-char *event_table[] = {
+char *qsan_event_table[] = {
   "sgs.NonTrigger",
 
   "sgs.GameStart",

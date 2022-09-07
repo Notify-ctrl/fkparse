@@ -1,5 +1,6 @@
 #include "main.h"
 #include "fkparse.h"
+#include "builtin.h"
 #include <stdarg.h>
 
 char *readfile_name;
@@ -97,7 +98,6 @@ void parse(const char *filename, fkp_analyze_type type) {
 }
 
 fkp_parser *fkp_new_parser() {
-  sym_init();
   fkp_parser *ret = malloc(sizeof(fkp_parser));
   ret->generals = (fkp_hash *)hash_new();
   ret->skills = (fkp_hash *)hash_new();
@@ -116,6 +116,7 @@ static void fkp_reset(fkp_parser *p) {
 
 int fkp_parse(fkp_parser *p, const char *filename, fkp_analyze_type type) {
   error_occured = 0;
+  sym_init(type);
   global_symtab = hash_new();
   stack_push(symtab_stack, cast(Object *, global_symtab));
   current_tab = global_symtab;
@@ -148,13 +149,13 @@ int fkp_parse(fkp_parser *p, const char *filename, fkp_analyze_type type) {
   hash_free(mark_table, free);
   hash_free(skill_table, free);
   hash_free(general_table, free);
+  sym_free(builtin_symtab);
+  builtin_symtab = NULL;
+  list_free(symtab_stack, NULL);
   return error_occured;
 }
 
 void fkp_close(fkp_parser *p) {
-  sym_free(builtin_symtab);
-  builtin_symtab = NULL;
-  list_free(symtab_stack, NULL);
   hash_free((Hash *)p->generals, free);
   hash_free((Hash *)p->skills, free);
   hash_free((Hash *)p->marks, free);
