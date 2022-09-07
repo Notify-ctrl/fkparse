@@ -64,6 +64,9 @@ void parse(const char *filename, fkp_analyze_type type) {
     case FKP_QSAN_LUA:
       analyzeExtensionQSan(extension);
       break;
+    case FKP_NONAME_JS:
+      analyzeExtensionNoname(extension);
+      break;
     default:
       error_occured = 1;
       fprintf(error_output, "此编译功能未完成，敬请期待\n");

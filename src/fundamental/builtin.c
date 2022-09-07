@@ -1,5 +1,6 @@
 #include "builtin.h"
 #include "qsan.h"
+#include "noname.h"
 
 static void loadfuncdef(Proto *p) {
   FuncdefObj *def = newFuncdef(NULL, NULL, p->rettype, NULL);
@@ -76,7 +77,7 @@ void sym_init(fkp_analyze_type parse_type) {
 
   switch (parse_type) {
   case FKP_QSAN_LUA: qsan_load(); break;
-  //case FKP_NONAME_JS: noname_load(); break;
+  case FKP_NONAME_JS: noname_load(); break;
   default:
     break;
   }

@@ -16,6 +16,7 @@ target_include_directories(fkparse PRIVATE parse)
 target_include_directories(fkparse PRIVATE fundamental)
 
 add_subdirectory(qsan)
+add_subdirectory(noname)
 
 set_target_properties(fkparse
   PROPERTIES
