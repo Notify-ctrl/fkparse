@@ -31,11 +31,16 @@ add_custom_command(
   COMMAND ${FLEX} -o ${PROJECT_SOURCE_DIR}/src/parse/lex.c ${PROJECT_SOURCE_DIR}/src/parse/lex.l
 )
 
-add_executable(fkparse)
+if (${PROJECT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
+  add_executable(fkparse)
+else ()
+  add_library(fkparse SHARED)
+endif ()
 add_subdirectory(src)
 
-#find_package(Qt5 REQUIRED COMPONENTS Gui Widgets)
+#find_package(Qt6 REQUIRED COMPONENTS Gui Widgets)
 #set(CMAKE_AUTOMOC ON)
-#add_executable(fkparse_qt)
+#qt_add_executable(fkparse_qt)
 #add_subdirectory(gui)
-#target_link_libraries(fkparse_qt PRIVATE fkparse Qt5::Gui Qt5::Widgets)
+#target_link_libraries(fkparse_qt PRIVATE fkparse Qt6::Gui Qt6::Widgets)
+
