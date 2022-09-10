@@ -602,6 +602,7 @@ void freeObject(void *p) {
   case Obj_Loop: freeLoop(p); break;
   case Obj_Traverse: freeTraverse(p); break;
   case Obj_Break: free(p); break;
+  case Obj_Docost: free(p); break;
   case Obj_Funccall: freeFunccall(p); break;
   case Obj_Arg: freeArg(p); break;
   case Obj_Assign: freeAssign(p); break;

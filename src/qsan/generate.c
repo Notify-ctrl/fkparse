@@ -1120,55 +1120,83 @@ static void clearData(int event) {
   }
 }
 
-static void analyzeTriggerSpec(TriggerSpecObj *t) {
+static void startDef(int params, ...) {
+  va_list ap;
+  va_start(ap, params);
+
   Hash *param_symtab = hash_new();
   current_tab = param_symtab;
   stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "player", true);
-  sym_new_entry("当前目标", TPlayer, "target", true);
+
+  const char *src;
+  const char *dst;
+  ExpVType type;
+  int analyzed = 0;
+
+  while (analyzed < params) {
+    src = va_arg(ap, const char *);
+    dst = va_arg(ap, const char *);
+    type = va_arg(ap, ExpVType);
+    sym_new_entry(src, type, dst, true);
+    analyzed++;
+  }
+
+  va_end(ap);
+}
+
+static void endDef() {
+  sym_free(cast(Hash *, stack_gettop(symtab_stack)));
+  stack_pop(symtab_stack);
+}
+
+#define START_DEF \
+  indent_level++; \
+  writeline("local locals = {}"); \
+  writeline("global_self = self")
+
+#define END_DEF \
+  indent_level--; \
+  writeline("end,")
+
+static void analyzeTriggerSpec(TriggerSpecObj *t) {
+  startDef(2,
+    "你", "player", TPlayer,
+    "当前目标", "target", TPlayer
+  );
 
   writeline("[%s] = {", qsan_event_table[t->event]);
   indent_level++;
   //writeline("-- can_trigger");
   if (t->can_trigger) {
     writeline("function (self, target, player, data)");
-    indent_level++;
+    START_DEF;
     writeline("local room = player:getRoom()");
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
     initData(t->event);
     analyzeBlock(t->can_trigger);
     if (t->can_trigger->ret == NULL) clearData(t->event);
-    indent_level--;
-    writeline("end,\n");
+    END_DEF;
   } else {
     writeline("nil,");
   }
 
   //writeline("-- on effect");
   writeline("function (self, target, player, data)");
-  indent_level++;
+  START_DEF;
   writeline("local room = player:getRoom()");
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
   initData(t->event);
   analyzeBlock(t->on_trigger);
   if (t->on_trigger->ret == NULL) clearData(t->event);
-  indent_level--;
-  writeline("end,\n");
+  END_DEF;
 
   //writeline("-- on_cost");
   if (t->on_cost) {
     writeline("function (self, target, player, data)");
-    indent_level++;
+    START_DEF;
     writeline("local room = player:getRoom()");
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
     initData(t->event);
     analyzeBlock(t->on_cost);
     if (t->on_cost->ret == NULL) clearData(t->event);
-    indent_level--;
-    writeline("end,");
+    END_DEF;
   } else {
     writeline("nil,");
   }
@@ -1176,15 +1204,12 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
   //writeline("-- how to cost");
   if (t->how_cost) {
     writeline("function (self, funcs, target, player, data)");
-    indent_level++;
+    START_DEF;
     writeline("local room = player:getRoom()");
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
     initData(t->event);
     analyzeBlock(t->how_cost);
     if (t->how_cost->ret == NULL) clearData(t->event);
-    indent_level--;
-    writeline("end,");
+    END_DEF;
   } else {
     writeline("nil,");
   }
@@ -1192,211 +1217,127 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
   indent_level--;
   writeline("},");
 
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
+  endDef();
   current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
 static void analyzeActiveSpec(ActiveSpecObj *a) {
-  Hash *param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "player", true);
-
+  startDef(1, "你", "player", TPlayer);
   writeline("can_use = function(self, player)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
+  START_DEF;
   analyzeBlock(a->cond);
-  indent_level--;
-  writeline("end,\n");
+  END_DEF;
+  endDef();
 
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "sgs.Self", true);
-  sym_new_entry("已选卡牌", TCardList, "selected", true);
-  sym_new_entry("备选卡牌", TCard, "to_select", true);
-
+  startDef(3,
+    "你", "sgs.Self", TPlayer,
+    "已选卡牌", "selected", TCardList,
+    "备选卡牌", "to_select", TCard
+  );
   writeline("card_filter = function(self, selected, to_select)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
+  START_DEF;
   analyzeBlock(a->card_filter);
-  indent_level--;
-  writeline("end,\n");
+  END_DEF;
+  endDef();
 
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "sgs.Self", true);
-  sym_new_entry("已选目标", TPlayerList, "targets", true);
-  sym_new_entry("备选目标", TPlayer, "to_select", true);
-  sym_new_entry("已选卡牌", TCardList, "selected", true);
-
+  startDef(4,
+    "你", "sgs.Self", TPlayer,
+    "已选目标", "targets", TPlayerList,
+    "备选目标", "to_select", TPlayer,
+    "已选卡牌", "selected", TCardList
+  );
   writeline("target_filter = function(self, targets, to_select, selected)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
+  START_DEF;
   analyzeBlock(a->target_filter);
-  indent_level--;
-  writeline("end,\n");
+  END_DEF;
+  endDef();
 
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "sgs.Self", true);
-  sym_new_entry("已选目标", TPlayerList, "targets", true);
-  sym_new_entry("已选卡牌", TCardList, "cards", true);
-
+  startDef(3,
+    "你", "sgs.Self", TPlayer,
+    "已选目标", "targets", TPlayerList,
+    "已选卡牌", "cards", TCardList
+  );
   writeline("feasible = function(self, targets, cards)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
+  START_DEF;
   analyzeBlock(a->feasible);
-  indent_level--;
-  writeline("end,\n");
+  END_DEF;
+  endDef();
 
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "player", true);
-  sym_new_entry("选择的目标", TPlayerList, "targets", true);
-  sym_new_entry("选择的卡牌", TCardList, "cards", true);
-
+  startDef(3,
+    "你", "player", TPlayer,
+    "选择的目标", "targets", TPlayerList,
+    "选择的卡牌", "cards", TCardList
+  );
   writeline("on_use = function(self, player, targets, cards)");
-  indent_level++;
+  START_DEF;
   writeline("local room = player:getRoom()");
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
   analyzeBlock(a->on_use);
-  indent_level--;
-  writeline("end,\n");
-
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
+  END_DEF;
+  endDef();
 
   if (a->on_effect) {
-    param_symtab = hash_new();
-    current_tab = param_symtab;
-    stack_push(symtab_stack, cast(Object *, param_symtab));
-    sym_new_entry("你", TPlayer, "effect.from", true);
-    sym_new_entry("目标", TPlayer, "effect.to", true);
-    sym_new_entry("卡牌列表", TCardList, "self:getSubCards()", true);
-
+    startDef(3,
+      "你", "effect.from", TPlayer,
+      "目标", "effect.to", TPlayer,
+      "卡牌列表", "self:getSubCards()", TCardList
+    );
     writeline("on_effect = function(self, effect)");
-    indent_level++;
+    START_DEF;
     writeline("local room = effect.from:getRoom()");
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
     analyzeBlock(a->on_effect);
-    indent_level--;
-    writeline("end,");
-
-    stack_pop(symtab_stack);
-    sym_free(param_symtab);
+    END_DEF;
+    endDef();
   }
 
   current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
 static void analyzeViewAsSpec(ViewAsSpecObj *v) {
-  Hash *param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "player", true);
-
+  startDef(1, "你", "player", TPlayer);
   writeline("can_use = function(self, player)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
+  START_DEF;
   analyzeBlock(v->cond);
-  indent_level--;
-  writeline("end,\n");
+  END_DEF;
+  endDef();
 
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "sgs.Self", true);
-  sym_new_entry("已选卡牌", TCardList, "selected", true);
-  sym_new_entry("备选卡牌", TCard, "to_select", true);
-
+  startDef(3,
+    "你", "sgs.Self", TPlayer,
+    "已选卡牌", "selected", TCardList,
+    "备选卡牌", "to_select", TCard
+  );
   writeline("card_filter = function(self, selected, to_select)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
+  START_DEF;
   analyzeBlock(v->card_filter);
-  indent_level--;
-  writeline("end,\n");
+  END_DEF;
+  endDef();
 
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "sgs.Self", true);
-  sym_new_entry("已选卡牌", TCardList, "cards", true);
-
+  startDef(2,
+    "你", "sgs.Self", TPlayer,
+    "已选卡牌", "cards", TCardList
+  );
   writeline("feasible = function(self, cards)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
+  START_DEF;
   analyzeBlock(v->feasible);
-  indent_level--;
-  writeline("end,\n");
+  END_DEF;
+  endDef();
 
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
-
-  param_symtab = hash_new();
-  current_tab = param_symtab;
-  stack_push(symtab_stack, cast(Object *, param_symtab));
-  sym_new_entry("你", TPlayer, "sgs.Self", true);
-  sym_new_entry("选择的卡牌", TCardList, "cards", true);
-
+  startDef(2,
+    "你", "sgs.Self", TPlayer,
+    "选择的卡牌", "cards", TCardList
+  );
   writeline("view_as = function(self, cards)");
-  indent_level++;
-  writeline("local locals = {}");
-  writeline("global_self = self\n");
+  START_DEF;
   analyzeBlock(v->view_as);
-  indent_level--;
-  writeline("end,\n");
-
-  stack_pop(symtab_stack);
-  sym_free(param_symtab);
+  END_DEF;
+  endDef();
 
   if (v->can_response) {
-    param_symtab = hash_new();
-    current_tab = param_symtab;
-    stack_push(symtab_stack, cast(Object *, param_symtab));
-    sym_new_entry("你", TPlayer, "player", true);
-
+    startDef(1, "你", "player", TPlayer);
     writeline("can_response = function(self, player)");
-    indent_level++;
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
+    START_DEF;
     analyzeBlock(v->can_response);
-    indent_level--;
-    writeline("end,\n");
-
-    stack_pop(symtab_stack);
-    sym_free(param_symtab);
+    END_DEF;
+    endDef();
   }
 
   if (v->responsable) {
@@ -1411,7 +1352,6 @@ static void analyzeViewAsSpec(ViewAsSpecObj *v) {
 }
 
 static void analyzeStatusSpec(const char *name, const char *trans, StatusSpecObj *s) {
-  Hash *param_symtab;
   char buf[64];
   /* prohibit skill */
   if (s->is_prohibited) {
@@ -1421,21 +1361,16 @@ static void analyzeStatusSpec(const char *name, const char *trans, StatusSpecObj
     indent_level++;
     writeline("name = '#%s_pr',", name);
 
-    param_symtab = hash_new();
-    current_tab = param_symtab;
-    stack_push(symtab_stack, cast(Object *, param_symtab));
-    sym_new_entry("来源", TPlayer, "from", true);
-    sym_new_entry("目标", TPlayer, "to", true);
-    sym_new_entry("卡牌", TCard, "card", true);
+    startDef(3,
+      "来源", "from", TPlayer,
+      "目标", "to", TPlayer,
+      "卡牌", "card", TCard
+    );
     writeline("is_prohibited = function(self, from, to, card)");
-    indent_level++;
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
+    START_DEF;
     analyzeBlock(s->is_prohibited);
-    indent_level--;
-    writeline("end,\n");
-    stack_pop(symtab_stack);
-    sym_free(param_symtab);
+    END_DEF;
+    endDef();
 
     indent_level--;
     writeline("}");
@@ -1452,35 +1387,25 @@ all_skills:append(%s_pr) end", name, name);
     indent_level++;
     writeline("name = '#%s_fi',", name);
 
-    param_symtab = hash_new();
-    current_tab = param_symtab;
-    stack_push(symtab_stack, cast(Object *, param_symtab));
-    sym_new_entry("你", TPlayer, "sgs.Self", true);
-    sym_new_entry("备选卡牌", TCard, "to_select", true);
+    startDef(2,
+      "你", "sgs.Self", TPlayer,
+      "备选卡牌", "to_select", TCard
+    );
     writeline("card_filter = function(self, to_select)");
-    indent_level++;
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
+    START_DEF;
     analyzeBlock(s->card_filter);
-    indent_level--;
-    writeline("end,\n");
-    stack_pop(symtab_stack);
-    sym_free(param_symtab);
+    END_DEF;
+    endDef();
 
-    param_symtab = hash_new();
-    current_tab = param_symtab;
-    stack_push(symtab_stack, cast(Object *, param_symtab));
-    sym_new_entry("你", TPlayer, "sgs.Self", true);
-    sym_new_entry("备选卡牌", TCard, "to_select", true);
+    startDef(2,
+      "你", "sgs.Self", TPlayer,
+      "备选卡牌", "to_select", TCard
+    );
     writeline("view_as = function(self, to_select)");
-    indent_level++;
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
+    START_DEF;
     analyzeBlock(s->vsrule);
-    indent_level--;
-    writeline("end,\n");
-    stack_pop(symtab_stack);
-    sym_free(param_symtab);
+    END_DEF;
+    endDef();
 
     indent_level--;
     writeline("}");
@@ -1497,20 +1422,15 @@ all_skills:append(%s_fi) end", name, name);
     indent_level++;
     writeline("name = '#%s_di',", name);
 
-    param_symtab = hash_new();
-    current_tab = param_symtab;
-    stack_push(symtab_stack, cast(Object *, param_symtab));
-    sym_new_entry("来源", TPlayer, "from", true);
-    sym_new_entry("目标", TPlayer, "to", true);
+    startDef(2,
+      "来源", "from", TPlayer,
+      "目标", "to", TPlayer
+    );
     writeline("correct_func = function(self, from, to)");
-    indent_level++;
-    writeline("local locals = {}");
-    writeline("global_self = self\n");
+    START_DEF;
     analyzeBlock(s->distance_correct);
-    indent_level--;
-    writeline("end,\n");
-    stack_pop(symtab_stack);
-    sym_free(param_symtab);
+    END_DEF;
+    endDef();
 
     indent_level--;
     writeline("}");
@@ -1528,35 +1448,21 @@ all_skills:append(%s_di) end", name, name);
     writeline("name = '#%s_ex',", name);
 
     if (s->max_extra) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
+      startDef(1, "玩家", "target", TPlayer);
       writeline("extra_func = function(self, target)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
+      START_DEF;
       analyzeBlock(s->max_extra);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
+      END_DEF;
+      endDef();
     }
 
     if (s->max_fixed) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
+      startDef(1, "玩家", "target", TPlayer);
       writeline("fixed_func = function(self, target)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
+      START_DEF;
       analyzeBlock(s->max_fixed);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
+      END_DEF;
+      endDef();
     }
 
     indent_level--;
@@ -1576,54 +1482,39 @@ all_skills:append(%s_ex) end", name, name);
     writeline("pattern = '.',");
 
     if (s->tmd_distance) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
-      sym_new_entry("卡牌", TCard, "card", true);
+      startDef(2,
+        "玩家", "target", TPlayer,
+        "卡牌", "card", TCard
+      );
       writeline("distance_limit_func = function(self, target, card)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
+      START_DEF;
       analyzeBlock(s->tmd_distance);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
+      END_DEF;
+      endDef();
     }
 
     if (s->tmd_extarget) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
-      sym_new_entry("卡牌", TCard, "card", true);
+      startDef(2,
+        "玩家", "target", TPlayer,
+        "卡牌", "card", TCard
+      );
       writeline("extra_target_func = function(self, target, card)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
+      START_DEF;
       analyzeBlock(s->tmd_extarget);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
+      END_DEF;
+      endDef();
     }
 
     if (s->tmd_residue) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
-      sym_new_entry("卡牌", TCard, "card", true);
+      startDef(2,
+        "玩家", "target", TPlayer,
+        "卡牌", "card", TCard
+      );
       writeline("residue_func = function(self, target, card)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
+      START_DEF;
       analyzeBlock(s->tmd_residue);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
+      END_DEF;
+      endDef();
     }
 
     indent_level--;
@@ -1642,35 +1533,21 @@ all_skills:append(%s_tm) end", name, name);
     writeline("name = '#%s_at',", name);
 
     if (s->atkrange_extra) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
+      startDef(1, "玩家", "target", TPlayer);
       writeline("extra_func = function(self, target)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
+      START_DEF;
       analyzeBlock(s->atkrange_extra);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
+      END_DEF;
+      endDef();
     }
 
     if (s->atkrange_fixed) {
-      param_symtab = hash_new();
-      current_tab = param_symtab;
-      stack_push(symtab_stack, cast(Object *, param_symtab));
-      sym_new_entry("玩家", TPlayer, "target", true);
+      startDef(1, "玩家", "target", TPlayer);
       writeline("fixed_func = function(self, target)");
-      indent_level++;
-      writeline("local locals = {}");
-      writeline("global_self = self\n");
+      START_DEF;
       analyzeBlock(s->atkrange_fixed);
-      indent_level--;
-      writeline("end,\n");
-      stack_pop(symtab_stack);
-      sym_free(param_symtab);
+      END_DEF;
+      endDef();
     }
 
     indent_level--;
@@ -1749,6 +1626,9 @@ static void analyzeSkill(SkillObj *s) {
   writeline("if not sgs.Sanguosha:getSkill('%s') then \
 all_skills:append(%s) end\n", s->interid, s->interid);
 }
+
+#undef START_DEF
+#undef END_DEF
 
 static void analyzeGeneral(GeneralObj *g) {
   if (!currentpack) {
