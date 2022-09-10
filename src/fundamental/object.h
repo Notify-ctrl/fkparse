@@ -175,10 +175,11 @@ SkillSpecObj *newSkillSpec(SpecType type, void *obj);
 typedef struct {
   ObjectHeader;
   int event;
+  bool is_refresh;
   BlockObj *can_trigger;
   BlockObj *on_trigger;
-  BlockObj *on_refresh;
   BlockObj *on_cost;
+  BlockObj *how_cost;
 } TriggerSpecObj;
 
 TriggerSpecObj *newTriggerSpec(int event, BlockObj *cond, BlockObj *effect);

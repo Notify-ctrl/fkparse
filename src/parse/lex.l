@@ -66,9 +66,15 @@ static int yycolumn = 1;
 "消耗:" |
 "消耗："  |
 "Cost:"         { return COST; }
+"如何执行:" |
+"如何执行：" |
+"HowCost:"      { return HOWCOST; }
 "效果:" |
 "效果："   |
 "Effect:"       { return EFFECT; }
+"刷新:" |
+"刷新："   |
+"Refresh:"      { return REFRESH; }
 "令" |
 "let"           { return LET; }
 "为" |
@@ -102,6 +108,7 @@ static int yycolumn = 1;
 "true"          { return TRUE; }
 "中止此流程" |
 "break"         { return BREAK; }
+"执行消耗"       { return DOCOST; }
 "定义函数" |
 "def"           { return FUNCDEF; }
 

@@ -176,8 +176,9 @@ TriggerSpecObj *newTriggerSpec(int event, BlockObj *cond, BlockObj *effect) {
   ret->event = event;
   ret->can_trigger = cond;
   ret->on_trigger = effect;
-  ret->on_refresh = NULL; /* TODO */
+  ret->is_refresh = false;
   ret->on_cost = NULL;
+  ret->how_cost = NULL;
 
   return ret;
 }
@@ -477,7 +478,7 @@ static void freeTriggerSpec(void *ptr) {
   TriggerSpecObj *t = ptr;
   freeObject(t->can_trigger);
   freeObject(t->on_trigger);
-  freeObject(t->on_refresh);
+  freeObject(t->how_cost);
   freeObject(t->on_cost);
   free(t);
 }
@@ -601,6 +602,7 @@ void freeObject(void *p) {
   case Obj_Loop: freeLoop(p); break;
   case Obj_Traverse: freeTraverse(p); break;
   case Obj_Break: free(p); break;
+  case Obj_Docost: free(p); break;
   case Obj_Funccall: freeFunccall(p); break;
   case Obj_Arg: freeArg(p); break;
   case Obj_Assign: freeAssign(p); break;

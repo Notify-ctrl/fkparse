@@ -1,3 +1,7 @@
+-- This file is fkparse's interface for QSanguosha.
+-- You need copy it to lua/lib in QSanguosha's directory.
+-- For license information, check generated lua files.
+
 fkp = {}
 
 sgs.LoadTranslationTable{
@@ -671,12 +675,39 @@ function fkp.newlist(t)
   return ret
 end
 
+local default_cond = function(self, target, player, data)
+  return player and player:objectName() == target:objectName() and player:hasSkill(self:objectName())
+end
+
+local default_cost = function(self, target, player, data)
+  return self:getFrequency(player) == sgs.Skill_Compulsory or player:askForSkillInvoke(self:objectName())
+end
+
+fkp.functions.do_cost = function(self, funcs, target, player, data)
+  local room = player:getRoom()
+  local effect_func = funcs[2]
+  local cost_func = funcs[3] or default_cost
+  if cost_func(self, target, player, data) then
+    room:addPlayerMark(player, "fkp_usedtime_round_" .. self:objectName(), 1)
+    room:addPlayerMark(player, "fkp_usedtime_turn_" .. self:objectName(), 1)
+    room:addPlayerMark(player, "fkp_usedtime_phase_" .. self:objectName(), 1)
+    return effect_func(self, target, player, data)
+  end
+end
+
+local default_how_to = function(self, funcs, target, player, data)
+  if fkp.functions.do_cost(self, funcs, target, player, data) then
+    return true
+  end
+end
+
 function fkp.CreateTriggerSkill(spec)
   assert(type(spec.name) == "string")
 
   local freq = spec.frequency or sgs.Skill_NotFrequent
   local limit = spec.limit_mark or ""
   local specs = spec.specs or {}
+  local refresh_specs = spec.refresh_specs or {}
   local eve = {}
   for event, _ in pairs(specs) do
     table.insert(eve, event)
@@ -711,19 +742,28 @@ function fkp.CreateTriggerSkill(spec)
     events = eve,
     on_trigger = function(self, event, player, data)
       local room = player:getRoom()
+
+      if refresh_specs[event] then
+        local cond_func = refresh_specs[event][1] or default_cond
+        local effect_func = refresh_specs[event][2]
+        for _, p in sgs.qlist(room:getAllPlayers()) do
+          if cond_func(self, player, p, data) then
+            effect_func(self, player, p, data)
+          end
+        end
+      end
+
       if not specs[event] then return end
       if not_triggable_func[event] and not_triggable_func[event](player, data) then
         return false
       end
-      local cond_func = specs[event][1]
-      local effect_func = specs[event][2]
-      local cost_func = specs[event][3]
-      for _, p in sgs.qlist(room:getAlivePlayers()) do
-        if cond_func(self, player, p, data) and cost_func(self, player, p, data) then
-          room:addPlayerMark(p, "fkp_usedtime_round_" .. self:objectName(), 1)
-          room:addPlayerMark(p, "fkp_usedtime_turn_" .. self:objectName(), 1)
-          room:addPlayerMark(p, "fkp_usedtime_phase_" .. self:objectName(), 1)
-          return effect_func(self, player, p, data)
+      local cond_func = specs[event][1] or default_cond
+      local how_to_cost = specs[event][4] or default_how_to
+      for _, p in sgs.qlist(room:getAllPlayers()) do
+        if cond_func(self, player, p, data) then
+          if how_to_cost(self, specs[event], player, p, data) then
+            return true
+          end
         end
       end
     end,
