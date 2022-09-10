@@ -711,7 +711,7 @@ static void defineLocal(char *k, char *v, int type) {
 }
 
 static void initData(int event) {
-  writeline("-- get datas for this trigger event");
+  //writeline("-- get datas for this trigger event");
   switch (event) {
     case DrawNCards:
     case AfterDrawNCards:
@@ -1129,24 +1129,23 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
 
   writeline("[%s] = {", qsan_event_table[t->event]);
   indent_level++;
-  writeline("-- can_trigger");
-  writeline("function (self, target, player, data)");
-  indent_level++;
+  //writeline("-- can_trigger");
   if (t->can_trigger) {
+    writeline("function (self, target, player, data)");
+    indent_level++;
     writeline("local room = player:getRoom()");
     writeline("local locals = {}");
     writeline("global_self = self\n");
     initData(t->event);
     analyzeBlock(t->can_trigger);
     if (t->can_trigger->ret == NULL) clearData(t->event);
+    indent_level--;
+    writeline("end,\n");
   } else {
-    writeline("return target and player:objectName() == target:objectName() and player:hasSkill(self:objectName())");
+    writeline("nil,");
   }
 
-  indent_level--;
-  writeline("end,\n");
-
-  writeline("-- on effect");
+  //writeline("-- on effect");
   writeline("function (self, target, player, data)");
   indent_level++;
   writeline("local room = player:getRoom()");
@@ -1158,22 +1157,37 @@ static void analyzeTriggerSpec(TriggerSpecObj *t) {
   indent_level--;
   writeline("end,\n");
 
-  writeline("-- on_cost");
-  writeline("function (self, target, player, data)");
-  indent_level++;
+  //writeline("-- on_cost");
   if (t->on_cost) {
+    writeline("function (self, target, player, data)");
+    indent_level++;
     writeline("local room = player:getRoom()");
     writeline("local locals = {}");
     writeline("global_self = self\n");
     initData(t->event);
     analyzeBlock(t->on_cost);
     if (t->on_cost->ret == NULL) clearData(t->event);
+    indent_level--;
+    writeline("end,");
   } else {
-    writeline("return self:getFrequency(player) == sgs.Skill_Compulsory or player:askForSkillInvoke(self:objectName())");
+    writeline("nil,");
   }
 
-  indent_level--;
-  writeline("end,");
+  //writeline("-- how to cost");
+  if (t->how_cost) {
+    writeline("function (self, funcs, target, player, data)");
+    indent_level++;
+    writeline("local room = player:getRoom()");
+    writeline("local locals = {}");
+    writeline("global_self = self\n");
+    initData(t->event);
+    analyzeBlock(t->how_cost);
+    if (t->how_cost->ret == NULL) clearData(t->event);
+    indent_level--;
+    writeline("end,");
+  } else {
+    writeline("nil,");
+  }
 
   indent_level--;
   writeline("},");
@@ -1707,14 +1721,29 @@ static void analyzeSkill(SkillObj *s) {
     writeline("view_as_skill = %s_ac,", s->interid);
   else if (s->vsSpec)
     writeline("view_as_skill = %s_vs,", s->interid);
+
   writeline("specs = {");
   indent_level++;
   if (s->triggerSpecs)
     list_foreach(node, s->triggerSpecs) {
-      analyzeTriggerSpec(cast(TriggerSpecObj *, node->data));
+      TriggerSpecObj *t = cast(TriggerSpecObj *, node->data);
+      if (!t->is_refresh)
+        analyzeTriggerSpec(t);
+    }
+  indent_level--;
+  writeline("},");
+
+  writeline("refresh_specs = {");
+  indent_level++;
+  if (s->triggerSpecs)
+    list_foreach(node, s->triggerSpecs) {
+      TriggerSpecObj *t = cast(TriggerSpecObj *, node->data);
+      if (t->is_refresh)
+        analyzeTriggerSpec(t);
     }
   indent_level--;
   writeline("}");
+
   indent_level--;
   writeline("}");
   writeline("if not sgs.Sanguosha:getSkill('%s') then \
@@ -1862,6 +1891,13 @@ void analyzeBlock(BlockObj *bl) {
       break;
     case Obj_Break:
       writeline("break");
+      break;
+    case Obj_Docost:
+      writeline("if fkp.functions.do_cost(self, funcs, target, player, data) then");
+      indent_level++;
+      writeline("return true");
+      indent_level--;
+      writeline("end");
       break;
     case Obj_Funccall:
       print_indent();

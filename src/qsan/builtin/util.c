@@ -31,4 +31,7 @@ void qsan_load_util() {
   /* fkp.cost是可读写的全局数据，所以要特意把reserved设为false */
   /* 它仅用于为消耗函数提供额外返回值 */
   sym_new_entry("消耗数据", TAny, "fkp.cost", false);
+  sym_new_entry("消耗数据2", TAny, "fkp.cost2", false);
+  sym_new_entry("消耗数据3", TAny, "fkp.cost3", false);
+  sym_new_entry("消耗数据4", TAny, "fkp.cost4", false);
 }

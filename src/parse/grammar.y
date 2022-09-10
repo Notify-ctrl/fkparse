@@ -74,6 +74,8 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
   AssignObj *assign;
   FunccallObj *func_call;
   ArgObj *arg;
+
+  void *tmp[2];
 }
 
 %token <i> NUMBER
@@ -83,7 +85,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token <s> GENDER
 %token <s> KINGDOM
 %token PKGSTART
-%token TRIGGER EVENTI COND COST EFFECT
+%token TRIGGER EVENTI COND COST EFFECT HOWCOST DOCOST REFRESH
 %token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
 %token VIEWAS VSRULE RESPONSECOND RESPONSABLE
 %token STATUSSKILL IS_PROHIBITED DISTANCE_CORRECT MAX_EXTRA MAX_FIXED
@@ -132,6 +134,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <skill> skill
 %type <skillspec> skillspec
 %type <trigger_spec> triggerspec
+%type <tmp> cost
 %type <active_spec> activespec
 %type <vs_spec> vsspec
 %type <status_spec> statusspec
@@ -186,6 +189,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 
 %destructor {} <enum_v>
 %destructor {} <i>
+%destructor {} <tmp>
 %destructor { free($$); } <s>
 %destructor { list_free($$, freeObject); } <list>
 %destructor { hash_free($$, freeObject); } <hash>
@@ -287,25 +291,40 @@ triggerspecs  : triggerspec {
                 }
               ;
 
-triggerspec : EVENTI EVENT EFFECT block {
+triggerspec : EVENTI EVENT cost EFFECT block {
+                $$ = newTriggerSpec($2, NULL, $5);
+                $$->how_cost = $3[0];
+                $$->on_cost = $3[1];
+                yycopyloc($$, &@$);
+              }
+            | EVENTI EVENT COND block cost EFFECT block {
+                $$ = newTriggerSpec($2, $4, $7);
+                $$->how_cost = $5[0];
+                $$->on_cost = $5[1];
+                yycopyloc($$, &@$);
+              }
+            | EVENTI EVENT REFRESH block {
                 $$ = newTriggerSpec($2, NULL, $4);
+                $$->is_refresh = true;
                 yycopyloc($$, &@$);
               }
-            | EVENTI EVENT COND block EFFECT block {
+            | EVENTI EVENT COND block REFRESH block {
                 $$ = newTriggerSpec($2, $4, $6);
-                yycopyloc($$, &@$);
-              }
-            | EVENTI EVENT COST block EFFECT block {
-                $$ = newTriggerSpec($2, NULL, $6);
-                $$->on_cost = $4;
-                yycopyloc($$, &@$);
-              }
-            | EVENTI EVENT COND block COST block EFFECT block {
-                $$ = newTriggerSpec($2, $4, $8);
-                $$->on_cost = $6;
+                $$->is_refresh = true;
                 yycopyloc($$, &@$);
               }
             ;
+
+cost :
+    HOWCOST block COST block
+    { $$[0] = $2; $$[1] = $4; }
+  | HOWCOST block
+    { $$[0] = $2; $$[1] = NULL; }
+  | COST block
+    { $$[0] = NULL; $$[1] = $2; }
+  | %empty
+    { $$[0] = NULL; $$[1] = NULL; }
+    ;
 
 activespec  : ACTIVE COND block CARD_FILTER block TARGET_FILTER block FEASIBLE block ON_USE block EFFECT block
               { $$ = newActiveSpec($3, $5, $7, $9, $11, $13); yycopyloc($$, &@$); }
@@ -424,6 +443,7 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
             | while_stat { $$ = cast(Object *, $1); }
             | traverse_stat { $$ = cast(Object *, $1); }
             | BREAK { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Break; }
+            | DOCOST { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Docost; }
             | func_call { $$ = cast(Object *, $1); }
             | action_stat { $$ = cast(Object *, $1); }
             | funcdef { $$ = cast(Object *, $1); }

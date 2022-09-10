@@ -30,6 +30,7 @@ enum ObjType {
   Obj_Loop,
   Obj_Traverse,
   Obj_Break,
+  Obj_Docost,
   Obj_Funccall,
   Obj_Arg,
   Obj_Assign,
