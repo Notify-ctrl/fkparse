@@ -1815,7 +1815,28 @@ void analyzeBlock(BlockObj *bl) {
   current_tab = cast(Hash *, stack_gettop(symtab_stack));
 }
 
+static char *license = "\n\
+  fkparse, a code generator for Bang-like games\n\
+\n\
+  Copyright (C) 2022 Notify\n\
+\n\
+  This program is free software: you can redistribute it and/or modify\n\
+  it under the terms of the GNU General Public License as published by\n\
+  the Free Software Foundation, either version 3 of the License, or\n\
+  (at your option) any later version.\n\
+\n\
+  This program is distributed in the hope that it will be useful,\n\
+  but WITHOUT ANY WARRANTY; without even the implied warranty of\n\
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n\
+  GNU General Public License for more details.\n\
+\n\
+  You should have received a copy of the GNU General Public License\n\
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.\n";
+
 void analyzeExtensionQSan(ExtensionObj *e) {
+  writeline("-- A QSanguosha extension file, maded by fkparse.");
+  writeline("-- repo: https://github.com/Notify-ctrl/fkparse\n");
+  writeline("--[[%s]]--\n", license);
   writeline("require 'fkparser'\n\nlocal global_self\nlocal locals = {}\n");
   writeline("local all_skills = sgs.SkillList()\n");
 

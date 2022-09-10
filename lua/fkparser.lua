@@ -1,3 +1,7 @@
+-- This file is fkparse's interface for QSanguosha.
+-- You need copy it to lua/lib in QSanguosha's directory.
+-- For license information, check generated lua files.
+
 fkp = {}
 
 sgs.LoadTranslationTable{
