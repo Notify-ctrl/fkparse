@@ -39,6 +39,17 @@ typedef struct {
   ObjectHeader;
   const char *id;
   const char *description;
+  const char *card_type;
+  int internal_id;
+  const char *card_skill;
+} CardObj;
+
+CardObj *newCard(const char *id, const char *description, const char *type, const char *skill);
+
+typedef struct {
+  ObjectHeader;
+  const char *id;
+  const char *description;
   const char *frequency;
   const char *interid;
   int internal_id;

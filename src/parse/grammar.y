@@ -55,6 +55,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
   ExtensionObj *extension;
   PackageObj *package;
   GeneralObj *general;
+  CardObj *card;
   SkillObj *skill;
   SkillSpecObj *skillspec;
   TriggerSpecObj *trigger_spec;
@@ -84,6 +85,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %token <s> FREQUENCY
 %token <s> GENDER
 %token <s> KINGDOM
+%token <s> CARDTYPE
 %token PKGSTART
 %token TRIGGER EVENTI COND COST EFFECT HOWCOST DOCOST REFRESH
 %token ACTIVE CARD_FILTER TARGET_FILTER FEASIBLE ON_USE
@@ -131,6 +133,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 %type <func_def> funcdef anon_funcdef
 %type <package> package
 %type <general> general
+%type <card> card
 %type <skill> skill
 %type <skillspec> skillspec
 %type <trigger_spec> triggerspec
@@ -218,6 +221,7 @@ root_stat : statement
           | skill { $$ = cast(Object *, $1); }
           | package { $$ = cast(Object *, $1); }
           | general { $$ = cast(Object *, $1); }
+          | card { $$ = cast(Object *, $1); }
           ;
 
 funcdef : FUNCDEF IDENTIFIER defargs block END
@@ -608,6 +612,10 @@ general     : '#' KINGDOM STRING IDENTIFIER NUMBER GENDER array
                   yycopyloc($$, &@$);
                 }
             ;
+
+card  : '%' IDENTIFIER STRING CARDTYPE STRING
+        { $$ = newCard($2, $3, $4, $5); }
+      ;
 
 /* special function calls */
 action_stat : action { $$ = $1; }

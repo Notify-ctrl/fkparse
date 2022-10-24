@@ -1818,7 +1818,7 @@ void analyzeBlock(BlockObj *bl) {
 static char *license = "\n\
   fkparse, a code generator for Bang-like games\n\
 \n\
-  Copyright (C) 2022 Notify\n\
+  Copyright (C) 2022 Notify et al.\n\
 \n\
   This program is free software: you can redistribute it and/or modify\n\
   it under the terms of the GNU General Public License as published by\n\
@@ -1834,7 +1834,7 @@ static char *license = "\n\
   along with this program.  If not, see <http://www.gnu.org/licenses/>.\n";
 
 void analyzeExtensionQSan(ExtensionObj *e) {
-  writeline("-- A QSanguosha extension file, maded by fkparse.");
+  writeline("-- A QSanguosha extension file, made by fkparse.");
   writeline("-- repo: https://github.com/Notify-ctrl/fkparse\n");
   writeline("--[[%s]]--\n", license);
   writeline("require 'fkparser'\n\nlocal global_self\nlocal locals = {}\n");

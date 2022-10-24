@@ -388,6 +388,23 @@ static int yycolumn = 1;
     return KINGDOM;
     }
 
+"基本牌" |
+"普通锦囊牌" |
+"延时锦囊牌" |
+"武器牌1" |
+"武器牌2" |
+"武器牌3" |
+"武器牌4" |
+"武器牌5" |
+"武器牌9" |
+"防具牌" |
+"防御坐骑" |
+"攻击坐骑" |
+"宝物牌" {
+    yylval->s = strdup(yytext);
+    return CARDTYPE;
+    }
+
 "$" |
 "#" |
 "[" |
@@ -401,6 +418,7 @@ static int yycolumn = 1;
 "*" |
 "/" |
 "," |
+"%" |
 ":" { return yytext[0]; }
 
 "（"   { return '('; }

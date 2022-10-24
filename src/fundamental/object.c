@@ -318,6 +318,10 @@ GeneralObj *newGeneral(const char *id, const char *kingdom, long long hp,
   return ret;
 }
 
+CardObj *newCard(const char *id, const char *description, const char *type, const char *skill) {
+  return NULL;
+}
+
 PackageObj *newPackage(const char *name) {
   PackageObj *ret = malloc(sizeof(PackageObj));
   ret->objtype = Obj_Package;
