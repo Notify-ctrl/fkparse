@@ -617,6 +617,7 @@ static void analyzeFunccall(FunccallObj *f) {
   List *node;
   bool start = true;
   bool errored = false;
+  int j = 0;
   list_foreach(node, d->params) {
     if (!start) {
       writestr(", ");
@@ -626,7 +627,12 @@ static void analyzeFunccall(FunccallObj *f) {
 
     DefargObj *a = cast(DefargObj *, node->data);
     const char *name = a->name;
-    ExpressionObj *e = hash_get(f->params, a->name);
+    ExpressionObj *e;
+    if (f->params != NULL) {
+      e = hash_get(f->params, a->name);
+    } else {
+      e = cast(ExpressionObj *, list_at(f->param_list, j));
+    }
     if (!e) {
       if (!a->d) {
         yyerror(cast(YYLTYPE *, f), "调用函数“%s”时：", f->name);
@@ -639,6 +645,8 @@ static void analyzeFunccall(FunccallObj *f) {
       analyzeExp(e);
       checktype(e, e->valuetype, a->type);
     }
+
+    j++;
   }
 
   writestr(")");

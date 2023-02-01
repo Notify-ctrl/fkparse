@@ -282,6 +282,7 @@ typedef struct FunccallObj {
   ExpVType rettype;
   const char *name;
   Hash *params;
+  List *param_list;
 } FunccallObj;
 
 FunccallObj *newFunccall(const char *name, Hash *params);

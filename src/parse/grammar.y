@@ -200,7 +200,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 
 %start extension
 %define parse.error custom
-// %verbose
+%verbose
 %define parse.trace
 %define api.pure full
 %locations
@@ -448,7 +448,7 @@ statement   : assign_stat { $$ = cast(Object *, $1); }
             | traverse_stat { $$ = cast(Object *, $1); }
             | BREAK { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Break; }
             | DOCOST { $$ = malloc(sizeof(Object)); $$->objtype = Obj_Docost; }
-            | func_call { $$ = cast(Object *, $1); }
+            | func_call ';' { $$ = cast(Object *, $1); }
             | action_stat { $$ = cast(Object *, $1); }
             | funcdef { $$ = cast(Object *, $1); }
             | error { $$ = NULL; }
@@ -482,6 +482,7 @@ traverse_stat : TO exp IN EVERY IDENTIFIER REPEAT block END
               ;
 
 func_call : IDENTIFIER args { $$ = newFunccall($1, $2); yycopyloc($$, &@$); }
+          | IDENTIFIER '(' explist ')' { $$ = newFunccall($1, NULL); $$->param_list = $3; yycopyloc($$, &@$); }
           ;
 
 args : '(' arglist ')' {
@@ -529,8 +530,8 @@ exp : FALSE { $$ = newExpression(ExpBool, 0, 0, NULL, NULL); yycopyloc($$, &@$);
     ;
 
 prefixexp : var { $$ = newExpression(ExpVar, 0, 0, NULL, NULL); $$->varValue = $1; yycopyloc($$, &@$); }
-      | '(' func_call ')'
-          { $$ = newExpression(ExpFunc, 0, 0, NULL, NULL); $$->func = $2; yycopyloc($$, &@$); }
+      | func_call
+          { $$ = newExpression(ExpFunc, 0, 0, NULL, NULL); $$->func = $1; yycopyloc($$, &@$); }
       | '(' action_stat ')'
         {
           $$ = newExpression(ExpFunc, 0, 0, NULL, NULL);
@@ -593,6 +594,7 @@ dictionary  : '{' dict_entries '}' {
 var : IDENTIFIER { $$ = newVar($1, NULL); yycopyloc($$, &@$); }
     | prefixexp FIELD STRING { $$ = newVar($3, $1); yycopyloc($$, &@$); }
     | prefixexp DI exp GE ELEMENT { $$ = newVar(NULL, $1); $$->index = $3; yycopyloc($$, &@$); }
+    | prefixexp '[' exp ']' { $$ = newVar(NULL, $1); $$->index = $3; yycopyloc($$, &@$); }
     ;
 
 retstat : RET exp { $$ = $2; }

@@ -20,7 +20,7 @@ add_custom_command(
   OUTPUT ${PROJECT_SOURCE_DIR}/src/parse/grammar.c
   DEPENDS ${PROJECT_SOURCE_DIR}/src/parse/grammar.y
   COMMENT "Generating grammar.c"
-  COMMAND ${BISON} -d ${PROJECT_SOURCE_DIR}/src/parse/grammar.y -o ${PROJECT_SOURCE_DIR}/src/parse/grammar.c -Wcounterexamples
+  COMMAND ${BISON} -d ${PROJECT_SOURCE_DIR}/src/parse/grammar.y -o ${PROJECT_SOURCE_DIR}/src/parse/grammar.c
 )
 
 add_custom_command(

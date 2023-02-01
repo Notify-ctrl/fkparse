@@ -34,6 +34,7 @@ FunccallObj *newFunccall(const char *name, Hash *params) {
   ret->objtype = Obj_Funccall;
   ret->name = name;
   ret->params = params;
+  ret->param_list = NULL;
   return ret;
 }
 
@@ -440,6 +441,7 @@ static void freeFunccall(void *ptr) {
   FunccallObj *f = ptr;
   free((void *)f->name);
   hash_free(f->params, freeObject);
+  list_free(f->param_list, freeObject);
   free(f);
 }
 

@@ -419,6 +419,7 @@ static int yycolumn = 1;
 "/" |
 "," |
 "%" |
+";" |
 ":" { return yytext[0]; }
 
 "（"   { return '('; }

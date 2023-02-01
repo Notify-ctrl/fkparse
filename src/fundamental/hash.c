@@ -133,6 +133,7 @@ void hash_copy_all(Hash *dst, Hash *src) {
 }
 
 void hash_free(Hash *h, void (*freefunc)(void *)) {
+  if (!h) return;
   for (size_t i = 0; i < h->capacity; i++) {
     free((void *)h->entries[i].key);
     if (freefunc && h->entries[i].value)

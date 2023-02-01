@@ -1,7 +1,9 @@
 .kdev4/
 .vscode/
+.cache/
 build/
 grammar.c
+grammar.output
 grammar.h
 lex.c
 *.kdev4
