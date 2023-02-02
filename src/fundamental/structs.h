@@ -107,6 +107,7 @@ void hash_free(Hash *h, void (*freefunc)(void *));
 typedef struct {
   int type;
   const char *origtext; /* text displayed in generated lua */
+  struct FuncdefObj *funcdef;
   bool reserved;
 } symtab_item;
 

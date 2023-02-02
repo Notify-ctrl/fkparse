@@ -1,6 +1,6 @@
 Package bubblesort
 
-def bubble(list: TNumberList)
+bubble = def(list: TNumberList)
   len = list."长度"
   i = 0
   while i < len - 1 repeat

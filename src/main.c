@@ -1,6 +1,7 @@
 #include "main.h"
 #include "fkparse.h"
 #include "builtin.h"
+#include "fundamental/object.h"
 #include <stdarg.h>
 
 char *readfile_name;
@@ -66,6 +67,9 @@ void parse(const char *filename, fkp_analyze_type type) {
       break;
     case FKP_NONAME_JS:
       analyzeExtensionNoname(extension);
+      break;
+    case FKP_FK_LUA:
+      analyzeExtensionFk(extension);
       break;
     default:
       error_occured = 1;
@@ -169,7 +173,7 @@ int main(int argc, char **argv) {
   fkp_parser *p = fkp_new_parser();
   if (argc > 1) {
     for (int i = 2; i <= argc; i++) {
-      fkp_parse(p, argv[i - 1], FKP_QSAN_LUA);
+      fkp_parse(p, argv[i - 1], FKP_FK_LUA);
     }
     fkp_close(p);
     return 0;

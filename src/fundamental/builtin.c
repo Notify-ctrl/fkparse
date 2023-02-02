@@ -1,12 +1,16 @@
 #include "builtin.h"
 #include "qsan.h"
 #include "noname.h"
+#include "fk.h"
+#include "structs.h"
 
 static void loadfuncdef(Proto *p) {
   FuncdefObj *def = newFuncdef(NULL, NULL, p->rettype, NULL);
   free((void *)def->funcname);
   def->funcname = strdup(p->src);
-  sym_new_entry(p->dst, TFunc, cast(const char *, def), true);
+  sym_new_entry(p->dst, TFunc, NULL, true);
+  symtab_item *item = sym_lookup(p->dst);
+  item->funcdef = def;
 
   List *l = list_new();
   for (int i = 0; i < p->argcount; i++) {
@@ -78,6 +82,7 @@ void sym_init(fkp_analyze_type parse_type) {
   switch (parse_type) {
   case FKP_QSAN_LUA: qsan_load(); break;
   case FKP_NONAME_JS: noname_load(); break;
+  case FKP_FK_LUA: fk_load(); break;
   default:
     break;
   }

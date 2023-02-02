@@ -11,6 +11,7 @@ typedef struct {
 ExtensionObj *newExtension();
 void analyzeExtensionQSan(ExtensionObj *e);
 void analyzeExtensionNoname(ExtensionObj *e);
+void analyzeExtensionFk(ExtensionObj *e);
 
 typedef struct {
   ObjectHeader;
