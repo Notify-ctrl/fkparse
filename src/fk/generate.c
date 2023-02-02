@@ -1401,7 +1401,7 @@ static void analyzePackage(PackageObj *p) {
 }
 
 static void loadTranslations() {
-  writestr("Fk:LoadTranslationTable{\n");
+  writestr("Fk:loadTranslationTable{\n");
   List *node;
   indent_level++;
   list_foreach(node, restrtab) {

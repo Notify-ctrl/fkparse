@@ -51,6 +51,8 @@ void sym_new_entry(const char *k, int type, const char *origtext, bool reserved)
     v->type = type;
     if (origtext)
       v->origtext = strdup(origtext);
+    else
+      v->origtext = NULL;
     v->funcdef = NULL;
     v->reserved = reserved;
     sym_set(k, cast(void *, v));
@@ -64,7 +66,7 @@ void sym_free(Hash *h) {
       symtab_item *item = h->entries[i].value;
       if (item->origtext) {
         free((void *)item->origtext);
-      } else if (h == builtin_symtab) {
+      } else if (item->funcdef) {
         freeFuncdef(item->funcdef);
       }
       free(item);
