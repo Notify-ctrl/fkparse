@@ -40,13 +40,6 @@ void parse(const char *filename, fkp_analyze_type type) {
   in_file = fopen(filename, "r");
   char f[64];
   memset(f, 0, sizeof(f));
-  readfile_name = getFileName(filename, 0);
-  if (strlen(readfile_name) > 40) {
-    error_occured = 1;
-    fprintf(error_output, "filename %s is too long, max length 40\n", readfile_name);
-    free(readfile_name);
-    return;
-  }
   sprintf(f, "%s.lua", readfile_name);
 
   yyout = fopen(f, "w+");
@@ -99,8 +92,6 @@ void parse(const char *filename, fkp_analyze_type type) {
 // #endif
   }
 
-  free(readfile_name);
-
   yylex_destroy();
 }
 
@@ -123,6 +114,14 @@ static void fkp_reset(fkp_parser *p) {
 
 int fkp_parse(fkp_parser *p, const char *filename, fkp_analyze_type type) {
   error_occured = 0;
+  readfile_name = getFileName(filename, 0);
+  if (strlen(readfile_name) > 40) {
+    error_occured = 1;
+    fprintf(error_output, "filename %s is too long, max length 40\n", readfile_name);
+    free(readfile_name);
+    return error_occured;
+  }
+
   sym_init(type);
   global_symtab = hash_new();
   stack_push(symtab_stack, cast(Object *, global_symtab));
@@ -159,6 +158,7 @@ int fkp_parse(fkp_parser *p, const char *filename, fkp_analyze_type type) {
   sym_free(builtin_symtab);
   builtin_symtab = NULL;
   list_free(symtab_stack, NULL);
+  free(readfile_name);
   return error_occured;
 }
 
