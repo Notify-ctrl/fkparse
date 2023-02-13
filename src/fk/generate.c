@@ -247,18 +247,16 @@ static void analyzeVar(VarObj *v) {
   const char *name = v->name;
   if (v->obj) {
     if (!strcmp(name, "所在位置")) {
-      /* 对于不是直接调成员函数的，得区别对待 */
-      /* 在客户端用这个属性的人还是后果自负罢 */
-      writestr("room:getCardPlace(");
+      writestr("Fk:currentRoom():getCardArea(");
       analyzeExp(v->obj);
       checktype(v->obj, v->obj->valuetype, TCard);
-      writestr(":getId())");
+      writestr(".id)");
       t = TNumber;
     } else if (!strcmp(name, "持有者")) {
       writestr("room:getCardOwner(");
       analyzeExp(v->obj);
       checktype(v->obj, v->obj->valuetype, TCard);
-      writestr(":getId())");
+      writestr(".id)");
       t = TPlayer;
     } else if (!strcmp(name, "长度")) {
       writestr("#");
@@ -275,34 +273,31 @@ static void analyzeVar(VarObj *v) {
             writestr(":getHandcardNum()");
             t = TNumber;
           } else if (!strcmp(name, "体力上限")) {
-            writestr(":getMaxHp()");
+            writestr(".maxHp");
             t = TNumber;
           } else if (!strcmp(name, "当前阶段")) {
-            writestr(":getPhase()");
+            writestr(".phase");
             t = TNumber;
           } else if (!strcmp(name, "身份")) {
-            writestr(":getRoleEnum()");
-            t = TNumber;
+            writestr(".role");
+            t = TString;
           } else if (!strcmp(name, "性别")) {
-            writestr(":getGender()");
+            writestr(".gender");
             t = TNumber;
           } else if (!strcmp(name, "手牌上限")) {
             writestr(":getMaxCards()");
             t = TNumber;
           } else if (!strcmp(name, "势力")) {
-            writestr(":getKingdom()");
+            writestr(".kingdom");
             t = TString;
           } else if (!strcmp(name, "座位号")) {
-            writestr(":getSeat()");
+            writestr(".seat");
             t = TNumber;
           } else if (!strcmp(name, "攻击距离")) {
             writestr(":getAttackRange()");
             t = TNumber;
-          } else if (!strcmp(name, "存活状态")) {
-            writestr(":isAlive()");
-            t = TBool;
           } else if (!strcmp(name, "死亡状态")) {
-            writestr(":isDead()");
+            writestr(".dead");
             t = TBool;
           } else {
             yyerror(cast(YYLTYPE *, v), "无法获取 玩家 的属性 '%s'\n", name);
@@ -311,23 +306,20 @@ static void analyzeVar(VarObj *v) {
           break;
         case TCard:
           if (!strcmp(name, "点数")) {
-            writestr(":getNumber()");
+            writestr(".number");
             t = TNumber;
           } else if (!strcmp(name, "花色")) {
             writestr(":getSuitString()");
             t = TString;
           } else if (!strcmp(name, "类别")) {
-            writestr(":getType()");
+            writestr(":getTypeString()");
             t = TString;
           } else if (!strcmp(name, "牌名")) {
-            writestr(":objectName()");
+            writestr(".name");
             t = TString;
           } else if (!strcmp(name, "编号")) {
-            writestr(":getId()");
+            writestr(".id");
             t = TNumber;
-          } else if (!strcmp(name, "是否被装备")) {
-            writestr(":isEquipped()");
-            t = TBool;
           } else {
             yyerror(cast(YYLTYPE *, v), "无法获取 卡牌 的属性 '%s'\n", name);
             t = TNone;
@@ -1215,7 +1207,6 @@ static void analyzeStatusSpec(const char *name, const char *trans, StatusSpecObj
     writeline("%s_tm = fkp.CreateTargetModSkill{", name);
     indent_level++;
     writeline("name = '#%s_tm',", name);
-    writeline("pattern = '.',");
 
     if (s->tmd_distance) {
       startDef(2,
@@ -1347,6 +1338,14 @@ static void analyzeSkill(SkillObj *s) {
     if (s->activeSpec || s->vsSpec) {
       writeline("%s:addRelatedSkill(%s_tr)", s->interid, s->interid);
     }
+  }
+
+  if (!s->activeSpec && !s->vsSpec && !s->triggerSpecs) {
+    // create dummy trig skill here
+    writeline("%s = fkp.CreateTriggerSkill{\
+  name = '%s',\
+  specs = {},\
+  refresh_specs = {}\n}", s->interid, s->interid);
   }
 
   if (s->statusSpec) {
