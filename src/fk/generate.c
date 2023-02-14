@@ -1093,7 +1093,7 @@ static void analyzeStatusSpec(const char *name, const char *trans, StatusSpecObj
   if (s->is_prohibited) {
     sprintf(buf, "#%s_pr", name);
     addTranslation(buf, trans);
-    writeline("%s_pr = fkp.CreateProhibitSkill{", name);
+    writeline("local %s_pr = fkp.CreateProhibitSkill{", name);
     indent_level++;
     writeline("name = '#%s_pr',", name);
 
@@ -1117,7 +1117,7 @@ static void analyzeStatusSpec(const char *name, const char *trans, StatusSpecObj
   if (s->card_filter && s->vsrule) {
     sprintf(buf, "#%s_fi", name);
     addTranslation(buf, trans);
-    writeline("%s_fi = fkp.CreateFilterSkill{", name);
+    writeline("local %s_fi = fkp.CreateFilterSkill{", name);
     indent_level++;
     writeline("name = '#%s_fi',", name);
 
@@ -1150,7 +1150,7 @@ static void analyzeStatusSpec(const char *name, const char *trans, StatusSpecObj
   if (s->distance_correct) {
     sprintf(buf, "#%s_di", name);
     addTranslation(buf, trans);
-    writeline("%s_di = fkp.CreateDistanceSkill{", name);
+    writeline("local %s_di = fkp.CreateDistanceSkill{", name);
     indent_level++;
     writeline("name = '#%s_di',", name);
 
@@ -1173,7 +1173,7 @@ static void analyzeStatusSpec(const char *name, const char *trans, StatusSpecObj
   if (s->max_extra || s->max_fixed) {
     sprintf(buf, "#%s_ex", name);
     addTranslation(buf, trans);
-    writeline("%s_ex = fkp.CreateMaxCardsSkill{", name);
+    writeline("local %s_ex = fkp.CreateMaxCardsSkill{", name);
     indent_level++;
     writeline("name = '#%s_ex',", name);
 
@@ -1204,7 +1204,7 @@ static void analyzeStatusSpec(const char *name, const char *trans, StatusSpecObj
   if (s->tmd_distance || s->tmd_extarget || s->tmd_residue) {
     sprintf(buf, "#%s_tm", name);
     addTranslation(buf, trans);
-    writeline("%s_tm = fkp.CreateTargetModSkill{", name);
+    writeline("local %s_tm = fkp.CreateTargetModSkill{", name);
     indent_level++;
     writeline("name = '#%s_tm',", name);
 
@@ -1253,7 +1253,7 @@ static void analyzeStatusSpec(const char *name, const char *trans, StatusSpecObj
   if (s->atkrange_extra || s->atkrange_fixed) {
     sprintf(buf, "#%s_at", name);
     addTranslation(buf, trans);
-    writeline("%s_at = fkp.CreateAttackRangeSkill{", name);
+    writeline("local %s_at = fkp.CreateAttackRangeSkill{", name);
     indent_level++;
     writeline("name = '#%s_at',", name);
 
@@ -1292,14 +1292,14 @@ static void analyzeSkill(SkillObj *s) {
   List *node;
   
   if (s->activeSpec) {
-    writeline("%s = fkp.CreateActiveSkill{", s->interid);
+    writeline("local %s = fkp.CreateActiveSkill{", s->interid);
     indent_level++;
     writeline("name = '%s',", s->interid);
     analyzeActiveSpec(s->activeSpec);
     indent_level--;
     writeline("}");
   } else if (s->vsSpec) {
-    writeline("%s = fkp.CreateViewAsSkill{", s->interid);
+    writeline("local %s = fkp.CreateViewAsSkill{", s->interid);
     indent_level++;
     writeline("name = '%s',", s->interid);
     analyzeViewAsSpec(s->vsSpec);
@@ -1308,7 +1308,7 @@ static void analyzeSkill(SkillObj *s) {
   }
 
   if (s->triggerSpecs) {
-    writeline("%s%s = fkp.CreateTriggerSkill{", s->interid, s->activeSpec || s->vsSpec ? "_tr" : "");
+    writeline("local %s%s = fkp.CreateTriggerSkill{", s->interid, s->activeSpec || s->vsSpec ? "_tr" : "");
     indent_level++;
     writeline("name = '%s%s',",s->activeSpec || s->vsSpec ? "#" : "", s->interid);
     writeline("frequency = %s,", sym_lookup(s->frequency)->origtext);
@@ -1342,9 +1342,9 @@ static void analyzeSkill(SkillObj *s) {
 
   if (!s->activeSpec && !s->vsSpec && !s->triggerSpecs) {
     // create dummy trig skill here
-    writeline("%s = fkp.CreateTriggerSkill{\
-  name = '%s',\
-  specs = {},\
+    writeline("local %s = fkp.CreateTriggerSkill{\n\
+  name = '%s',\n\
+  specs = {},\n\
   refresh_specs = {}\n}", s->interid, s->interid);
   }
 
@@ -1352,6 +1352,7 @@ static void analyzeSkill(SkillObj *s) {
     analyzeStatusSpec(s->interid, s->id, s->statusSpec);
   }
 
+  writeline("%s.package = extension%d", s->interid, currentpack->internal_id);
   writeline("table.insert(all_skills, %s)\n", s->interid);
 }
 
@@ -1365,7 +1366,7 @@ static void analyzeGeneral(GeneralObj *g) {
   }
 
   const char *orig = sym_lookup(g->id)->origtext;
-  writestr("%s = General(extension%d, '%s', %s, %lld)\n",
+  writestr("local %s = General(extension%d, '%s', %s, %lld)\n",
            orig, currentpack->internal_id, orig,
            sym_lookup(g->kingdom)->origtext, g->hp);
   writestr("%s.gender = %s\n", orig, sym_lookup(g->gender)->origtext);
