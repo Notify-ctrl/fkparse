@@ -256,6 +256,7 @@ static int yycolumn = 1;
 "本回合"  { return THISTURN;  }
 "本阶段"  { return THISPHASE; }
 "发动过"  { return INVOKED;   }
+"区域"    { return AREA; }
 
 "游戏开始时" |
 "GameStart"         { yylval->enum_v = GameStart; return EVENT; }

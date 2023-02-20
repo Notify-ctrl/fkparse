@@ -14,6 +14,10 @@ static Proto f[] = {
     {"array", TAny, false, {.s = NULL}},
     {"value", TAny, false, {.s = NULL}},
   }},
+  {"过滤表", "table.filter", TAny, 2, {
+    {"array", TAny, false, {.s = NULL}},
+    {"func", TFunc, false, {.s = NULL}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 

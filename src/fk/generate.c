@@ -700,21 +700,24 @@ static void initData(int event) {
 
     case PreHpRecover:
     case HpRecover:
-      writeline("local recover = data:toRecover()");
-      defineLocal("回复来源", "recover.who", TPlayer);
+      writeline("local recover = data");
+      defineLocal("回复来源", "recover.recoverBy", TPlayer);
+      defineLocal("回复的角色", "recover.who", TPlayer);
       defineLocal("回复的牌", "recover.card", TCard);
-      defineLocal("回复值", "recover.recover", TNumber);
+      defineLocal("回复值", "recover.num", TNumber);
+      defineLocal("回复的原因", "recover.reason", TString);
       break;
 
     case PreHpLost:
     case HpLost:
-      writeline("local lost = data:toInt()");
-      defineLocal("失去值", "lost", TNumber);
+      writeline("local lost = data");
+      defineLocal("失去值", "lost.num", TNumber);
+      defineLocal("失去体力的原因", "lost.skillName", TString);
       break;
 
     case EventLoseSkill:
     case EventAcquireSkill:
-      writeline("local skill = data:toString()");
+      writeline("local skill = data.name");
       defineLocal("技能", "skill", TString);
       break;
 
@@ -722,21 +725,21 @@ static void initData(int event) {
     case AskForRetrial:
     case FinishRetrial:
     case FinishJudge:
-      writeline("local judge = data:toJudge()");
-      defineLocal("判定效果是负收益", "judge.negative", TBool);
-      defineLocal("播放判定动画", "judge.play_animation", TBool);
+      writeline("local judge = data");
+      // defineLocal("判定效果是负收益", "judge.negative", TBool);
+      // defineLocal("播放判定动画", "judge.play_animation", TBool);
       defineLocal("判定角色", "judge.who", TPlayer);
       defineLocal("判定牌", "judge.card", TCard);
       defineLocal("判定类型", "judge.pattern", TNumber);
-      defineLocal("判定结果", "judge.good", TBool);
+      // defineLocal("判定结果", "judge.good", TBool);
       defineLocal("判定原因", "judge.reason", TString);
-      defineLocal("判定时间延迟", "judge.time_consuming", TBool);
-      defineLocal("可改判角色", "judge.retrial_by_response", TPlayer);
+      // defineLocal("判定时间延迟", "judge.time_consuming", TBool);
+      // defineLocal("可改判角色", "judge.retrial_by_response", TPlayer);
       break;
 
     case PindianVerifying:
     case Pindian:
-      writeline("local pindian = data:toPindian()");
+      writeline("local pindian = data");
       defineLocal("拼点来源", "pindian.from", TPlayer);
       defineLocal("拼点目标", "pindian.to", TPlayer);
       defineLocal("拼点来源的牌", "pindian.from_card", TCard);
@@ -744,7 +747,7 @@ static void initData(int event) {
       defineLocal("拼点来源的点数", "pindian.from_number", TNumber);
       defineLocal("拼点目标的点数", "pindian.to_number", TNumber);
       defineLocal("拼点原因", "pindian.reason", TString);
-      defineLocal("拼点成功", "pindian.success", TBool);
+      // defineLocal("拼点成功", "pindian.success", TBool);
       break;
 
     case ConfirmDamage:
@@ -782,7 +785,8 @@ static void initData(int event) {
     case QuitDying:
     case AskForPeaches:
     case AskForPeachesDone:
-      writeline("local dying = data:toDying()");
+      writeline("local dying = data");
+      writeline("dying.damage = dying.damage or {}");
       defineLocal("濒死的角色", "dying.who", TPlayer);
       defineLocal("濒死的伤害来源", "dying.damage.from", TPlayer);
       defineLocal("濒死的伤害目标", "dying.damage.to", TPlayer);
@@ -801,7 +805,8 @@ static void initData(int event) {
     case BuryVictim:
     case BeforeGameOverJudge:
     case GameOverJudge:
-      writeline("local death = data:toDeath()");
+      writeline("local death = data");
+      writeline("death.damage = death.damage or {}");
       defineLocal("死亡的角色", "death.who", TPlayer);
       defineLocal("死亡的伤害来源", "death.damage.from", TPlayer);
       defineLocal("死亡的伤害目标", "death.damage.to", TPlayer);
@@ -818,12 +823,13 @@ static void initData(int event) {
 
     case PreCardResponded:
     case CardResponded:
-      writeline("local resp = data:toCardResponse()");
-      defineLocal("响应的牌", "resp.m_card", TCard);
-      defineLocal("响应的目标", "resp.m_who", TPlayer);
-      defineLocal("响应的牌被使用", "resp.m_isUse", TBool);
-      defineLocal("响应的牌被改判", "resp.m_isRetrial", TBool);
-      defineLocal("响应的牌是手牌", "resp.m_isHandcard", TBool);
+      writeline("local resp = data");
+      writeline("local from = room:getPlayerById(resp.from)");
+      defineLocal("响应的牌", "resp.card", TCard);
+      defineLocal("响应的目标", "from", TPlayer);
+      // defineLocal("响应的牌被使用", "resp.m_isUse", TBool);
+      // defineLocal("响应的牌被改判", "resp.m_isRetrial", TBool);
+      // defineLocal("响应的牌是手牌", "resp.m_isHandcard", TBool);
       break;
 
     case BeforeCardsMove:

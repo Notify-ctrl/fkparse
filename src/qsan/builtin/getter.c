@@ -1,3 +1,4 @@
+#include "object.h"
 #include "qsan.h"
 
 static BuiltinVar v[] = {
@@ -30,6 +31,10 @@ static Proto f[] = {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"技能名", TString, false, {.s = NULL}},
     {"格局", TNumber, false, {.s = NULL}},
+  }},
+  {"__getCards", "fkp.functions.getCards", TCardList, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"区域", TNumber, false, {.s = NULL}},
   }},
   {NULL, NULL, TNone, 0, {}}
 };
