@@ -449,6 +449,14 @@ static void analyzeAssign(AssignObj *a) {
           f->funcname = strdup(a->var->name);
           i->funcdef = f;
         }
+        if (a->value->exptype == ExpVar) {
+          VarObj *v = a->value->varValue;
+          if (v->type == TFunc) {
+            symtab_item *i2 = sym_lookup(v->name);
+            FuncdefObj *f = i2->funcdef;
+            i->funcdef = f;
+          }
+        }
         if (a->custom_type == TNone) {
           i->type = a->value->valuetype;
         } else {
@@ -565,6 +573,10 @@ static void analyzeFunccall(FunccallObj *f) {
     return;
   }
   FuncdefObj *d = i->funcdef;
+  if (!d) {
+    yyerror(cast(YYLTYPE *, f), "调用了未知的函数“%s”", f->name);
+    return;
+  }
 
   char buf[64];
   if (i->reserved)
@@ -1419,9 +1431,11 @@ static void analyzeFuncdef(FuncdefObj *f) {
   else
     writestr("function(");
 
-  sym_new_entry(f->name, TFunc, f->funcname, false);
-  symtab_item *item = sym_lookup(f->name);
-  item->funcdef = f;
+  if (strcmp(f->name, "") != 0) {
+    sym_new_entry(f->name, TFunc, f->funcname, false);
+    symtab_item *item = sym_lookup(f->name);
+    item->funcdef = f;
+  }
 
   List *node;
   int argId = 0;

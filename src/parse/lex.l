@@ -53,6 +53,12 @@ static int yycolumn = 1;
 
 -?[0-9]+    { yylval->i = atoi(yytext); return NUMBER; }
 
+\{[a-zA-Z_][a-zA-Z0-9_]*\} {
+    yylval->s = strdup(yytext + 1);
+    yylval->s[strlen(yylval->s) - 1] = 0;
+    return INTERNAL_ID;
+    }
+
 "拓展包" |
 "Package"       { return PKGSTART; }
 "触发技" |

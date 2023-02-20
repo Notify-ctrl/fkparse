@@ -81,6 +81,7 @@ static StatusFunc *newStatusFunc(int tag, BlockObj *block) {
 
 %token <i> NUMBER
 %token <s> IDENTIFIER
+%token <s> INTERNAL_ID
 %token <s> STRING
 %token <s> FREQUENCY
 %token <s> GENDER
@@ -260,6 +261,11 @@ defarg : IDENTIFIER ':' TYPE
 skill     : '$' IDENTIFIER STRING FREQUENCY skillspecs END
               {
                 $$ = newSkill($2, $3, $4, NULL, $5);
+                yycopyloc($$, &@$);
+              }
+          | '$' IDENTIFIER STRING FREQUENCY INTERNAL_ID skillspecs END
+              {
+                $$ = newSkill($2, $3, $4, $5, $6);
                 yycopyloc($$, &@$);
               }
           | '$' IDENTIFIER STRING skillspecs END
@@ -606,6 +612,11 @@ package     : PKGSTART IDENTIFIER { $$ = newPackage($2); yycopyloc($$, &@$); }
 general     : '#' KINGDOM STRING IDENTIFIER NUMBER GENDER array
                 {
                   $$ = newGeneral($4, $2, $5, $3, $6, NULL, $7);
+                  yycopyloc($$, &@$);
+                }
+            | '#' KINGDOM STRING IDENTIFIER NUMBER GENDER INTERNAL_ID array
+                {
+                  $$ = newGeneral($4, $2, $5, $3, $6, $7, $8);
                   yycopyloc($$, &@$);
                 }
             | '#' KINGDOM STRING IDENTIFIER NUMBER array
