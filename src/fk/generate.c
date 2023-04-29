@@ -13,14 +13,14 @@ static int local_index = 0;
 
 static void print_indent() {
   for (int i = 0; i < indent_level; i++)
-    fprintf(yyout, "  ");
+    fprintf(fkp_yyout, "  ");
 }
 
 static void writestr(const char *msg, ...) {
   va_list ap;
   va_start(ap, msg);
 
-  vfprintf(yyout, msg, ap);
+  vfprintf(fkp_yyout, msg, ap);
   va_end(ap);
 }
 
@@ -29,8 +29,8 @@ static void writeline(const char *msg, ...) {
   va_list ap;
   va_start(ap, msg);
 
-  vfprintf(yyout, msg, ap);
-  fprintf(yyout, "\n");
+  vfprintf(fkp_yyout, msg, ap);
+  fprintf(fkp_yyout, "\n");
   va_end(ap);
 }
 
@@ -84,7 +84,7 @@ static void analyzeExp(ExpressionObj *e) {
       analyzeExp(array_item);
       writestr(", ");
       if (t != TNone && t != array_item->valuetype) {
-        yyerror(cast(YYLTYPE *, e), "数组中不能有类别不同的元素(预期类型%d，实际得到%d)", t, array_item->valuetype);
+        fkp_yyerror(cast(FKP_YYLTYPE *, e), "数组中不能有类别不同的元素(预期类型%d，实际得到%d)", t, array_item->valuetype);
         t = TNone;
         break;
       }
@@ -98,7 +98,7 @@ static void analyzeExp(ExpressionObj *e) {
       case TString: t = TStringList; break;
       case TNone: t = TEmptyList; break;
       default:
-        yyerror(cast(YYLTYPE *, e), "未知的数组元素类型%d\n", t);
+        fkp_yyerror(cast(FKP_YYLTYPE *, e), "未知的数组元素类型%d\n", t);
         break;
     }
   } else if (e->exptype == ExpFuncdef) {
@@ -204,7 +204,7 @@ static void analyzeExp(ExpressionObj *e) {
       t = e->func->rettype;
       break;
     default:
-      yyerror(cast(YYLTYPE *, e), "unknown exptype %d\n", e->exptype);
+      fkp_yyerror(cast(FKP_YYLTYPE *, e), "unknown exptype %d\n", e->exptype);
       break;
   }
 
@@ -233,7 +233,7 @@ static void analyzeVar(VarObj *v) {
       t = TCard;
       break;
     default:
-      yyerror(cast(YYLTYPE *, v->obj), "试图对不是数组或者空数组根据下标取值");
+      fkp_yyerror(cast(FKP_YYLTYPE *, v->obj), "试图对不是数组或者空数组根据下标取值");
       break;
     }
     v->type = t;
@@ -300,7 +300,7 @@ static void analyzeVar(VarObj *v) {
             writestr(".dead");
             t = TBool;
           } else {
-            yyerror(cast(YYLTYPE *, v), "无法获取 玩家 的属性 '%s'\n", name);
+            fkp_yyerror(cast(FKP_YYLTYPE *, v), "无法获取 玩家 的属性 '%s'\n", name);
             t = TNone;
           }
           break;
@@ -321,7 +321,7 @@ static void analyzeVar(VarObj *v) {
             writestr(".id");
             t = TNumber;
           } else {
-            yyerror(cast(YYLTYPE *, v), "无法获取 卡牌 的属性 '%s'\n", name);
+            fkp_yyerror(cast(FKP_YYLTYPE *, v), "无法获取 卡牌 的属性 '%s'\n", name);
             t = TNone;
           }
           break;
@@ -329,7 +329,7 @@ static void analyzeVar(VarObj *v) {
         case TNumberList:
         case TStringList:
         case TPlayerList:
-          yyerror(cast(YYLTYPE *, v), "无法获取 数组 的属性 '%s'\n", name);
+          fkp_yyerror(cast(FKP_YYLTYPE *, v), "无法获取 数组 的属性 '%s'\n", name);
           t = TNone;
           break;
         case TPindian:
@@ -358,7 +358,7 @@ static void analyzeVar(VarObj *v) {
             writestr(".reason");
             t = TString;
           } else {
-            yyerror(cast(YYLTYPE *, v), "无法获取 拼点结果 的属性 '%s'\n", name);
+            fkp_yyerror(cast(FKP_YYLTYPE *, v), "无法获取 拼点结果 的属性 '%s'\n", name);
             t = TNone;
           }
           break;
@@ -368,7 +368,7 @@ static void analyzeVar(VarObj *v) {
           t = TAny;
           break;
         default:
-          yyerror(cast(YYLTYPE *, v), "不能获取类型为%d的对象的属性\n", v->obj->valuetype);
+          fkp_yyerror(cast(FKP_YYLTYPE *, v), "不能获取类型为%d的对象的属性\n", v->obj->valuetype);
           t = TNone;
       }
     }
@@ -376,7 +376,7 @@ static void analyzeVar(VarObj *v) {
   } else {
     symtab_item *i = sym_lookup(name);
     if (!i || i->type == TNone) {
-      yyerror(cast(YYLTYPE *, v), "标识符'%s'尚未定义", name);
+      fkp_yyerror(cast(FKP_YYLTYPE *, v), "标识符'%s'尚未定义", name);
     } else {
       v->type = i->type;
       if (i->origtext)
@@ -407,7 +407,7 @@ static void analyzeAssign(AssignObj *a) {
       t = TCard;
       break;
     default:
-      yyerror(cast(YYLTYPE *, arr), "试图对不是数组或者空数组根据下标取左值");
+      fkp_yyerror(cast(FKP_YYLTYPE *, arr), "试图对不是数组或者空数组根据下标取左值");
       break;
     }
     writestr("[");
@@ -441,7 +441,7 @@ static void analyzeAssign(AssignObj *a) {
     symtab_item *i = sym_lookup(a->var->name);
     if (i) {
       if (i->reserved) {
-        yyerror(cast(YYLTYPE *, a->var), "不允许重定义标识符 '%s'", a->var->name);
+        fkp_yyerror(cast(FKP_YYLTYPE *, a->var), "不允许重定义标识符 '%s'", a->var->name);
       } else {
         if (a->value->exptype == ExpFuncdef) {
           FuncdefObj *f = a->value->funcdef;
@@ -527,7 +527,7 @@ static void analyzeTraverse(TraverseObj *t) {
   if (type != TCardList && type != TNumberList
     && type != TPlayerList && type != TStringList && type != TEmptyList
   ) {
-    yyerror(cast(YYLTYPE *, t->array), "只能对数组进行遍历操作");
+    fkp_yyerror(cast(FKP_YYLTYPE *, t->array), "只能对数组进行遍历操作");
     return;
   }
 
@@ -542,7 +542,7 @@ static void analyzeTraverse(TraverseObj *t) {
     case TNumberList: vtype = TNumber; break;
     case TPlayerList: vtype = TPlayer; break;
     case TStringList: vtype = TString; break;
-    case TEmptyList: yyerror(cast(YYLTYPE *, t->array), "不允许遍历空数组"); break;
+    case TEmptyList: fkp_yyerror(cast(FKP_YYLTYPE *, t->array), "不允许遍历空数组"); break;
     default: break;
   }
   sym_new_entry(t->expname, vtype, s, false);
@@ -569,12 +569,12 @@ static void analyzeTraverse(TraverseObj *t) {
 static void analyzeFunccall(FunccallObj *f) {
   symtab_item *i = sym_lookup(f->name);
   if (!i) {
-    yyerror(cast(YYLTYPE *, f), "调用了未定义的函数“%s”", f->name);
+    fkp_yyerror(cast(FKP_YYLTYPE *, f), "调用了未定义的函数“%s”", f->name);
     return;
   }
   FuncdefObj *d = i->funcdef;
   if (!d) {
-    yyerror(cast(YYLTYPE *, f), "调用了未知的函数“%s”", f->name);
+    fkp_yyerror(cast(FKP_YYLTYPE *, f), "调用了未知的函数“%s”", f->name);
     return;
   }
 
@@ -605,8 +605,8 @@ static void analyzeFunccall(FunccallObj *f) {
     }
     if (!e) {
       if (!a->d) {
-        yyerror(cast(YYLTYPE *, f), "调用函数“%s”时：", f->name);
-        yyerror(cast(YYLTYPE *, a), "函数“%s”的参数“%s”没有默认值，调用时必须传入值", f->name, name);
+        fkp_yyerror(cast(FKP_YYLTYPE *, f), "调用函数“%s”时：", f->name);
+        fkp_yyerror(cast(FKP_YYLTYPE *, a), "函数“%s”的参数“%s”没有默认值，调用时必须传入值", f->name, name);
         errored = true;
       } else {
         analyzeExp(a->d);
@@ -644,7 +644,7 @@ static void analyzeFunccall(FunccallObj *f) {
         array->valuetype = TPlayerList;
         break;
       default:
-        yyerror(cast(YYLTYPE *, f), "不能把类型 %d 添加到数组中");
+        fkp_yyerror(cast(FKP_YYLTYPE *, f), "不能把类型 %d 添加到数组中");
         break;
       }
       if (array->exptype == ExpVar && array->varValue) {
@@ -670,7 +670,7 @@ static void analyzeFunccall(FunccallObj *f) {
         t = TAny;
         break;
       default:
-        yyerror(cast(YYLTYPE *, f), "未知的数组类型");
+        fkp_yyerror(cast(FKP_YYLTYPE *, f), "未知的数组类型");
         break;
       }
 
@@ -1303,7 +1303,7 @@ static void analyzeStatusSpec(const char *name, const char *trans, StatusSpecObj
 
 static void analyzeSkill(SkillObj *s) {
   if (!currentpack) {
-    yyerror(cast(YYLTYPE *, s), "必须先添加拓展包才能添加技能");
+    fkp_yyerror(cast(FKP_YYLTYPE *, s), "必须先添加拓展包才能添加技能");
     return;
   }
 
@@ -1379,7 +1379,7 @@ static void analyzeSkill(SkillObj *s) {
 
 static void analyzeGeneral(GeneralObj *g) {
   if (!currentpack) {
-    yyerror(cast(YYLTYPE *, g), "必须先添加拓展包才能添加武将");
+    fkp_yyerror(cast(FKP_YYLTYPE *, g), "必须先添加拓展包才能添加武将");
     return;
   }
 
@@ -1393,13 +1393,13 @@ static void analyzeGeneral(GeneralObj *g) {
   list_foreach(node, g->skills) {
     ExpressionObj *e = cast(ExpressionObj *, node->data);
     if (e->exptype != ExpStr) {
-      yyerror(cast(YYLTYPE *, g), "给武将添加的技能必须是字符串类型");
+      fkp_yyerror(cast(FKP_YYLTYPE *, g), "给武将添加的技能必须是字符串类型");
       return;
     }
     const char *skill_orig = cast(const char *, e->strvalue);
     const char *skill = hash_get(skill_table, skill_orig);
     if (!skill) {
-      /* yyerror(cast(YYLTYPE *, g), "只能为武将添加文件内的自定义技能！"); */
+      /* fkp_yyerror(cast(FKP_YYLTYPE *, g), "只能为武将添加文件内的自定义技能！"); */
       /* 还是允许添加别的技能算了，假设用户知道内部名字 */
       fprintf(error_output, "警告：为武将“%s”添加的技能 “%s” 不是文件内定义的。如果你\
 输入的技能名称不是游戏内部已经自带的技能的内部名称的话，\

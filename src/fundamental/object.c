@@ -257,7 +257,7 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
       break;
     case Spec_ActiveSkill:
       if (ret->activeSpec != NULL) {
-        yyerror(cast(YYLTYPE *, data->obj), "不允许一个技能下同时存在多个主动技");
+        fkp_yyerror(cast(FKP_YYLTYPE *, data->obj), "不允许一个技能下同时存在多个主动技");
         freeObject(ret->activeSpec);
       }
       ret->activeSpec = cast(ActiveSpecObj *, data->obj);
@@ -265,7 +265,7 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
       break;
     case Spec_ViewAsSkill:
       if (ret->vsSpec != NULL) {
-        yyerror(cast(YYLTYPE *, data->obj), "不允许一个技能下同时存在多个视为技");
+        fkp_yyerror(cast(FKP_YYLTYPE *, data->obj), "不允许一个技能下同时存在多个视为技");
         freeObject(ret->vsSpec);
       }
       ret->vsSpec = cast(ViewAsSpecObj *, data->obj);
@@ -273,7 +273,7 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
       break;
     case Spec_StatusSkill:
       if (ret->statusSpec != NULL) {
-        yyerror(cast(YYLTYPE *, data->obj), "不允许一个技能下同时存在多个状态技");
+        fkp_yyerror(cast(FKP_YYLTYPE *, data->obj), "不允许一个技能下同时存在多个状态技");
         freeObject(ret->statusSpec);
       }
       ret->statusSpec = cast(StatusSpecObj *, data->obj);

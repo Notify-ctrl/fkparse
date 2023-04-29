@@ -7,6 +7,6 @@
 
 const char *yytr(const char *orig);
 void checktype(void *o, ExpVType a, ExpVType t);
-void yyerror(YYLTYPE *loc, const char *msg, ...);
+void fkp_yyerror(FKP_YYLTYPE *loc, const char *msg, ...);
 
 #endif

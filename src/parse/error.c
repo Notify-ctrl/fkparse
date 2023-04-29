@@ -202,8 +202,8 @@ void checktype(void *o, ExpVType a, ExpVType t) {
     if (!o) {
       fprintf(error_output, "Type error: expect %d, got %d\n", t, a);
     } else {
-      YYLTYPE *obj = o;
-      yyerror(obj, "类型不匹配：需要 %s，但得到的是 %s",
+      FKP_YYLTYPE *obj = o;
+      fkp_yyerror(obj, "类型不匹配：需要 %s，但得到的是 %s",
               type_table[t], type_table[a]);
     }
   }
@@ -254,7 +254,7 @@ static char *getLineOfSource(int lineno) {
   }
 }
 
-static char *getPrintPos(char *src, YYLTYPE *pos, YYLTYPE *newPos) {
+static char *getPrintPos(char *src, FKP_YYLTYPE *pos, FKP_YYLTYPE *newPos) {
   newPos->first_line = pos->first_line;
   if (strlen(src) < 120) {
     newPos->first_column = 1;
@@ -284,8 +284,8 @@ static char *getPrintPos(char *src, YYLTYPE *pos, YYLTYPE *newPos) {
 /*
  * 判断一串字符（UTF-8）中的实际占屏幕宽度
  */
-static void getBoundOfString(const char *s, YYLTYPE *err_loc,
-                             YYLTYPE *print_loc, Bound *bound) {
+static void getBoundOfString(const char *s, FKP_YYLTYPE *err_loc,
+                             FKP_YYLTYPE *print_loc, Bound *bound) {
   bound->start_column = err_loc->first_column - print_loc->first_column;
 #define min(a,b) (a>b?b:a)
   bound->end_column = min(print_loc->last_column, err_loc->last_column);
@@ -331,7 +331,7 @@ static void getBoundOfString(const char *s, YYLTYPE *err_loc,
     bound->end_display_column = display_pos;
 }
 
-static void printPosAnnonation(YYLTYPE *loc, Bound *bound) {
+static void printPosAnnonation(FKP_YYLTYPE *loc, Bound *bound) {
   char buf[64];
   sprintf(buf, "%d", loc->first_line);
   for (int i = 0; i < strlen(buf); i++) {
@@ -349,7 +349,7 @@ static void printPosAnnonation(YYLTYPE *loc, Bound *bound) {
   fprintf(error_output, "\n\n");
 }
 
-void yyerror(YYLTYPE *loc, const char *msg, ...) {
+void fkp_yyerror(FKP_YYLTYPE *loc, const char *msg, ...) {
   error_occured++;
 
   /* built-in error report */
@@ -367,7 +367,7 @@ void yyerror(YYLTYPE *loc, const char *msg, ...) {
   if (!source_line)
     return;
 
-  YYLTYPE newloc;   /* 对于过长的行只输出一部分，这个保存输出时开始的行列 */
+  FKP_YYLTYPE newloc;   /* 对于过长的行只输出一部分，这个保存输出时开始的行列 */
   char *best_print_pos = getPrintPos(source_line, loc, &newloc);
 
   va_list ap;

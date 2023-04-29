@@ -31,8 +31,8 @@ static void freeTranslation(void *ptr) {
 }
 
 void parse(const char *filename, fkp_analyze_type type) {
-  yyin = fopen(filename, "r");
-  if (!yyin) {
+  fkp_yyin = fopen(filename, "r");
+  if (!fkp_yyin) {
     error_occured = 1;
     fprintf(error_output, "cannot open file %s\n", filename);
     return;
@@ -42,7 +42,7 @@ void parse(const char *filename, fkp_analyze_type type) {
   memset(f, 0, sizeof(f));
   sprintf(f, "%s.lua", readfile_name);
 
-  yyout = fopen(f, "w+");
+  fkp_yyout = fopen(f, "w+");
 
 // #ifndef FK_DEBUG
   char f2[64];
@@ -53,7 +53,7 @@ void parse(const char *filename, fkp_analyze_type type) {
 //   error_output = stderr;
 // #endif
 
-  if (yyparse() == 0) {
+  if (fkp_yyparse() == 0) {
     switch (type) {
     case FKP_QSAN_LUA:
       analyzeExtensionQSan(extension);
@@ -75,8 +75,8 @@ void parse(const char *filename, fkp_analyze_type type) {
   }
 
   fclose(in_file);
-  fclose(yyin);
-  fclose(yyout);
+  fclose(fkp_yyin);
+  fclose(fkp_yyout);
 
   if (error_occured) {
     fprintf(error_output, "一共检测到%d条错误。\n", error_occured);
@@ -92,7 +92,7 @@ void parse(const char *filename, fkp_analyze_type type) {
 // #endif
   }
 
-  yylex_destroy();
+  fkp_yylex_destroy();
 }
 
 fkp_parser *fkp_new_parser() {
@@ -169,6 +169,7 @@ void fkp_close(fkp_parser *p) {
   free(p);
 }
 
+#if (false)
 int main(int argc, char **argv) {
   fkp_parser *p = fkp_new_parser();
   if (argc > 1) {
@@ -183,3 +184,4 @@ int main(int argc, char **argv) {
     exit(0);
   }
 }
+#endif

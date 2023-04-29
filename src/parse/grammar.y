@@ -1,3 +1,4 @@
+%define api.prefix {fkp_yy}
 %code requires {
 
 typedef struct {
@@ -20,12 +21,12 @@ static List *iter;
 static ExpressionObj *tempExp;
 
 #define YYDEBUG 1
-int yydebug = 0;
+int fkp_yydebug = 0;
 
 #define YYPARSE_PARAM scanner
 #define YYLEX_PARAM scanner
 
-int yylex(YYSTYPE *yylval_param, YYLTYPE *yylloc_param);
+int fkp_yylex(YYSTYPE *yylval_param, YYLTYPE *yylloc_param);
 static void yycopyloc(void *p, YYLTYPE *loc) {
   Object *dst = p;
   dst->first_line = loc->first_line;
@@ -1181,7 +1182,7 @@ static int yyreport_syntax_error(const yypcontext_t *ctx) {
         strcat(buf, buf2);
       }
   }
-  yyerror(loc, "%s", buf);
+  fkp_yyerror(loc, "%s", buf);
   return res;
 }
 

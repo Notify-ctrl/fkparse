@@ -1,5 +1,11 @@
 %option noyywrap nodefault yylineno
 %option bison-bridge bison-locations
+%option prefix="fkp_yy"
+
+%top {
+#define YYLTYPE FKP_YYLTYPE
+#define YYSTYPE FKP_YYSTYPE
+}
 
 %{
 #include "object.h"
