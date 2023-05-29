@@ -7,11 +7,11 @@
 #include "object.h"
 
 extern FILE *in_file;
-extern FILE *yyin;
-extern FILE *yyout;
+extern FILE *fkp_yyin;
+extern FILE *fkp_yyout;
 extern int error_occured;
-int yylex_destroy();
-int yyparse();
+int fkp_yylex_destroy();
+int fkp_yyparse();
 
 extern char *readfile_name;
 extern FILE *error_output;

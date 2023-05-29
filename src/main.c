@@ -1,5 +1,7 @@
 #include "main.h"
 #include "fkparse.h"
+#include "builtin.h"
+#include "fundamental/object.h"
 #include <stdarg.h>
 
 char *readfile_name;
@@ -29,8 +31,8 @@ static void freeTranslation(void *ptr) {
 }
 
 void parse(const char *filename, fkp_analyze_type type) {
-  yyin = fopen(filename, "r");
-  if (!yyin) {
+  fkp_yyin = fopen(filename, "r");
+  if (!fkp_yyin) {
     error_occured = 1;
     fprintf(error_output, "cannot open file %s\n", filename);
     return;
@@ -38,16 +40,9 @@ void parse(const char *filename, fkp_analyze_type type) {
   in_file = fopen(filename, "r");
   char f[64];
   memset(f, 0, sizeof(f));
-  readfile_name = getFileName(filename, 0);
-  if (strlen(readfile_name) > 40) {
-    error_occured = 1;
-    fprintf(error_output, "filename %s is too long, max length 40\n", readfile_name);
-    free(readfile_name);
-    return;
-  }
   sprintf(f, "%s.lua", readfile_name);
 
-  yyout = fopen(f, "w+");
+  fkp_yyout = fopen(f, "w+");
 
 // #ifndef FK_DEBUG
   char f2[64];
@@ -58,10 +53,16 @@ void parse(const char *filename, fkp_analyze_type type) {
 //   error_output = stderr;
 // #endif
 
-  if (yyparse() == 0) {
+  if (fkp_yyparse() == 0) {
     switch (type) {
     case FKP_QSAN_LUA:
       analyzeExtensionQSan(extension);
+      break;
+    case FKP_NONAME_JS:
+      analyzeExtensionNoname(extension);
+      break;
+    case FKP_FK_LUA:
+      analyzeExtensionFk(extension);
       break;
     default:
       error_occured = 1;
@@ -74,10 +75,11 @@ void parse(const char *filename, fkp_analyze_type type) {
   }
 
   fclose(in_file);
-  fclose(yyin);
-  fclose(yyout);
+  fclose(fkp_yyin);
+  fclose(fkp_yyout);
 
   if (error_occured) {
+    fprintf(error_output, "一共检测到%d条错误。\n", error_occured);
     fprintf(error_output, "在编译期间有错误产生，请检查您的输入文件。\n");
 // #ifndef FK_DEBUG
     fclose(error_output);
@@ -90,13 +92,10 @@ void parse(const char *filename, fkp_analyze_type type) {
 // #endif
   }
 
-  free(readfile_name);
-
-  yylex_destroy();
+  fkp_yylex_destroy();
 }
 
 fkp_parser *fkp_new_parser() {
-  sym_init();
   fkp_parser *ret = malloc(sizeof(fkp_parser));
   ret->generals = (fkp_hash *)hash_new();
   ret->skills = (fkp_hash *)hash_new();
@@ -115,6 +114,15 @@ static void fkp_reset(fkp_parser *p) {
 
 int fkp_parse(fkp_parser *p, const char *filename, fkp_analyze_type type) {
   error_occured = 0;
+  readfile_name = getFileName(filename, 0);
+  if (strlen(readfile_name) > 40) {
+    error_occured = 1;
+    fprintf(error_output, "filename %s is too long, max length 40\n", readfile_name);
+    free(readfile_name);
+    return error_occured;
+  }
+
+  sym_init(type);
   global_symtab = hash_new();
   stack_push(symtab_stack, cast(Object *, global_symtab));
   current_tab = global_symtab;
@@ -147,24 +155,26 @@ int fkp_parse(fkp_parser *p, const char *filename, fkp_analyze_type type) {
   hash_free(mark_table, free);
   hash_free(skill_table, free);
   hash_free(general_table, free);
+  sym_free(builtin_symtab);
+  builtin_symtab = NULL;
+  list_free(symtab_stack, NULL);
+  free(readfile_name);
   return error_occured;
 }
 
 void fkp_close(fkp_parser *p) {
-  sym_free(builtin_symtab);
-  builtin_symtab = NULL;
-  list_free(symtab_stack, NULL);
   hash_free((Hash *)p->generals, free);
   hash_free((Hash *)p->skills, free);
   hash_free((Hash *)p->marks, free);
   free(p);
 }
 
+#if (false)
 int main(int argc, char **argv) {
   fkp_parser *p = fkp_new_parser();
   if (argc > 1) {
     for (int i = 2; i <= argc; i++) {
-      fkp_parse(p, argv[i - 1], FKP_QSAN_LUA);
+      fkp_parse(p, argv[i - 1], FKP_FK_LUA);
     }
     fkp_close(p);
     return 0;
@@ -174,3 +184,4 @@ int main(int argc, char **argv) {
     exit(0);
   }
 }
+#endif

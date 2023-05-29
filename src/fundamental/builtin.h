@@ -3,6 +3,7 @@
 
 #include "object.h"
 #include "main.h"
+#include "fkparse.h"
 
 struct ProtoArg {
   const char *name;
@@ -29,13 +30,6 @@ typedef struct {
 } BuiltinVar;
 
 void loadmodule(Proto *ps, BuiltinVar *vs);
-
-void load_builtin_action();
-void load_builtin_cards();
-void load_builtin_enum();
-void load_builtin_func();
-void load_builtin_getter();
-void load_builtin_interaction();
-void load_builtin_util();
+void sym_init(fkp_analyze_type parse_type);
 
 #endif

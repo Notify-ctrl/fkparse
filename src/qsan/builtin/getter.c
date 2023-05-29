@@ -1,4 +1,5 @@
-#include "builtin.h"
+#include "object.h"
+#include "qsan.h"
 
 static BuiltinVar v[] = {
   {"所有角色", "fkp.functions.getAllPlayers()", TPlayerList},
@@ -22,9 +23,22 @@ static Proto f[] = {
   {"__getOtherPlayers", "fkp.functions.getOtherPlayers", TPlayerList, 1, {
     {"排除的玩家", TPlayer, false, {.s = NULL}},
   }},
+  {"__getPile", "fkp.functions.getPile", TCardList, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"牌堆名", TString, false, {.s = NULL}},
+  }},
+  {"__getSkillUsedTimes", "fkp.functions.getSkillUsedTimes", TNumber, 3, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"技能名", TString, false, {.s = NULL}},
+    {"格局", TNumber, false, {.s = NULL}},
+  }},
+  {"__getCards", "fkp.functions.getCards", TCardList, 2, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"区域", TNumber, false, {.s = NULL}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 
-void load_builtin_getter() {
+void qsan_load_getter() {
   loadmodule(f, v);
 }

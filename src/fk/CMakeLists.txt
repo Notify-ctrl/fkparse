@@ -1,13 +1,13 @@
 set(fkparse_qsan_SRCS
-  "builtin.c"
+  "fk.c"
   "generate.c"
 
-  "builtin/action.c"
+  # "builtin/action.c"
   "builtin/cards.c"
   "builtin/enum.c"
-  "builtin/func.c"
-  "builtin/getter.c"
-  "builtin/interaction.c"
+  # "builtin/func.c"
+  # "builtin/getter.c"
+  # "builtin/interaction.c"
   "builtin/util.c"
 )
 

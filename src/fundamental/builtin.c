@@ -1,36 +1,27 @@
 #include "builtin.h"
+#include "qsan.h"
+#include "noname.h"
+#include "fk.h"
+#include "structs.h"
 
 static void loadfuncdef(Proto *p) {
-  FuncdefObj *def = malloc(sizeof(FuncdefObj));
-  def->objtype = Obj_Funcdef;
+  FuncdefObj *def = newFuncdef(NULL, NULL, p->rettype, NULL);
+  free((void *)def->funcname);
   def->funcname = strdup(p->src);
-  sym_new_entry(p->dst, TFunc, cast(const char *, def), true);
-  def->rettype = p->rettype;
-  def->funcbody = NULL;
+  sym_new_entry(p->dst, TFunc, NULL, true);
+  symtab_item *item = sym_lookup(p->dst);
+  item->funcdef = def;
 
   List *l = list_new();
   for (int i = 0; i < p->argcount; i++) {
     struct ProtoArg *arg = &p->args[i];
-    DefargObj *defarg = malloc(sizeof(DefargObj));
-    defarg->first_line = -1;
-    defarg->objtype = Obj_Defarg;
-    defarg->name = strdup(arg->name);
-    defarg->type = arg->argtype;
+    DefargObj *defarg = newDefarg(strdup(arg->name), arg->argtype, NULL);
 
     if (!arg->have_default) {
       defarg->d = NULL;
     } else {
-      ExpressionObj *e = malloc(sizeof(ExpressionObj));
-      e->objtype = Obj_Expression;
+      ExpressionObj *e = newExpression(ExpVar, 0, 0, NULL, NULL);
       e->valuetype = arg->argtype;
-      e->optype = 0;
-      e->strvalue = NULL;
-      e->varValue = NULL;
-      e->func = NULL;
-      e->array = NULL;
-      e->oprand1 = NULL;
-      e->oprand2 = NULL;
-      e->bracketed = false;
       e->param_name = strdup(arg->name);
 
       VarObj *v;
@@ -49,11 +40,8 @@ static void loadfuncdef(Proto *p) {
         break;
       default:
         e->exptype = ExpVar;
-        v = malloc(sizeof(VarObj));
-        v->objtype = Obj_Var;
-        v->name = strdup(arg->d.s);
+        v = newVar(strdup(arg->d.s), NULL);
         v->type = arg->argtype;
-        v->obj = NULL;
         e->varValue = v;
         break;
       }
@@ -83,19 +71,7 @@ void loadmodule(Proto *ps, BuiltinVar *vs) {
     }
 }
 
-typedef void (*InitFunc)();
-static InitFunc init_funcs[] = {
-  load_builtin_action,
-  load_builtin_cards,
-  load_builtin_enum,
-  load_builtin_func,
-  load_builtin_getter,
-  load_builtin_interaction,
-  load_builtin_util,
-  NULL
-};
-
-void sym_init() {
+void sym_init(fkp_analyze_type parse_type) {
   if (builtin_symtab != NULL) return;
   builtin_symtab = hash_new();
   symtab_stack = stack_new();
@@ -103,9 +79,11 @@ void sym_init() {
   current_tab = builtin_symtab;
   last_lookup_tab = NULL;
 
-  for (int i = 0; ; i++) {
-    if (init_funcs[i] == NULL)
-      break;
-    init_funcs[i]();
+  switch (parse_type) {
+  case FKP_QSAN_LUA: qsan_load(); break;
+  case FKP_NONAME_JS: noname_load(); break;
+  case FKP_FK_LUA: fk_load(); break;
+  default:
+    break;
   }
 }

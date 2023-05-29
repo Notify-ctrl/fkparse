@@ -1,4 +1,4 @@
-#include "builtin.h"
+#include "qsan.h"
 
 static Proto f[] = {
   {"__drawCards", "fkp.functions.drawCards", TNone, 2, {
@@ -162,9 +162,21 @@ static Proto f[] = {
     {"玩家", TPlayer, false, {.s = NULL}},
     {"目标", TPlayer, false, {.s = NULL}},
   }},
+  {"__addToPile", "fkp.functions.addToPile", TNone, 4, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"牌堆名", TString, false, {.s = NULL}},
+    {"加入的牌", TCardList, false, {.s = NULL}},
+    {"可见", TBool, true, {.n = true}},
+  }},
+  {"__jinknum", "fkp.functions.jinknum", TNone, 4, {
+    {"玩家", TPlayer, false, {.s = NULL}},
+    {"用牌信息", TAny, true, {.s = "使用牌信息"}},
+    {"需闪数", TNumber, false, {.s = NULL}},
+    {"目标", TPlayer, false, {.s = NULL}},
+  }},
   {NULL, NULL, TNone, 0, {}}
 };
 
-void load_builtin_action() {
+void qsan_load_action() {
   loadmodule(f, NULL);
 }

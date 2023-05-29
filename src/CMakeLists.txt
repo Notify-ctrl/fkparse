@@ -7,6 +7,7 @@ set(fkparse_SRCS
   "fundamental/list.c"
   "fundamental/symtab.c"
   "fundamental/object.c"
+  "fundamental/builtin.c"
 )
 
 target_sources(fkparse PRIVATE ${fkparse_SRCS})
@@ -14,7 +15,9 @@ target_include_directories(fkparse PRIVATE .)
 target_include_directories(fkparse PRIVATE parse)
 target_include_directories(fkparse PRIVATE fundamental)
 
-add_subdirectory(analyze_qsan)
+add_subdirectory(qsan)
+add_subdirectory(noname)
+add_subdirectory(fk)
 
 set_target_properties(fkparse
   PROPERTIES

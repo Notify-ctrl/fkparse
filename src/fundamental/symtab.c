@@ -43,15 +43,17 @@ void sym_new_entry(const char *k, int type, const char *origtext, bool reserved)
     else {
       i->type = type;
       i->origtext = origtext;
+      i->funcdef = NULL;
       i->reserved = reserved;
     }
   } else {
     v = malloc(sizeof(symtab_item));
     v->type = type;
-    if (type != TFunc && origtext)
+    if (origtext)
       v->origtext = strdup(origtext);
     else
-      v->origtext = origtext;
+      v->origtext = NULL;
+    v->funcdef = NULL;
     v->reserved = reserved;
     sym_set(k, cast(void *, v));
   }
@@ -62,10 +64,10 @@ void sym_free(Hash *h) {
     if (h->entries[i].key) {
       free((void*)h->entries[i].key);
       symtab_item *item = h->entries[i].value;
-      if (item->type != TFunc) {
+      if (item->origtext) {
         free((void *)item->origtext);
-      } else if (h == builtin_symtab) {
-        freeFuncdef((void *)item->origtext);
+      } else if (item->funcdef) {
+        freeFuncdef(item->funcdef);
       }
       free(item);
     }

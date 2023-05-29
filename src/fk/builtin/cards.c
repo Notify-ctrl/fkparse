@@ -1,4 +1,4 @@
-#include "builtin.h"
+#include "fk.h"
 
 static BuiltinVar v[] = {
   {"杀", "'slash'", TString},
@@ -27,7 +27,7 @@ static BuiltinVar v[] = {
   {"方天画戟", "'halberd'", TString},
   {"麒麟弓", "'kylin_bow'", TString},
   {"八卦阵", "'eight_diagram'", TString},
-  {"仁王盾", "'renwang_shield'", TString},
+  {"仁王盾", "'nioh_shield'", TString},
   {"的卢", "'dilu'", TString},
   {"绝影", "'jueying'", TString},
   {"爪黄飞电", "'zhuahuangfeidian'", TString},
@@ -47,6 +47,6 @@ static BuiltinVar v[] = {
   {NULL, NULL, TNone}
 };
 
-void load_builtin_cards() {
+void fk_load_cards() {
   loadmodule(NULL, v);
 }

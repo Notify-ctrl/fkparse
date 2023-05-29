@@ -1,3 +1,7 @@
+-- This file is fkparse's interface for QSanguosha.
+-- You need copy it to lua/lib in QSanguosha's directory.
+-- For license information, check generated lua files.
+
 fkp = {}
 
 sgs.LoadTranslationTable{
@@ -347,6 +351,29 @@ fkp.functions.judge = function(player, reason, pattern, good, play_animation)
   return judge.card
 end
 
+fkp.functions.jinknum = function(player,use, num, target)
+  --local use = data:toCardUse()
+  local jink_table = sgs.QList2Table(player:getTag("Jink_"..use.card:toString()):toIntList())
+  local index = 1
+  for _, p in sgs.qlist(use.to) do
+    if target == nil or target:objectName() == p:objectName() then
+      jink_table[index] = num
+    end
+    index = index + 1
+  end
+  local jink_data = sgs.QVariant()
+  local Table2IntList = function(theTable)
+    local result = sgs.IntList()
+    for i = 1, #theTable, 1 do
+      result:append(theTable[i])
+    end
+    return result
+  end
+  jink_data:setValue(Table2IntList(jink_table))
+  player:setTag("Jink_" .. use.card:toString(),jink_data)
+end
+
+
 fkp.functions.buildPattern = function(names, suits, numbers)
   if not names then names = {"."} end
   if not suits then suits = {"."} end
@@ -558,6 +585,27 @@ fkp.functions.getAllPlayers = function()
   return room:getAllPlayers()
 end
 
+fkp.functions.addToPile = function(player, pile, cards, open)
+  local dummy = sgs.DummyCard()
+  dummy:addSubcards(cards)
+  player:addToPile(pile, dummy, open)
+  dummy:deleteLater()
+end
+
+fkp.functions.getPile = function(player, pile)
+  local ret = sgs.CardList()
+  local p = player:getPile(pile)
+  for _, id in sgs.list(p) do
+    ret:append(sgs.Sanguosha:getCard(id))
+  end
+  return ret
+end
+
+fkp.functions.getSkillUsedTimes = function(player, skill, scope)
+  local tmp_t = {"round", "turn", "phase"}
+  return player:getMark("fkp_usedtime_" .. tmp_t[scope] .. "_" .. skill)
+end
+
 function fkp.newlist(t)
   local element_type
   if #t == 0 then
@@ -610,6 +658,10 @@ function fkp.newlist(t)
       at = function(self, index)
         return self[index + 1]
       end,
+
+      replace = function(self, index, value)
+        self[index + 1] = value
+      end,
     }
   end
 
@@ -623,12 +675,39 @@ function fkp.newlist(t)
   return ret
 end
 
+local default_cond = function(self, target, player, data)
+  return player and player:objectName() == target:objectName() and player:hasSkill(self:objectName())
+end
+
+local default_cost = function(self, target, player, data)
+  return self:getFrequency(player) == sgs.Skill_Compulsory or player:askForSkillInvoke(self:objectName())
+end
+
+fkp.functions.do_cost = function(self, funcs, target, player, data)
+  local room = player:getRoom()
+  local effect_func = funcs[2]
+  local cost_func = funcs[3] or default_cost
+  if cost_func(self, target, player, data) then
+    room:addPlayerMark(player, "fkp_usedtime_round_" .. self:objectName(), 1)
+    room:addPlayerMark(player, "fkp_usedtime_turn_" .. self:objectName(), 1)
+    room:addPlayerMark(player, "fkp_usedtime_phase_" .. self:objectName(), 1)
+    return effect_func(self, target, player, data)
+  end
+end
+
+local default_how_to = function(self, funcs, target, player, data)
+  if fkp.functions.do_cost(self, funcs, target, player, data) then
+    return true
+  end
+end
+
 function fkp.CreateTriggerSkill(spec)
   assert(type(spec.name) == "string")
 
   local freq = spec.frequency or sgs.Skill_NotFrequent
   local limit = spec.limit_mark or ""
   local specs = spec.specs or {}
+  local refresh_specs = spec.refresh_specs or {}
   local eve = {}
   for event, _ in pairs(specs) do
     table.insert(eve, event)
@@ -663,13 +742,28 @@ function fkp.CreateTriggerSkill(spec)
     events = eve,
     on_trigger = function(self, event, player, data)
       local room = player:getRoom()
+
+      if refresh_specs[event] then
+        local cond_func = refresh_specs[event][1] or default_cond
+        local effect_func = refresh_specs[event][2]
+        for _, p in sgs.qlist(room:getAllPlayers()) do
+          if cond_func(self, player, p, data) then
+            effect_func(self, player, p, data)
+          end
+        end
+      end
+
       if not specs[event] then return end
       if not_triggable_func[event] and not_triggable_func[event](player, data) then
         return false
       end
-      for _, p in sgs.qlist(room:getAlivePlayers()) do
-        if specs[event][1](self, player, p, data) then
-          return specs[event][2](self, player, p, data)
+      local cond_func = specs[event][1] or default_cond
+      local how_to_cost = specs[event][4] or default_how_to
+      for _, p in sgs.qlist(room:getAllPlayers()) do
+        if cond_func(self, player, p, data) then
+          if how_to_cost(self, specs[event], player, p, data) then
+            return true
+          end
         end
       end
     end,
@@ -696,6 +790,9 @@ function fkp.CreateActiveSkill(spec)
       for _, id in sgs.list(self:getSubcards()) do
         clist:append(sgs.Sanguosha:getCard(id))
       end
+      room:addPlayerMark(source, "fkp_usedtime_round_" .. self:objectName(), 1)
+      room:addPlayerMark(source, "fkp_usedtime_turn_" .. self:objectName(), 1)
+      room:addPlayerMark(source, "fkp_usedtime_phase_" .. self:objectName(), 1)
       return spec.on_use(self, source, plist, clist)
     end,
     on_effect = spec.on_effect or function()end,  -- TODO
@@ -830,7 +927,7 @@ fkp_global = sgs.CreateTriggerSkill{
   name = "fkp_global",
   global = true,
   priority = -1,
-  events = {sgs.Pindian},
+  events = {sgs.Pindian, sgs.EventPhaseStart, sgs.TurnStart, sgs.CardUsed, sgs.CardResponded},
   can_trigger = function(self, target)
     return target
   end,
@@ -863,6 +960,50 @@ fkp_global = sgs.CreateTriggerSkill{
       else
         local times = room:getTag("fkp_pindian_times"):toInt() + 1
         room:setTag("fkp_pindian_times", sgs.QVariant(times))
+      end
+
+    -- clean marks that store skill used times
+    elseif event == sgs.EventPhaseStart then
+      for _, mark in sgs.list(player:getMarkNames()) do
+        if string.find(mark, "fkp_usedtime_phase_") and player:getMark(mark) > 0 then
+          room:setPlayerMark(player, mark, 0)
+        end
+      end
+    elseif event == sgs.TurnStart then
+      local n = 15
+      for _, p in sgs.qlist(room:getAlivePlayers()) do
+        n = math.min(p:getSeat(), n)
+      end
+      if player:getSeat() == n and not room:getTag("ExtraTurn"):toBool() then
+        for _, p in sgs.qlist(room:getAlivePlayers()) do
+          for _, mark in sgs.list(p:getMarkNames()) do
+            if string.find(mark, "fkp_usedtime_round_") and p:getMark(mark) > 0 then
+              room:setPlayerMark(p, mark, 0)
+            end
+          end
+        end
+      end
+
+      for _, mark in sgs.list(player:getMarkNames()) do
+        if string.find(mark, "fkp_usedtime_turn_") and player:getMark(mark) > 0 then
+          room:setPlayerMark(player, mark, 0)
+        end
+      end
+
+    -- for view as skills.
+    elseif event == sgs.CardUsed then
+      local skill = data:toCardUse().card:getSkillName()
+      if skill ~= "" then
+        room:addPlayerMark(player, "fkp_usedtime_round_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_turn_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_phase_" .. skill, 1)
+      end
+    elseif event == sgs.CardResponded then
+      local skill = data:toCardResponse().m_card:getSkillName()
+      if skill ~= "" then
+        room:addPlayerMark(player, "fkp_usedtime_round_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_turn_" .. skill, 1)
+        room:addPlayerMark(player, "fkp_usedtime_phase_" .. skill, 1)
       end
     end
   end,

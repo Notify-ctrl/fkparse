@@ -34,6 +34,7 @@ FunccallObj *newFunccall(const char *name, Hash *params) {
   ret->objtype = Obj_Funccall;
   ret->name = name;
   ret->params = params;
+  ret->param_list = NULL;
   return ret;
 }
 
@@ -72,6 +73,12 @@ ExpressionObj *newExpression(int exptype, long long value, int optype,
     case ExpStr:
       ret->valuetype = TString;
       break;
+    case ExpDict:
+      ret->valuetype = TDict;
+      break;
+    case ExpFunc:
+      ret->valuetype = TFunc;
+      break;
     default:
       ret->valuetype = -1;
       break;
@@ -81,7 +88,9 @@ ExpressionObj *newExpression(int exptype, long long value, int optype,
   ret->strvalue = NULL;
   ret->varValue = NULL;
   ret->func = NULL;
+  ret->funcdef = NULL;
   ret->array = NULL;
+  ret->dict = NULL;
   ret->oprand1 = l;
   ret->oprand2 = r;
   ret->bracketed = false;
@@ -95,8 +104,13 @@ VarObj *newVar(const char *name, ExpressionObj *obj) {
   ret->objtype = Obj_Var;
   ret->name = name;
   ret->obj = obj;
+  ret->index = NULL;
 
   if (!ret->obj) {
+    if (!ret->name) {
+      ret->type = TNone;
+      return ret;
+    }
     symtab_item *i = sym_lookup(ret->name);
     if (i) {
       ret->type = i->type;
@@ -115,6 +129,7 @@ AssignObj *newAssign(VarObj *var, ExpressionObj *e) {
   ret->objtype = Obj_Assign;
   ret->var = var;
   ret->value = e;
+  ret->custom_type = TNone;
   return ret;
 }
 
@@ -133,6 +148,7 @@ LoopObj *newLoop(BlockObj *body, ExpressionObj *cond) {
   ret->objtype = Obj_Loop;
   ret->cond = cond;
   ret->body = body;
+  ret->type = 0;
 
   return ret;
 }
@@ -161,7 +177,9 @@ TriggerSpecObj *newTriggerSpec(int event, BlockObj *cond, BlockObj *effect) {
   ret->event = event;
   ret->can_trigger = cond;
   ret->on_trigger = effect;
-  ret->on_refresh = NULL; /* TODO */
+  ret->is_refresh = false;
+  ret->on_cost = NULL;
+  ret->how_cost = NULL;
 
   return ret;
 }
@@ -239,7 +257,7 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
       break;
     case Spec_ActiveSkill:
       if (ret->activeSpec != NULL) {
-        yyerror(cast(YYLTYPE *, data->obj), "不允许一个技能下同时存在多个主动技");
+        fkp_yyerror(cast(FKP_YYLTYPE *, data->obj), "不允许一个技能下同时存在多个主动技");
         freeObject(ret->activeSpec);
       }
       ret->activeSpec = cast(ActiveSpecObj *, data->obj);
@@ -247,7 +265,7 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
       break;
     case Spec_ViewAsSkill:
       if (ret->vsSpec != NULL) {
-        yyerror(cast(YYLTYPE *, data->obj), "不允许一个技能下同时存在多个视为技");
+        fkp_yyerror(cast(FKP_YYLTYPE *, data->obj), "不允许一个技能下同时存在多个视为技");
         freeObject(ret->vsSpec);
       }
       ret->vsSpec = cast(ViewAsSpecObj *, data->obj);
@@ -255,7 +273,7 @@ SkillObj *newSkill(const char *id, const char *desc, const char *frequency,
       break;
     case Spec_StatusSkill:
       if (ret->statusSpec != NULL) {
-        yyerror(cast(YYLTYPE *, data->obj), "不允许一个技能下同时存在多个状态技");
+        fkp_yyerror(cast(FKP_YYLTYPE *, data->obj), "不允许一个技能下同时存在多个状态技");
         freeObject(ret->statusSpec);
       }
       ret->statusSpec = cast(StatusSpecObj *, data->obj);
@@ -301,7 +319,11 @@ GeneralObj *newGeneral(const char *id, const char *kingdom, long long hp,
   return ret;
 }
 
-PackageObj *newPackage(const char *name, List *generals) {
+CardObj *newCard(const char *id, const char *description, const char *type, const char *skill) {
+  return NULL;
+}
+
+PackageObj *newPackage(const char *name) {
   PackageObj *ret = malloc(sizeof(PackageObj));
   ret->objtype = Obj_Package;
   ret->internal_id = package_id++;
@@ -311,7 +333,6 @@ PackageObj *newPackage(const char *name, List *generals) {
   ret->id = strdup(buf);
   addTranslation(ret->id, name);
   sym_new_entry(name, TPackage, ret->id, false);
-  ret->generals = generals;
 
   free((void *)name);
   return ret;
@@ -336,12 +357,11 @@ FuncdefObj *newFuncdef(const char *name, List *params, int rettype,
   funcId++;
 
   ret->funcname = strdup(buf);
-  sym_new_entry(name, TFunc, cast(const char *, ret), false);
+  ret->name = name;
   ret->params = params;
   ret->rettype = rettype;
   ret->funcbody = funcbody;
 
-  free((void *)name);
   return ret;
 }
 
@@ -353,12 +373,9 @@ SkillSpecObj *newSkillSpec(SpecType type, void *obj) {
   return ret;
 }
 
-ExtensionObj *newExtension(List *funcs, List *skills, List *packs) {
+ExtensionObj *newExtension() {
   ExtensionObj *ret = malloc(sizeof(ExtensionObj));
   ret->objtype = Obj_Extension;
-  ret->funcdefs = funcs;
-  ret->skills = skills;
-  ret->packages = packs;
 
   return ret;
 }
@@ -394,11 +411,13 @@ static void freeExp(void *ptr) {
   if (!ptr) return;
   ExpressionObj *e = ptr;
   free((void *)e->strvalue);
-  if (e->varValue) freeObject(e->varValue);
-  if (e->func) freeObject(e->func);
+  freeObject(e->varValue);
+  freeObject(e->func);
+  freeObject(e->funcdef);
   if (e->array) list_free(e->array, freeObject);
-  if (e->oprand1) freeObject(e->oprand1);
-  if (e->oprand2) freeObject(e->oprand2);
+  if (e->dict) hash_free(e->dict, freeObject);
+  freeObject(e->oprand1);
+  freeObject(e->oprand2);
   free((void *)e->param_name);
   free(e);
 }
@@ -407,6 +426,7 @@ static void freeVar(void *ptr) {
   VarObj *v = cast(VarObj *, ptr);
   free((void *)v->name);
   freeObject(v->obj);
+  freeObject(v->index);
   free(v);
 }
 
@@ -421,6 +441,7 @@ static void freeFunccall(void *ptr) {
   FunccallObj *f = ptr;
   free((void *)f->name);
   hash_free(f->params, freeObject);
+  list_free(f->param_list, freeObject);
   free(f);
 }
 
@@ -463,7 +484,8 @@ static void freeTriggerSpec(void *ptr) {
   TriggerSpecObj *t = ptr;
   freeObject(t->can_trigger);
   freeObject(t->on_trigger);
-  freeObject(t->on_refresh);
+  freeObject(t->how_cost);
+  freeObject(t->on_cost);
   free(t);
 }
 
@@ -515,6 +537,7 @@ static void freeDefarg(void *ptr) {
 void freeFuncdef(void *ptr) {
   FuncdefObj *d = ptr;
   free((void *)d->funcname);
+  free((void *)d->name);
   list_free(d->params, freeDefarg);
   freeObject(d->funcbody);
   free(d);
@@ -549,21 +572,18 @@ static void freeGeneral(void *ptr) {
   free((void *)g->kingdom);
   free((void *)g->nickname);
   free((void *)g->gender);
-  list_free(g->skills, free);
+  list_free(g->skills, freeExp);
   free(g);
 }
 
 static void freePackage(void *ptr) {
   PackageObj *pack = ptr;
   free((void *)pack->id);
-  list_free(pack->generals, freeGeneral);
   free(pack);
 }
 
 static void freeExtension(ExtensionObj *e) {
-  list_free(e->funcdefs, freeFuncdef);
-  list_free(e->skills, freeSkill);
-  list_free(e->packages, freePackage);
+  list_free(e->stats, freeObject);
   free(e);
 }
 
@@ -588,6 +608,7 @@ void freeObject(void *p) {
   case Obj_Loop: freeLoop(p); break;
   case Obj_Traverse: freeTraverse(p); break;
   case Obj_Break: free(p); break;
+  case Obj_Docost: free(p); break;
   case Obj_Funccall: freeFunccall(p); break;
   case Obj_Arg: freeArg(p); break;
   case Obj_Assign: freeAssign(p); break;

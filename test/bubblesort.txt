@@ -1,0 +1,24 @@
+Package bubblesort
+
+bubble = def(list: TNumberList)
+  len = list."长度"
+  i = 0
+  while i < len - 1 repeat
+    j = 0
+    while j < len - 1 - i repeat
+      if list[j] > list[j+1] then
+        temp = list[j+1]
+        list[j+1] = list[j]
+        list[j] = temp
+      end
+      j = j + 1
+    end
+    i = i + 1
+  end
+end
+
+l = [23, 43, 66, 1, 53, 89]
+bubble(l);
+对l中每个n repeat
+  '警告框'(‘信息’: n);
+end

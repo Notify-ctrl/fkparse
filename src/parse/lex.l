@@ -1,5 +1,11 @@
 %option noyywrap nodefault yylineno
 %option bison-bridge bison-locations
+%option prefix="fkp_yy"
+
+%top {
+#define YYLTYPE FKP_YYLTYPE
+#define YYSTYPE FKP_YYSTYPE
+}
 
 %{
 #include "object.h"
@@ -32,7 +38,6 @@ static int yycolumn = 1;
 
  /* Frequently used IDENTIFIER */
 "你" |
-"X" |
 "其" |
 "不存在的" {
     yylval->s = strdup(yytext);
@@ -52,12 +57,12 @@ static int yycolumn = 1;
     return STRING;
     }
 
-[0-9]+    { yylval->i = atoi(yytext); return NUMBER; }
+-?[0-9]+    { yylval->i = atoi(yytext); return NUMBER; }
 
-\{[a-zA-Z][_a-zA-Z0-9]*\} {
+\{[a-zA-Z_][a-zA-Z0-9_]*\} {
     yylval->s = strdup(yytext + 1);
     yylval->s[strlen(yylval->s) - 1] = 0;
-    return INTERID;
+    return INTERNAL_ID;
     }
 
 "拓展包" |
@@ -70,9 +75,18 @@ static int yycolumn = 1;
 "条件:" |
 "条件："   |
 "Condition:"    { return COND; }
+"消耗:" |
+"消耗："  |
+"Cost:"         { return COST; }
+"如何执行:" |
+"如何执行：" |
+"HowCost:"      { return HOWCOST; }
 "效果:" |
 "效果："   |
 "Effect:"       { return EFFECT; }
+"刷新:" |
+"刷新："   |
+"Refresh:"      { return REFRESH; }
 "令" |
 "let"           { return LET; }
 "为" |
@@ -93,7 +107,9 @@ static int yycolumn = 1;
 "repeat"        { return REPEAT; }
 "直到" |
 "until"         { return UNTIL; }
-"的" |
+"当" |
+"while"         { return WHILE; }
+"的属性" |
 "."             { return FIELD; }
 "返回" |
 "return"        { return RET; }
@@ -104,10 +120,9 @@ static int yycolumn = 1;
 "true"          { return TRUE; }
 "中止此流程" |
 "break"         { return BREAK; }
+"执行消耗"       { return DOCOST; }
 "定义函数" |
 "def"           { return FUNCDEF; }
-"调用" |
-"call"          { return CALL; }
 
 "摸"    { return DRAW; }
 "张"    { return ZHANG; }
@@ -140,6 +155,7 @@ static int yycolumn = 1;
 "删除" { return DELETE; }
 "第" { return DI; }
 "个" { return GE; }
+"的" { return DE; }
 "元素" { return ELEMENT; }
 "拥有"  { return HAVE; }
 "洗牌" { return WASH; }
@@ -164,6 +180,11 @@ static int yycolumn = 1;
 "相邻" { return ADJACENT; }
 "之外的"  { return EXPECT; }
 "其他角色"  { return OTHERPLAYER; }
+"作为"  { return AS; }
+"闪" { return SHAN; }
+"杀" { return SHA; }
+"需" { return NEED; }
+"响应" { return RESPONSE; }
 
 "主动技" |
 "ActiveSkill"   { return ACTIVE; }
@@ -235,6 +256,13 @@ static int yycolumn = 1;
 "翻面"    { return TURNOVER; }
 "额外回合"  { return EXTRATURN; }
 "跳过"    { return SKIP; }
+"私人牌堆"  { return PILE; }
+"置于"    { return PUT; }
+"本轮"    { return THISROUND; }
+"本回合"  { return THISTURN;  }
+"本阶段"  { return THISPHASE; }
+"发动过"  { return INVOKED;   }
+"区域"    { return AREA; }
 
 "游戏开始时" |
 "GameStart"         { yylval->enum_v = GameStart; return EVENT; }
@@ -359,13 +387,6 @@ static int yycolumn = 1;
     return GENDER;
     }
 
-"只观看顶部" |
-"顶部底部均观看" |
-"只观看底部" {
-    yylval->s = strdup(yytext);
-    return GUANXINGTYPE;
-}
-
 "魏" |
 "蜀" |
 "吴" |
@@ -378,6 +399,23 @@ static int yycolumn = 1;
 "God" {
     yylval->s = strdup(yytext);
     return KINGDOM;
+    }
+
+"基本牌" |
+"普通锦囊牌" |
+"延时锦囊牌" |
+"武器牌1" |
+"武器牌2" |
+"武器牌3" |
+"武器牌4" |
+"武器牌5" |
+"武器牌9" |
+"防具牌" |
+"防御坐骑" |
+"攻击坐骑" |
+"宝物牌" {
+    yylval->s = strdup(yytext);
+    return CARDTYPE;
     }
 
 "$" |
@@ -393,6 +431,8 @@ static int yycolumn = 1;
 "*" |
 "/" |
 "," |
+"%" |
+";" |
 ":" { return yytext[0]; }
 
 "（"   { return '('; }
@@ -459,6 +499,12 @@ static int yycolumn = 1;
 "或"  |
 "or" |
 "||"  { yylval->enum_v = 8; return LOGICOP; }
+
+ /* C-style identifier, with lowest priority */
+[_a-zA-Z][_a-zA-Z0-9]* {
+    yylval->s = strdup(yytext);
+    return IDENTIFIER;
+    }
 
  /* Below are ignored */
 "注:".*
